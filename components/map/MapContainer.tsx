@@ -32,6 +32,7 @@ export function MapContainer({
   const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const selectedMarkerRef = useRef<string | null>(null);
   const shopsRef = useRef<Shop[]>(shops);
+  const isZooming = useRef<boolean>(false);
 
   // Keep shopsRef in sync
   useEffect(() => {
@@ -257,7 +258,7 @@ export function MapContainer({
       // Function to update visible markers
       const updateMarkers = () => {
         const m = map.current;
-        if (!m) return;
+        if (!m || isZooming.current) return;
 
         const features = m.querySourceFeatures('shops');
         const newMarkerIds = new Set<string>();
@@ -269,9 +270,12 @@ export function MapContainer({
           const id = feature.properties?.id;
           if (!id) return;
 
-          const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
+          // Get coordinates from the original shop data for stability
           const shop = shopsRef.current.find((s) => s.documentId === id);
           if (!shop) return;
+
+          const coords = getCoords(shop);
+          if (!coords) return;
 
           newMarkerIds.add(id);
 
@@ -305,8 +309,17 @@ export function MapContainer({
         });
       };
 
-      // Update markers on map events
-      m.on('render', updateMarkers);
+      // Track zoom state to prevent marker updates during animation
+      m.on('zoomstart', () => {
+        isZooming.current = true;
+      });
+      m.on('zoomend', () => {
+        isZooming.current = false;
+        updateMarkers();
+      });
+
+      // Update markers when map becomes idle (all animations complete)
+      m.on('idle', updateMarkers);
       updateMarkers();
     };
 

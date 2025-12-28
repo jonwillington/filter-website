@@ -167,7 +167,12 @@ export function MainLayout({
         />
 
         {selectedShop && (
-          <ShopDrawer shop={selectedShop} onClose={handleCloseDrawer} />
+          <ShopDrawer
+            shop={selectedShop}
+            allShops={shops}
+            onClose={handleCloseDrawer}
+            onShopSelect={handleShopSelect}
+          />
         )}
       </div>
 

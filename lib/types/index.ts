@@ -59,14 +59,53 @@ export interface CityArea {
   shops?: Shop[];
 }
 
+export interface CoffeePartner {
+  id: number;
+  documentId: string;
+  name: string;
+  logo?: MediaAsset | null;
+  country?: string | null;
+  description?: string | null;
+  website?: string | null;
+  instagram?: string | null;
+}
+
 export interface Brand {
   id: number;
   documentId: string;
   name: string;
   description?: string | null;
+  story?: string | null;
   logo?: MediaAsset | null;
+  type?: string | null; // "Roaster", "Cafe", "Chain", etc.
+
+  // Social
   website?: string | null;
   instagram?: string | null;
+  facebook?: string | null;
+  tiktok?: string | null;
+  phone?: string | null;
+
+  // Coffee sourcing
+  roastOwnBeans?: boolean;
+  suppliers?: CoffeePartner[];
+  coffee_partner?: CoffeePartner | null;
+
+  // Amenities (defaults for shops)
+  has_wifi?: boolean;
+  has_food?: boolean;
+  has_outdoor_space?: boolean;
+  is_pet_friendly?: boolean;
+
+  // Brew methods (defaults for shops)
+  has_espresso?: boolean;
+  has_filter_coffee?: boolean;
+  has_v60?: boolean;
+  has_chemex?: boolean;
+  has_aeropress?: boolean;
+  has_french_press?: boolean;
+  has_cold_brew?: boolean;
+  has_batch_brew?: boolean;
 }
 
 export interface OpeningHoursPeriod {
@@ -88,7 +127,9 @@ export interface Shop {
   name: string;
   prefName?: string | null;
   slug?: string | null;
+  description?: string | null;
   address?: string | null;
+  neighbourhood?: string | null;
   coordinates?: { lat: number; lng: number } | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -99,16 +140,31 @@ export interface Shop {
   brand?: Brand;
   featured_image?: MediaAsset | null;
   gallery?: MediaAsset[] | null;
+  menus?: MediaAsset[] | null;
+
+  // Coffee sourcing (shop-specific override)
+  coffee_partner?: CoffeePartner | null;
 
   // Amenities
   has_wifi?: boolean;
+  has_food?: boolean;
+  has_outdoor_space?: boolean;
+  is_pet_friendly?: boolean;
   has_v60?: boolean;
   has_chemex?: boolean;
   has_filter_coffee?: boolean;
   has_slow_bar?: boolean;
   has_kitchen?: boolean;
-  has_outdoor_space?: boolean;
-  is_pet_friendly?: boolean;
+
+  // Brew methods
+  has_espresso?: boolean;
+  has_aeropress?: boolean;
+  has_french_press?: boolean;
+  has_cold_brew?: boolean;
+  has_batch_brew?: boolean;
+
+  // Chain/Independent
+  is_chain?: boolean;
   independent?: boolean;
 
   // Ratings & Hours
@@ -116,6 +172,8 @@ export interface Shop {
   is_open?: boolean | null;
   google_rating?: number | null;
   google_review_count?: number | null;
+  rating?: number | null;
+  rating_count?: number | null;
 
   // Contact
   website?: string | null;
@@ -124,6 +182,10 @@ export interface Shop {
   instagram?: string | null;
   facebook?: string | null;
   tiktok?: string | null;
+
+  // Tags
+  public_tags?: string[];
+  amenities?: string[];
 }
 
 export interface NearbyShop {

@@ -1,5 +1,5 @@
 import { Shop, OpeningHours } from '@/lib/types';
-import { MapPin, Clock, Phone, Star } from 'lucide-react';
+import { MapPin, Clock, Star } from 'lucide-react';
 import { Chip } from '@heroui/react';
 
 interface ShopInfoProps {
@@ -12,59 +12,44 @@ function isOpeningHoursObject(hours: unknown): hours is OpeningHours {
 
 export function ShopInfo({ shop }: ShopInfoProps) {
   const openingHours = isOpeningHoursObject(shop.opening_hours) ? shop.opening_hours : null;
-  const isOpen = shop.is_open ?? openingHours?.open_now;
   const todayHours = openingHours?.today ?? openingHours?.display;
 
+  const coords = shop.coordinates ?? (shop.latitude && shop.longitude
+    ? { lat: shop.latitude, lng: shop.longitude }
+    : null);
+
+  const mapsUrl = coords
+    ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
+    : shop.address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`
+      : null;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Address */}
       {shop.address && (
         <div className="flex items-start gap-3">
           <MapPin className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-              shop.address
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-text hover:text-accent transition-colors text-sm leading-relaxed"
-          >
-            {shop.address}
-          </a>
+          {mapsUrl ? (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-text hover:text-accent transition-colors text-sm leading-relaxed"
+            >
+              {shop.address}
+            </a>
+          ) : (
+            <span className="text-text text-sm leading-relaxed">{shop.address}</span>
+          )}
         </div>
       )}
 
       {/* Opening Hours */}
-      {(todayHours || isOpen !== undefined) && (
+      {todayHours && (
         <div className="flex items-center gap-3">
           <Clock className="w-5 h-5 text-accent flex-shrink-0" />
-          <div className="flex items-center gap-2 flex-wrap">
-            {isOpen !== undefined && (
-              <Chip
-                size="sm"
-                color={isOpen ? 'success' : 'default'}
-                variant="flat"
-              >
-                {isOpen ? 'Open now' : 'Closed'}
-              </Chip>
-            )}
-            {todayHours && (
-              <span className="text-textSecondary text-sm">{todayHours}</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Phone */}
-      {shop.phone && (
-        <div className="flex items-center gap-3">
-          <Phone className="w-5 h-5 text-accent flex-shrink-0" />
-          <a
-            href={`tel:${shop.phone}`}
-            className="text-text hover:text-accent transition-colors text-sm"
-          >
-            {shop.phone}
-          </a>
+          <span className="text-text text-sm">{todayHours}</span>
         </div>
       )}
 

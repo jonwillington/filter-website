@@ -1,0 +1,29 @@
+import { Shop } from '@/lib/types';
+import { ShopMiniCard } from './ShopMiniCard';
+
+interface RelatedShopsProps {
+  title: string;
+  shops: Shop[];
+  onShopSelect: (shop: Shop) => void;
+}
+
+export function RelatedShops({ title, shops, onShopSelect }: RelatedShopsProps) {
+  if (shops.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
+        {title}
+      </h3>
+      <div className="space-y-2">
+        {shops.slice(0, 5).map((shop) => (
+          <ShopMiniCard
+            key={shop.documentId}
+            shop={shop}
+            onClick={() => onShopSelect(shop)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

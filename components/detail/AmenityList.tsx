@@ -1,24 +1,24 @@
 import { Shop } from '@/lib/types';
 import { Chip } from '@heroui/react';
-import { Wifi, Coffee, Sun, UtensilsCrossed } from 'lucide-react';
+import { Wifi, UtensilsCrossed, Sun, Dog } from 'lucide-react';
+import { getMergedAmenities } from '@/lib/utils';
 
 interface AmenityListProps {
   shop: Shop;
 }
 
-const amenities = [
+const amenityConfig = [
   { key: 'has_wifi', label: 'WiFi', icon: Wifi },
-  { key: 'has_v60', label: 'V60', icon: Coffee },
-  { key: 'has_chemex', label: 'Chemex', icon: Coffee },
-  { key: 'has_filter_coffee', label: 'Filter', icon: Coffee },
-  { key: 'has_slow_bar', label: 'Slow Bar', icon: Coffee },
-  { key: 'has_kitchen', label: 'Food', icon: UtensilsCrossed },
+  { key: 'has_food', label: 'Food', icon: UtensilsCrossed },
   { key: 'has_outdoor_space', label: 'Outdoor', icon: Sun },
+  { key: 'is_pet_friendly', label: 'Pet Friendly', icon: Dog },
 ] as const;
 
 export function AmenityList({ shop }: AmenityListProps) {
-  const activeAmenities = amenities.filter(
-    (a) => shop[a.key as keyof Shop] === true
+  const amenities = getMergedAmenities(shop);
+
+  const activeAmenities = amenityConfig.filter(
+    (a) => amenities[a.key as keyof typeof amenities]
   );
 
   if (activeAmenities.length === 0) return null;
