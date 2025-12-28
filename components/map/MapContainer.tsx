@@ -82,6 +82,7 @@ export function MapContainer({
           background-size: cover;
           background-position: center;
           background-color: white;
+          cursor: pointer;
         `;
       } else {
         el.innerHTML = '☕';
@@ -96,6 +97,7 @@ export function MapContainer({
           align-items: center;
           justify-content: center;
           font-size: 20px;
+          cursor: pointer;
         `;
       }
 
@@ -103,6 +105,12 @@ export function MapContainer({
     },
     []
   );
+
+  // Update marker element styling without replacing it
+  const updateMarkerStyle = useCallback((el: HTMLElement, shop: Shop, isSelected: boolean) => {
+    el.style.borderColor = isSelected ? '#8B6F47' : 'white';
+    el.className = `shop-marker${isSelected ? ' selected' : ''}`;
+  }, []);
 
   // Helper to get coordinates
   const getCoords = useCallback((shop: Shop): [number, number] | null => {
@@ -157,12 +165,7 @@ export function MapContainer({
       if (prevShop) {
         const marker = markers.current.get(selectedMarkerRef.current);
         if (marker) {
-          const el = createMarkerElement(prevShop, false);
-          el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            onShopSelect(prevShop);
-          });
-          marker.getElement().replaceWith(el);
+          updateMarkerStyle(marker.getElement(), prevShop, false);
         }
       }
     }
@@ -171,12 +174,7 @@ export function MapContainer({
     if (selectedShop && markers.current.has(selectedShop.documentId)) {
       const marker = markers.current.get(selectedShop.documentId);
       if (marker) {
-        const el = createMarkerElement(selectedShop, true);
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          onShopSelect(selectedShop);
-        });
-        marker.getElement().replaceWith(el);
+        updateMarkerStyle(marker.getElement(), selectedShop, true);
 
         // Fly to selected shop
         const coords = getCoords(selectedShop);
@@ -191,7 +189,7 @@ export function MapContainer({
     }
 
     selectedMarkerRef.current = selectedShop?.documentId || null;
-  }, [selectedShop, shops, createMarkerElement, onShopSelect, getCoords]);
+  }, [selectedShop, shops, updateMarkerStyle, getCoords]);
 
   return <div ref={mapContainer} className="map-container" />;
 }
