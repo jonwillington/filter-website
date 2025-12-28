@@ -2,8 +2,6 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 
-export const revalidate = 300;
-
 export default async function HomePage() {
   // Get locations (internally fetches shops and caches them)
   const locations = await getAllLocations();

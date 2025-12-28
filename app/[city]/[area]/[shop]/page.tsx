@@ -5,7 +5,33 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify, getMediaUrl } from '@/lib/utils';
 
-export const revalidate = 300;
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  try {
+    const shops = await getAllShops();
+
+    return shops
+      .map((shop) => {
+        const cityName = shop.location?.name;
+        const areaName = shop.city_area?.name ?? shop.cityArea?.name;
+        const shopSlug = shop.slug || slugify(shop.name);
+
+        if (cityName && areaName) {
+          return {
+            city: slugify(cityName),
+            area: slugify(areaName),
+            shop: shopSlug,
+          };
+        }
+        return null;
+      })
+      .filter((params): params is { city: string; area: string; shop: string } => params !== null);
+  } catch (error) {
+    console.error('Error in generateStaticParams for shop:', error);
+    return [];
+  }
+}
 
 interface ShopPageProps {
   params: Promise<{ city: string; area: string; shop: string }>;
@@ -34,23 +60,6 @@ export async function generateMetadata({ params }: ShopPageProps): Promise<Metad
       images: imageUrl ? [imageUrl] : [],
     },
   };
-}
-
-export async function generateStaticParams() {
-  const shops = await getAllShops();
-
-  return shops
-    .filter(
-      (shop) =>
-        shop.location?.name &&
-        (shop.city_area?.name || shop.cityArea?.name) &&
-        shop.slug
-    )
-    .map((shop) => ({
-      city: slugify(shop.location!.name),
-      area: slugify(shop.city_area?.name ?? shop.cityArea?.name ?? ''),
-      shop: shop.slug!,
-    }));
 }
 
 export default async function ShopPage({ params }: ShopPageProps) {

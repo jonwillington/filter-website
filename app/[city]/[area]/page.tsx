@@ -1,11 +1,39 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
-import { getShopsByLocation } from '@/lib/api/shops';
+import { getShopsByLocation, getAllShops } from '@/lib/api/shops';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { deslugify } from '@/lib/utils';
+import { deslugify, slugify } from '@/lib/utils';
 
-export const revalidate = 300;
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  try {
+    const shops = await getAllShops();
+
+    const areaParams = new Map<string, { city: string; area: string }>();
+
+    shops.forEach((shop) => {
+      const cityName = shop.location?.name;
+      const areaName = shop.city_area?.name ?? shop.cityArea?.name;
+
+      if (cityName && areaName) {
+        const key = `${cityName}-${areaName}`;
+        if (!areaParams.has(key)) {
+          areaParams.set(key, {
+            city: slugify(cityName),
+            area: slugify(areaName),
+          });
+        }
+      }
+    });
+
+    return Array.from(areaParams.values());
+  } catch (error) {
+    console.error('Error in generateStaticParams for area:', error);
+    return [];
+  }
+}
 
 interface AreaPageProps {
   params: Promise<{ city: string; area: string }>;

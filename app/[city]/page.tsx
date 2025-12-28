@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
 
-export const revalidate = 300;
+export const dynamicParams = false;
 
 interface CityPageProps {
   params: Promise<{ city: string }>;
@@ -31,10 +31,15 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 }
 
 export async function generateStaticParams() {
-  const locations = await getAllLocations();
-  return locations.map((location) => ({
-    city: slugify(location.name),
-  }));
+  try {
+    const locations = await getAllLocations();
+    return locations.map((location) => ({
+      city: slugify(location.name),
+    }));
+  } catch (error) {
+    console.error('Error in generateStaticParams for city:', error);
+    return [];
+  }
 }
 
 export default async function CityPage({ params }: CityPageProps) {
