@@ -36,6 +36,10 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_STRAPI_URL: https://helpful-oasis-8bb949e05d.strapiapp.com/api
+          NEXT_PUBLIC_STRAPI_TOKEN: ${{ secrets.STRAPI_TOKEN }}
+          NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
