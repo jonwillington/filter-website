@@ -167,6 +167,9 @@ export interface Shop {
   is_chain?: boolean;
   independent?: boolean;
 
+  // Recommendations
+  cityarearec?: boolean;
+
   // Ratings & Hours
   opening_hours?: string[] | OpeningHours | null;
   is_open?: boolean | null;

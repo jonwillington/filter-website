@@ -33,6 +33,7 @@ export function MainLayout({
   const [isNearbyMode, setIsNearbyMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [showTopRecommendations, setShowTopRecommendations] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
 
@@ -50,6 +51,7 @@ export function MainLayout({
       setSelectedLocation(location);
       setSelectedShop(null);
       setIsNearbyMode(false);
+      setShowTopRecommendations(false);
 
       if (location) {
         router.push(`/${slugify(location.name)}`);
@@ -59,6 +61,11 @@ export function MainLayout({
     },
     [router]
   );
+
+  // Filter shops based on top recommendations toggle
+  const filteredShops = showTopRecommendations
+    ? shops.filter((shop) => shop.cityarearec === true)
+    : shops;
 
   const handleShopSelect = useCallback(
     (shop: Shop) => {
@@ -150,17 +157,19 @@ export function MainLayout({
           locations={locations}
           selectedLocation={selectedLocation}
           onLocationChange={handleLocationChange}
-          shops={shops}
+          shops={filteredShops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           isNearbyMode={isNearbyMode}
           onNearbyToggle={handleNearbyToggle}
           isLoading={isLoading}
           isOpen={isMobileSidebarOpen}
+          showTopRecommendations={showTopRecommendations}
+          onTopRecommendationsChange={setShowTopRecommendations}
         />
 
         <MapContainer
-          shops={shops}
+          shops={filteredShops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           center={getMapCenter()}
