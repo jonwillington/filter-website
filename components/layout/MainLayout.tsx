@@ -64,7 +64,7 @@ export function MainLayout({
 
   // Filter shops based on top recommendations toggle
   const filteredShops = showTopRecommendations
-    ? shops.filter((shop) => Boolean(shop.cityarearec || shop.city_area_rec))
+    ? shops.filter((shop) => Boolean(shop.CityAreaRec))
     : shops;
 
   const handleShopSelect = useCallback(
