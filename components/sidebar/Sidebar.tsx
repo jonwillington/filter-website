@@ -4,6 +4,7 @@ import { LocationSelector } from './LocationSelector';
 import { ShopList } from './ShopList';
 import { Location, Shop } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Switch } from '@heroui/react';
 
 interface SidebarProps {
   locations: Location[];
@@ -16,6 +17,8 @@ interface SidebarProps {
   onNearbyToggle: () => void;
   isLoading?: boolean;
   isOpen?: boolean;
+  showTopRecommendations?: boolean;
+  onTopRecommendationsChange?: (value: boolean) => void;
 }
 
 export function Sidebar({
@@ -29,6 +32,8 @@ export function Sidebar({
   onNearbyToggle,
   isLoading,
   isOpen = true,
+  showTopRecommendations = false,
+  onTopRecommendationsChange,
 }: SidebarProps) {
   return (
     <aside className={cn('sidebar', isOpen && 'open')}>
@@ -41,6 +46,21 @@ export function Sidebar({
           isNearbyMode={isNearbyMode}
           onNearbyToggle={onNearbyToggle}
         />
+        {selectedLocation && onTopRecommendationsChange && (
+          <div className="mt-4 flex items-center justify-between py-2 px-1">
+            <span className="text-sm text-textSecondary">
+              Only show top recommendations
+            </span>
+            <Switch
+              size="sm"
+              isSelected={showTopRecommendations}
+              onValueChange={onTopRecommendationsChange}
+              classNames={{
+                wrapper: 'group-data-[selected=true]:bg-accent',
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="sidebar-content">
