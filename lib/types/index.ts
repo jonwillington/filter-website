@@ -169,6 +169,7 @@ export interface Shop {
 
   // Recommendations
   cityarearec?: boolean;
+  city_area_rec?: boolean;
 
   // Ratings & Hours
   opening_hours?: string[] | OpeningHours | null;
