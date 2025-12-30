@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { Shop, Country, Location } from '../types';
+import { getShopSlug as generateShopSlug } from '../utils';
 
 // Cache for all shops to avoid repeated API calls
 let shopsCache: Shop[] | null = null;
@@ -245,21 +246,8 @@ export async function getShopsByLocation(locationDocumentId: string): Promise<Sh
 export async function getShopBySlug(shopSlug: string): Promise<Shop | null> {
   try {
     const allShops = await getAllShops();
-    // First try exact slug match
-    const exactMatch = allShops.find((shop) => shop.slug === shopSlug);
-    if (exactMatch) return exactMatch;
-
-    // Fallback: match against slugified name
-    const slugify = (text: string) =>
-      text
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w-]+/g, '')
-        .replace(/--+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-
-    return allShops.find((shop) => slugify(shop.name) === shopSlug) ?? null;
+    // Match using the same slug generation logic as getShopSlug
+    return allShops.find((shop) => generateShopSlug(shop) === shopSlug) ?? null;
   } catch (error) {
     console.error('Failed to fetch shop:', error);
     return null;
