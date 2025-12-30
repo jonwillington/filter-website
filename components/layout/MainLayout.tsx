@@ -42,8 +42,48 @@ export function MainLayout({
   const [showTopRecommendations, setShowTopRecommendations] = useState(false);
   const [isExploreMode, setIsExploreMode] = useState(!initialLocation);
   const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
+  const [mapZoom, setMapZoom] = useState<number>(2);
 
   const { coordinates, requestLocation } = useGeolocation();
+
+  // Helper to get shop coordinates
+  const getShopCoords = (shop: Shop): { lng: number; lat: number } | null => {
+    if (shop.coordinates?.lng && shop.coordinates?.lat) {
+      return shop.coordinates;
+    }
+    if (shop.longitude && shop.latitude) {
+      return { lng: shop.longitude, lat: shop.latitude };
+    }
+    return null;
+  };
+
+  // Initialize map position based on initial state
+  useEffect(() => {
+    if (initialShop) {
+      const coords = getShopCoords(initialShop);
+      if (coords) {
+        setMapCenter([coords.lng, coords.lat]);
+        setMapZoom(14);
+      }
+    } else if (initialLocation && shops.length > 0) {
+      const validShops = shops.filter((s) => getShopCoords(s));
+      if (validShops.length > 0) {
+        const avgLng =
+          validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
+          validShops.length;
+        const avgLat =
+          validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
+          validShops.length;
+        setMapCenter([avgLng, avgLat]);
+        setMapZoom(12);
+      }
+    } else {
+      // Explore mode - world view
+      setMapCenter([0, 20]);
+      setMapZoom(2);
+    }
+  }, []); // Only run on mount
 
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
@@ -67,6 +107,20 @@ export function MainLayout({
           setIsNearbyMode(false); // Exit nearby mode
           setShowTopRecommendations(false);
 
+          // Calculate map center for this location
+          const locationShops = shops.filter(s => s.location?.documentId === matchedLocation.documentId);
+          const validShops = locationShops.filter((s) => getShopCoords(s));
+          if (validShops.length > 0) {
+            const avgLng =
+              validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
+              validShops.length;
+            const avgLat =
+              validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
+              validShops.length;
+            setMapCenter([avgLng, avgLat]);
+            setMapZoom(12);
+          }
+
           // Update location and route
           setTimeout(() => {
             setSelectedLocation(matchedLocation);
@@ -77,17 +131,23 @@ export function MainLayout({
           setIsNearbyMode(true);
           setIsExploreMode(false);
           setIsAreaUnsupported(true);
+          // Center on user location
+          setMapCenter([coordinates.lng, coordinates.lat]);
+          setMapZoom(12);
         }
       } else {
         // No supported area detected - show nearby shops
         setIsNearbyMode(true);
         setIsExploreMode(false);
         setIsAreaUnsupported(true);
+        // Center on user location
+        setMapCenter([coordinates.lng, coordinates.lat]);
+        setMapZoom(12);
       }
     };
 
     checkArea();
-  }, [coordinates, isExploreMode, selectedLocation, locations, router]);
+  }, [coordinates, isExploreMode, selectedLocation, locations, router, shops]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -122,6 +182,27 @@ export function MainLayout({
       setIsExploreMode(false);
       setShowTopRecommendations(false);
 
+      // Calculate new map position
+      if (location) {
+        // Get shops for this location to calculate center
+        const locationShops = shops.filter(s => s.location?.documentId === location.documentId);
+        const validShops = locationShops.filter((s) => getShopCoords(s));
+        if (validShops.length > 0) {
+          const avgLng =
+            validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
+            validShops.length;
+          const avgLat =
+            validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
+            validShops.length;
+          setMapCenter([avgLng, avgLat]);
+          setMapZoom(12);
+        }
+      } else {
+        // No location - explore mode
+        setMapCenter([0, 20]);
+        setMapZoom(2);
+      }
+
       // Wait for spinner to fully fade in (300ms)
       setTimeout(() => {
         setSelectedLocation(location);
@@ -140,7 +221,7 @@ export function MainLayout({
         }, 2500); // Maximum 2.5 seconds after location data changes
       }, 300);
     },
-    [router]
+    [router, shops]
   );
 
   // Helper to check if shop has city area recommendation
@@ -205,6 +286,10 @@ export function MainLayout({
     setIsNearbyMode(false);
     setSelectedLocation(null);
 
+    // Set map to world view
+    setMapCenter([0, 20]);
+    setMapZoom(2);
+
     // Request user location
     requestLocation();
 
@@ -219,6 +304,8 @@ export function MainLayout({
     setIsNearbyMode(true);
     setIsExploreMode(false);
     setSelectedLocation(null);
+    setMapCenter([0, 20]);
+    setMapZoom(2);
     requestLocation();
   }, [requestLocation]);
 
@@ -227,6 +314,8 @@ export function MainLayout({
     setIsNearbyMode(false);
     setSelectedLocation(null);
     setSelectedShop(null);
+    setMapCenter([0, 20]);
+    setMapZoom(2);
   }, []);
 
   const handleMapTransitionComplete = useCallback(() => {
@@ -237,52 +326,6 @@ export function MainLayout({
     }
     setIsLoading(false);
   }, []);
-
-  // Helper to get shop coordinates
-  const getShopCoords = (shop: Shop): { lng: number; lat: number } | null => {
-    if (shop.coordinates?.lng && shop.coordinates?.lat) {
-      return shop.coordinates;
-    }
-    if (shop.longitude && shop.latitude) {
-      return { lng: shop.longitude, lat: shop.latitude };
-    }
-    return null;
-  };
-
-  // Calculate map center and zoom
-  const getMapCenter = (): [number, number] => {
-    if (selectedShop) {
-      const coords = getShopCoords(selectedShop);
-      if (coords) return [coords.lng, coords.lat];
-    }
-    if (coordinates && isNearbyMode) {
-      return [coordinates.lng, coordinates.lat];
-    }
-    // ALWAYS stay zoomed out in explore mode or when no location selected
-    if (isExploreMode || !selectedLocation) {
-      return [0, 20]; // World view center
-    }
-    if (shops.length > 0) {
-      const validShops = shops.filter((s) => getShopCoords(s));
-      if (validShops.length > 0) {
-        const avgLng =
-          validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
-          validShops.length;
-        const avgLat =
-          validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
-          validShops.length;
-        return [avgLng, avgLat];
-      }
-    }
-    return [0, 20]; // Default to world view
-  };
-
-  const getMapZoom = (): number => {
-    if (isExploreMode) {
-      return 2; // Zoomed out world view
-    }
-    return 12; // Default city zoom
-  };
 
   return (
     <>
@@ -329,8 +372,8 @@ export function MainLayout({
           shops={isExploreMode ? shops : filteredShops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
-          center={getMapCenter()}
-          zoom={getMapZoom()}
+          center={mapCenter}
+          zoom={mapZoom}
           isLoading={isLoading}
           onTransitionComplete={handleMapTransitionComplete}
           countries={countries}
