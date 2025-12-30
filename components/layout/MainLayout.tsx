@@ -47,6 +47,9 @@ export function MainLayout({
 
   const { coordinates, requestLocation } = useGeolocation();
 
+  // Track previous initialShop to detect shop-to-shop transitions
+  const prevInitialShopRef = useRef<Shop | null>(null);
+
   // Helper to get shop coordinates
   const getShopCoords = (shop: Shop): { lng: number; lat: number } | null => {
     if (shop.coordinates?.lng && shop.coordinates?.lat) {
@@ -58,13 +61,17 @@ export function MainLayout({
     return null;
   };
 
-  // Initialize map position based on initial state
+  // Initialize/update map position based on initial state
   useEffect(() => {
     if (initialShop) {
       const coords = getShopCoords(initialShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(14);
+        // Only set zoom to 14 if we weren't viewing a shop before
+        // This preserves the zoom level when clicking between nearby shops
+        if (!prevInitialShopRef.current) {
+          setMapZoom(14);
+        }
       }
     } else if (initialLocation && shops.length > 0) {
       const validShops = shops.filter((s) => getShopCoords(s));
@@ -83,7 +90,9 @@ export function MainLayout({
       setMapCenter([0, 20]);
       setMapZoom(2);
     }
-  }, []); // Only run on mount
+
+    prevInitialShopRef.current = initialShop;
+  }, [initialShop, initialLocation, shops]); // Update when initialShop changes
 
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
