@@ -9,7 +9,7 @@ import { LocationDrawer } from '../detail/LocationDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
 import { Footer } from './Footer';
 import { Location, Shop, Country } from '@/lib/types';
-import { cn, slugify } from '@/lib/utils';
+import { cn, slugify, getShopSlug } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { detectUserArea } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
@@ -269,7 +269,7 @@ export function MainLayout({
       const citySlug = slugify(shop.location?.name ?? '');
       // Use "All" as fallback area if shop has no city_area
       const areaSlug = slugify(shop.city_area?.name ?? shop.cityArea?.name ?? 'All');
-      const shopSlug = shop.slug ?? slugify(shop.name);
+      const shopSlug = getShopSlug(shop);
 
       if (countrySlug && citySlug && areaSlug && shopSlug) {
         router.push(`/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`, { scroll: false });

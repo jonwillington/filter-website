@@ -48,6 +48,21 @@ export function getShopDisplayName(shop: ShopForDisplayName): string {
   return shop.name;
 }
 
+export function getShopSlug(shop: ShopForDisplayName & { slug?: string | null }): string {
+  // Use existing slug if available
+  if (shop.slug) {
+    return shop.slug;
+  }
+
+  // For non-independent shops with a brand, construct "brand-prefname"
+  if (!shop.independent && shop.brand?.name && shop.prefName) {
+    return slugify(`${shop.brand.name} ${shop.prefName}`);
+  }
+
+  // Otherwise slugify the shop name as-is
+  return slugify(shop.name);
+}
+
 // Brand/Shop merge utilities - shop values override brand defaults
 interface MergeableEntity {
   has_wifi?: boolean;

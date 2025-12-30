@@ -4,7 +4,7 @@ import { getShopsByLocation, getShopBySlug, getAllShops } from '@/lib/api/shops'
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { slugify, getMediaUrl } from '@/lib/utils';
+import { slugify, getMediaUrl, getShopSlug } from '@/lib/utils';
 
 export const dynamicParams = false;
 
@@ -18,7 +18,7 @@ export async function generateStaticParams() {
         const cityName = shop.location?.name;
         // Use "All" as fallback area if shop has no city_area
         const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? 'All';
-        const shopSlug = shop.slug || slugify(shop.name);
+        const shopSlug = getShopSlug(shop);
 
         if (countryName && cityName && areaName) {
           return {
