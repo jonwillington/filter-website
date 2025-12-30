@@ -11,6 +11,7 @@ import { Footer } from './Footer';
 import { Location, Shop } from '@/lib/types';
 import { cn, slugify } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
+import { detectUserArea } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, X } from 'lucide-react';
 
@@ -38,8 +39,40 @@ export function MainLayout({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showTopRecommendations, setShowTopRecommendations] = useState(false);
   const [isExploreMode, setIsExploreMode] = useState(!initialLocation);
+  const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
+
+  // Detect if user is in a supported area when coordinates are received
+  useEffect(() => {
+    if (!coordinates || !isNearbyMode) return;
+
+    const checkArea = async () => {
+      const areaData = await detectUserArea(coordinates.lat, coordinates.lng);
+
+      if (areaData?.area) {
+        // User is in a supported area - find and select the corresponding location
+        const matchedLocation = locations.find(
+          (loc) => loc.documentId === areaData.area?.location?.documentId
+        );
+
+        if (matchedLocation) {
+          setIsAreaUnsupported(false);
+          setIsNearbyMode(false);
+          setSelectedLocation(matchedLocation);
+          router.push(`/${slugify(matchedLocation.name)}`);
+        } else {
+          // Area detected but location not in our list
+          setIsAreaUnsupported(true);
+        }
+      } else {
+        // No supported area detected
+        setIsAreaUnsupported(true);
+      }
+    };
+
+    checkArea();
+  }, [coordinates, isNearbyMode, locations, router]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -141,7 +174,7 @@ export function MainLayout({
     }
   }, [router, selectedLocation]);
 
-  const handleNearbyToggle = useCallback(() => {
+  const handleNearbyToggle = useCallback(async () => {
     // Clear any existing timeout
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
@@ -149,19 +182,18 @@ export function MainLayout({
     }
 
     setIsLoading(true);
+    setIsNearbyMode(true);
+    setIsExploreMode(false);
+    setSelectedShop(null);
 
-    setTimeout(() => {
-      setIsNearbyMode(true);
-      setIsExploreMode(false);
-      setSelectedLocation(null);
-      requestLocation();
+    // Request user location
+    requestLocation();
 
-      // Set a timeout fallback to ensure loading doesn't take too long
-      loadingTimeoutRef.current = setTimeout(() => {
-        setIsLoading(false);
-        loadingTimeoutRef.current = null;
-      }, 2500); // Maximum 2.5 seconds after mode changes
-    }, 300);
+    // Set a timeout fallback
+    loadingTimeoutRef.current = setTimeout(() => {
+      setIsLoading(false);
+      loadingTimeoutRef.current = null;
+    }, 2500);
   }, [requestLocation]);
 
   const handleWelcomeFindNearMe = useCallback(() => {
@@ -270,6 +302,7 @@ export function MainLayout({
           isOpen={isMobileSidebarOpen}
           showTopRecommendations={showTopRecommendations}
           onTopRecommendationsChange={setShowTopRecommendations}
+          isAreaUnsupported={isAreaUnsupported}
         />
 
         <MapContainer

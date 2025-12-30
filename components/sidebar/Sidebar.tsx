@@ -21,6 +21,7 @@ interface SidebarProps {
   isOpen?: boolean;
   showTopRecommendations?: boolean;
   onTopRecommendationsChange?: (value: boolean) => void;
+  isAreaUnsupported?: boolean;
 }
 
 export function Sidebar({
@@ -37,6 +38,7 @@ export function Sidebar({
   isOpen = true,
   showTopRecommendations = false,
   onTopRecommendationsChange,
+  isAreaUnsupported = false,
 }: SidebarProps) {
   // Count shops for segmented control labels
   const { topPicksCount, allCount } = useMemo(() => {
@@ -83,12 +85,26 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-content">
-        <ShopList
-          shops={shops}
-          selectedShop={selectedShop}
-          onShopSelect={onShopSelect}
-          isLoading={isLoading}
-        />
+        {isAreaUnsupported ? (
+          <div className="flex-1 flex items-center justify-center p-8 text-center">
+            <div>
+              <p className="text-lg font-medium text-text mb-3">Not Available Yet</p>
+              <p className="text-textSecondary mb-2">
+                We're not currently supported in your location
+              </p>
+              <p className="text-sm text-textSecondary">
+                Coming soon! Select a city from the dropdown above to explore other locations.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ShopList
+            shops={shops}
+            selectedShop={selectedShop}
+            onShopSelect={onShopSelect}
+            isLoading={isLoading}
+          />
+        )}
       </div>
     </aside>
   );
