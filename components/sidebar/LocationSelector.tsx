@@ -84,7 +84,7 @@ export function LocationSelector({
 
   return (
     <Select
-      label="Location"
+      label="Where do you want to go?"
       placeholder="Select a city"
       selectedKeys={selectedKeys}
       onSelectionChange={handleChange}
