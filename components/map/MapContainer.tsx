@@ -201,7 +201,7 @@ export function MapContainer({
         .filter(c => c.supported)
         .map(c => c.code);
 
-      // Add country boundary fill layer
+      // Add country boundary fill layer - darken unsupported countries
       m.addLayer(
         {
           id: 'country-fills',
@@ -216,10 +216,16 @@ export function MapContainer({
               'match',
               ['get', 'iso_3166_1'],
               supportedCountries,
-              '#8B6F47', // Supported countries - accent color
-              '#E5E5E5', // Unsupported countries - gray
+              'transparent', // Supported countries - no overlay
+              '#1a1a1a', // Unsupported countries - dark overlay
             ],
-            'fill-opacity': 0.15,
+            'fill-opacity': [
+              'match',
+              ['get', 'iso_3166_1'],
+              supportedCountries,
+              0, // Supported countries - no opacity
+              0.5, // Unsupported countries - strong dark overlay
+            ],
           },
         },
         // Insert below the first symbol layer to keep country names visible
