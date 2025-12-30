@@ -18,6 +18,7 @@ export interface Country {
   documentId: string;
   name: string;
   code: string;
+  slug?: string;
   primaryColor?: string;
   primaryColorDark?: string;
   secondaryColor?: string;

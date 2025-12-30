@@ -9,7 +9,7 @@ import { slugify } from '@/lib/utils';
 export const dynamicParams = false;
 
 interface CityPageProps {
-  params: Promise<{ city: string }>;
+  params: Promise<{ country: string; city: string }>;
 }
 
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   }
 
   return {
-    title: `Coffee Shops in ${location.name} | Filter`,
+    title: `Coffee Shops in ${location.name}, ${location.country?.name || ''} | Filter`,
     description: `Discover the best specialty coffee shops in ${location.name}. Browse cafes, see reviews, and find your next favorite coffee spot.`,
     openGraph: {
       title: `Coffee Shops in ${location.name} | Filter`,
@@ -34,9 +34,12 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 export async function generateStaticParams() {
   try {
     const locations = await getAllLocations();
-    return locations.map((location) => ({
-      city: slugify(location.name),
-    }));
+    return locations
+      .filter(location => location.country?.name)
+      .map((location) => ({
+        country: slugify(location.country!.name),
+        city: slugify(location.name),
+      }));
   } catch (error) {
     console.error('Error in generateStaticParams for city:', error);
     return [];
@@ -44,11 +47,16 @@ export async function generateStaticParams() {
 }
 
 export default async function CityPage({ params }: CityPageProps) {
-  const { city } = await params;
+  const { country, city } = await params;
   const locations = await getAllLocations();
   const location = await getLocationBySlug(city);
 
-  if (!location) {
+  if (!location || !location.country) {
+    notFound();
+  }
+
+  // Validate country matches
+  if (slugify(location.country.name) !== country) {
     notFound();
   }
 

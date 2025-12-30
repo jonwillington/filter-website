@@ -124,7 +124,9 @@ export function MainLayout({
           // Update location and route
           setTimeout(() => {
             setSelectedLocation(matchedLocation);
-            router.push(`/${slugify(matchedLocation.name)}`);
+            const countrySlug = slugify(matchedLocation.country?.name ?? '');
+            const citySlug = slugify(matchedLocation.name);
+            router.push(`/${countrySlug}/${citySlug}`);
           }, 200);
         } else {
           // Area detected but location not in our list
@@ -208,7 +210,9 @@ export function MainLayout({
         setSelectedLocation(location);
 
         if (location) {
-          router.push(`/${slugify(location.name)}`);
+          const countrySlug = slugify(location.country?.name ?? '');
+          const citySlug = slugify(location.name);
+          router.push(`/${countrySlug}/${citySlug}`);
         } else {
           router.push('/');
         }
@@ -261,12 +265,13 @@ export function MainLayout({
         setIsExploreMode(false);
       }
 
+      const countrySlug = slugify(shop.location?.country?.name ?? '');
       const citySlug = slugify(shop.location?.name ?? '');
       const areaSlug = slugify(shop.city_area?.name ?? shop.cityArea?.name ?? '');
       const shopSlug = shop.slug ?? slugify(shop.name);
 
-      if (citySlug && areaSlug && shopSlug) {
-        router.push(`/${citySlug}/${areaSlug}/${shopSlug}`, { scroll: false });
+      if (countrySlug && citySlug && areaSlug && shopSlug) {
+        router.push(`/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`, { scroll: false });
       }
     },
     [router, selectedLocation]
@@ -276,7 +281,9 @@ export function MainLayout({
     setSelectedShop(null);
 
     if (selectedLocation) {
-      router.push(`/${slugify(selectedLocation.name)}`, { scroll: false });
+      const countrySlug = slugify(selectedLocation.country?.name ?? '');
+      const citySlug = slugify(selectedLocation.name);
+      router.push(`/${countrySlug}/${citySlug}`, { scroll: false });
     } else {
       router.push('/', { scroll: false });
     }

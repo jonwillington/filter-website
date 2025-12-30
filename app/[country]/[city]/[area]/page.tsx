@@ -12,16 +12,18 @@ export async function generateStaticParams() {
   try {
     const shops = await getAllShops();
 
-    const areaParams = new Map<string, { city: string; area: string }>();
+    const areaParams = new Map<string, { country: string; city: string; area: string }>();
 
     shops.forEach((shop) => {
+      const countryName = shop.location?.country?.name;
       const cityName = shop.location?.name;
       const areaName = shop.city_area?.name ?? shop.cityArea?.name;
 
-      if (cityName && areaName) {
-        const key = `${cityName}-${areaName}`;
+      if (countryName && cityName && areaName) {
+        const key = `${countryName}-${cityName}-${areaName}`;
         if (!areaParams.has(key)) {
           areaParams.set(key, {
+            country: slugify(countryName),
             city: slugify(cityName),
             area: slugify(areaName),
           });
@@ -37,7 +39,7 @@ export async function generateStaticParams() {
 }
 
 interface AreaPageProps {
-  params: Promise<{ city: string; area: string }>;
+  params: Promise<{ country: string; city: string; area: string }>;
 }
 
 export async function generateMetadata({ params }: AreaPageProps): Promise<Metadata> {
@@ -52,11 +54,16 @@ export async function generateMetadata({ params }: AreaPageProps): Promise<Metad
 }
 
 export default async function AreaPage({ params }: AreaPageProps) {
-  const { city, area } = await params;
+  const { country, city, area } = await params;
   const locations = await getAllLocations();
   const location = await getLocationBySlug(city);
 
-  if (!location) {
+  if (!location || !location.country) {
+    notFound();
+  }
+
+  // Validate country matches
+  if (slugify(location.country.name) !== country) {
     notFound();
   }
 

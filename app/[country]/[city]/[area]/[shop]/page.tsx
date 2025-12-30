@@ -14,12 +14,14 @@ export async function generateStaticParams() {
 
     return shops
       .map((shop) => {
+        const countryName = shop.location?.country?.name;
         const cityName = shop.location?.name;
         const areaName = shop.city_area?.name ?? shop.cityArea?.name;
         const shopSlug = shop.slug || slugify(shop.name);
 
-        if (cityName && areaName) {
+        if (countryName && cityName && areaName) {
           return {
+            country: slugify(countryName),
             city: slugify(cityName),
             area: slugify(areaName),
             shop: shopSlug,
@@ -27,7 +29,7 @@ export async function generateStaticParams() {
         }
         return null;
       })
-      .filter((params): params is { city: string; area: string; shop: string } => params !== null);
+      .filter((params): params is { country: string; city: string; area: string; shop: string } => params !== null);
   } catch (error) {
     console.error('Error in generateStaticParams for shop:', error);
     return [];
@@ -35,7 +37,7 @@ export async function generateStaticParams() {
 }
 
 interface ShopPageProps {
-  params: Promise<{ city: string; area: string; shop: string }>;
+  params: Promise<{ country: string; city: string; area: string; shop: string }>;
 }
 
 export async function generateMetadata({ params }: ShopPageProps): Promise<Metadata> {
@@ -64,12 +66,17 @@ export async function generateMetadata({ params }: ShopPageProps): Promise<Metad
 }
 
 export default async function ShopPage({ params }: ShopPageProps) {
-  const { city, shop: shopSlug } = await params;
+  const { country, city, shop: shopSlug } = await params;
   const locations = await getAllLocations();
   const location = await getLocationBySlug(city);
   const shop = await getShopBySlug(shopSlug);
 
-  if (!location || !shop) {
+  if (!location || !shop || !location.country) {
+    notFound();
+  }
+
+  // Validate country matches
+  if (slugify(location.country.name) !== country) {
     notFound();
   }
 
