@@ -45,7 +45,9 @@ export function MainLayout({
 
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
-    if (!coordinates || !isNearbyMode) return;
+    // Only run when we have coordinates and we're in explore mode (waiting for nearby detection)
+    // and we don't already have a selected location
+    if (!coordinates || !isExploreMode || selectedLocation) return;
 
     const checkArea = async () => {
       const areaData = await detectUserArea(coordinates.lat, coordinates.lng);
@@ -57,22 +59,32 @@ export function MainLayout({
         );
 
         if (matchedLocation) {
+          // Smoothly transition to the supported city
           setIsAreaUnsupported(false);
-          setIsNearbyMode(false);
-          setSelectedLocation(matchedLocation);
-          router.push(`/${slugify(matchedLocation.name)}`);
+          setIsExploreMode(false);
+          setIsNearbyMode(true);
+
+          // Small delay for smooth transition
+          setTimeout(() => {
+            setSelectedLocation(matchedLocation);
+            router.push(`/${slugify(matchedLocation.name)}`);
+          }, 200);
         } else {
           // Area detected but location not in our list
+          setIsNearbyMode(true);
+          setIsExploreMode(false);
           setIsAreaUnsupported(true);
         }
       } else {
-        // No supported area detected
+        // No supported area detected - show nearby shops
+        setIsNearbyMode(true);
+        setIsExploreMode(false);
         setIsAreaUnsupported(true);
       }
     };
 
     checkArea();
-  }, [coordinates, isNearbyMode, locations, router]);
+  }, [coordinates, isExploreMode, selectedLocation, locations, router]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -182,9 +194,13 @@ export function MainLayout({
     }
 
     setIsLoading(true);
-    setIsNearbyMode(true);
-    setIsExploreMode(false);
     setSelectedShop(null);
+    setIsAreaUnsupported(false);
+
+    // Stay in explore mode (zoomed out) until we get coordinates
+    setIsExploreMode(true);
+    setIsNearbyMode(false);
+    setSelectedLocation(null);
 
     // Request user location
     requestLocation();
@@ -193,7 +209,7 @@ export function MainLayout({
     loadingTimeoutRef.current = setTimeout(() => {
       setIsLoading(false);
       loadingTimeoutRef.current = null;
-    }, 2500);
+    }, 5000); // Longer timeout for location permission
   }, [requestLocation]);
 
   const handleWelcomeFindNearMe = useCallback(() => {
