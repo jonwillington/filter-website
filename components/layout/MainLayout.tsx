@@ -254,6 +254,13 @@ export function MainLayout({
       setSelectedShop(shop);
       setIsMobileSidebarOpen(false);
 
+      // Update selected location to match the shop's location
+      if (shop.location && shop.location.documentId !== selectedLocation?.documentId) {
+        setSelectedLocation(shop.location);
+        setIsNearbyMode(false);
+        setIsExploreMode(false);
+      }
+
       const citySlug = slugify(shop.location?.name ?? '');
       const areaSlug = slugify(shop.city_area?.name ?? shop.cityArea?.name ?? '');
       const shopSlug = shop.slug ?? slugify(shop.name);
@@ -262,7 +269,7 @@ export function MainLayout({
         router.push(`/${citySlug}/${areaSlug}/${shopSlug}`, { scroll: false });
       }
     },
-    [router]
+    [router, selectedLocation]
   );
 
   const handleCloseDrawer = useCallback(() => {
