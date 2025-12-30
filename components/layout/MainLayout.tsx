@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '../sidebar/Sidebar';
 import { MapContainer } from '../map/MapContainer';
 import { ShopDrawer } from '../detail/ShopDrawer';
+import { LocationDrawer } from '../detail/LocationDrawer';
+import { WelcomeModal } from '../modals/WelcomeModal';
 import { Footer } from './Footer';
 import { Location, Shop } from '@/lib/types';
 import { cn, slugify } from '@/lib/utils';
@@ -32,10 +34,21 @@ export function MainLayout({
   const [selectedShop, setSelectedShop] = useState<Shop | null>(initialShop);
   const [isNearbyMode, setIsNearbyMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showTopRecommendations, setShowTopRecommendations] = useState(false);
+  const [isExploreMode, setIsExploreMode] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Sync state with props
   useEffect(() => {
@@ -48,23 +61,58 @@ export function MainLayout({
 
   const handleLocationChange = useCallback(
     (location: Location | null) => {
-      setSelectedLocation(location);
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+
+      // Start loading transition - spinner fades in
+      setIsLoading(true);
       setSelectedShop(null);
       setIsNearbyMode(false);
+      setIsExploreMode(false);
       setShowTopRecommendations(false);
 
-      if (location) {
-        router.push(`/${slugify(location.name)}`);
-      } else {
-        router.push('/');
-      }
+      // Wait for spinner to fully fade in (300ms)
+      setTimeout(() => {
+        setSelectedLocation(location);
+
+        if (location) {
+          router.push(`/${slugify(location.name)}`);
+        } else {
+          router.push('/');
+        }
+
+        // Set a timeout fallback to ensure loading doesn't take too long
+        // Map's onTransitionComplete will clear this if it finishes first
+        loadingTimeoutRef.current = setTimeout(() => {
+          setIsLoading(false);
+          loadingTimeoutRef.current = null;
+        }, 2500); // Maximum 2.5 seconds after location data changes
+      }, 300);
     },
     [router]
   );
 
+  // Helper to check if shop has city area recommendation
+  const hasCityAreaRecommendation = (shop: Shop): boolean => {
+    const anyShop = shop as any;
+    if (typeof anyShop.cityAreaRec === 'boolean') {
+      return anyShop.cityAreaRec;
+    }
+    if (typeof anyShop.city_area_rec === 'boolean') {
+      return anyShop.city_area_rec;
+    }
+    if (typeof anyShop.cityarearec === 'boolean') {
+      return anyShop.cityarearec;
+    }
+    return false;
+  };
+
   // Filter shops based on top recommendations toggle
   const filteredShops = showTopRecommendations
-    ? shops.filter((shop) => shop.cityarearec === true)
+    ? shops.filter((shop) => hasCityAreaRecommendation(shop))
     : shops;
 
   const handleShopSelect = useCallback(
@@ -94,10 +142,50 @@ export function MainLayout({
   }, [router, selectedLocation]);
 
   const handleNearbyToggle = useCallback(() => {
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setIsNearbyMode(true);
+      setIsExploreMode(false);
+      setSelectedLocation(null);
+      requestLocation();
+
+      // Set a timeout fallback to ensure loading doesn't take too long
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        loadingTimeoutRef.current = null;
+      }, 2500); // Maximum 2.5 seconds after mode changes
+    }, 300);
+  }, [requestLocation]);
+
+  const handleWelcomeFindNearMe = useCallback(() => {
     setIsNearbyMode(true);
+    setIsExploreMode(false);
     setSelectedLocation(null);
     requestLocation();
   }, [requestLocation]);
+
+  const handleWelcomeExplore = useCallback(() => {
+    setIsExploreMode(true);
+    setIsNearbyMode(false);
+    setSelectedLocation(null);
+    setSelectedShop(null);
+  }, []);
+
+  const handleMapTransitionComplete = useCallback(() => {
+    // Clear any pending timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    setIsLoading(false);
+  }, []);
 
   // Helper to get shop coordinates
   const getShopCoords = (shop: Shop): { lng: number; lat: number } | null => {
@@ -110,7 +198,7 @@ export function MainLayout({
     return null;
   };
 
-  // Calculate map center
+  // Calculate map center and zoom
   const getMapCenter = (): [number, number] => {
     if (selectedShop) {
       const coords = getShopCoords(selectedShop);
@@ -118,6 +206,9 @@ export function MainLayout({
     }
     if (coordinates && isNearbyMode) {
       return [coordinates.lng, coordinates.lat];
+    }
+    if (isExploreMode) {
+      return [0, 20]; // World view center
     }
     if (shops.length > 0) {
       const validShops = shops.filter((s) => getShopCoords(s));
@@ -134,8 +225,20 @@ export function MainLayout({
     return [28.9784, 41.0082]; // Istanbul default
   };
 
+  const getMapZoom = (): number => {
+    if (isExploreMode) {
+      return 2; // Zoomed out world view
+    }
+    return 12; // Default city zoom
+  };
+
   return (
     <>
+      <WelcomeModal
+        onFindNearMe={handleWelcomeFindNearMe}
+        onExplore={handleWelcomeExplore}
+      />
+
       {/* Mobile menu toggle */}
       <div className="mobile-toggle lg:hidden">
         <Button
@@ -152,12 +255,13 @@ export function MainLayout({
         </Button>
       </div>
 
-      <div className={cn('main-layout', selectedShop && 'drawer-open')}>
+      <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>
         <Sidebar
           locations={locations}
           selectedLocation={selectedLocation}
           onLocationChange={handleLocationChange}
           shops={filteredShops}
+          allShops={shops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           isNearbyMode={isNearbyMode}
@@ -169,20 +273,30 @@ export function MainLayout({
         />
 
         <MapContainer
-          shops={filteredShops}
+          shops={isExploreMode ? shops : filteredShops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           center={getMapCenter()}
+          zoom={getMapZoom()}
+          isLoading={isLoading}
+          onTransitionComplete={handleMapTransitionComplete}
         />
 
-        {selectedShop && (
+        {selectedShop ? (
           <ShopDrawer
             shop={selectedShop}
             allShops={shops}
             onClose={handleCloseDrawer}
             onShopSelect={handleShopSelect}
           />
-        )}
+        ) : selectedLocation && !isNearbyMode ? (
+          <LocationDrawer
+            location={selectedLocation}
+            allShops={shops}
+            onClose={handleCloseDrawer}
+            onShopSelect={handleShopSelect}
+          />
+        ) : null}
       </div>
 
       <Footer />

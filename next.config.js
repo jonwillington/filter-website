@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -16,9 +15,20 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.strapiapp.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'hatscripts.github.io',
+      },
     ],
   },
   transpilePackages: ['mapbox-gl'],
+}
+
+// Only add output: 'export' for full production builds
+// Use `npm run build:dev` for faster dev builds without static generation
+const isFullBuild = process.env.NODE_ENV === 'production' && !process.env.SKIP_STATIC_EXPORT;
+if (isFullBuild) {
+  nextConfig.output = 'export'
 }
 
 module.exports = nextConfig

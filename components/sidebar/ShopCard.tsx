@@ -8,16 +8,22 @@ interface ShopCardProps {
   shop: Shop;
   isSelected: boolean;
   onClick: () => void;
+  disabled?: boolean;
 }
 
-export function ShopCard({ shop, isSelected, onClick }: ShopCardProps) {
+export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCardProps) {
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
   return (
     <button
-      onClick={onClick}
-      className={cn('shop-card w-full text-left', isSelected && 'selected')}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={cn(
+        'shop-card w-full text-left transition-all duration-200',
+        isSelected && 'selected',
+        disabled && 'pointer-events-none'
+      )}
     >
       <Avatar
         src={logoUrl || undefined}
@@ -33,6 +39,11 @@ export function ShopCard({ shop, isSelected, onClick }: ShopCardProps) {
         <h4 className="font-medium text-text truncate text-sm">
           {displayName}
         </h4>
+        {shop.address && (
+          <p className="text-xs text-textSecondary truncate">
+            {shop.address}
+          </p>
+        )}
       </div>
     </button>
   );

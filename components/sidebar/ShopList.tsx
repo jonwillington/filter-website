@@ -16,17 +16,7 @@ export function ShopList({
   onShopSelect,
   isLoading,
 }: ShopListProps) {
-  if (isLoading) {
-    return (
-      <div className="p-4 space-y-3">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="skeleton h-16 rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
-  if (shops.length === 0) {
+  if (shops.length === 0 && !isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center">
         <div>
@@ -51,14 +41,19 @@ export function ShopList({
   const sortedAreas = Object.keys(shopsByArea).sort();
 
   return (
-    <div>
+    <div
+      className="transition-opacity duration-300"
+      style={{ opacity: isLoading ? 0.4 : 1 }}
+    >
       {sortedAreas.map((areaName) => (
         <div key={areaName}>
-          <div className="area-header">
-            <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
-              {areaName}
-            </h3>
-          </div>
+          {areaName !== 'Other' && (
+            <div className="area-header">
+              <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                {areaName}
+              </h3>
+            </div>
+          )}
           <div className="py-1">
             {shopsByArea[areaName].map((shop) => (
               <ShopCard
@@ -66,6 +61,7 @@ export function ShopList({
                 shop={shop}
                 isSelected={selectedShop?.documentId === shop.documentId}
                 onClick={() => onShopSelect(shop)}
+                disabled={isLoading}
               />
             ))}
           </div>

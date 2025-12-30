@@ -19,7 +19,9 @@ export interface Country {
   name: string;
   code: string;
   primaryColor?: string;
+  primaryColorDark?: string;
   secondaryColor?: string;
+  secondaryColorDark?: string;
   story?: string;
   supported?: boolean;
   comingSoon?: boolean;
@@ -36,6 +38,8 @@ export interface Location {
   inFocus?: boolean;
   story?: string | null;
   headline?: string | null;
+  primaryColor?: string;
+  secondaryColor?: string;
   background_image?: MediaAsset | null;
   shops?: Shop[];
   city_areas?: CityArea[];

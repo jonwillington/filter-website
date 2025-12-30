@@ -3,6 +3,8 @@ import { deslugify } from '../utils';
 import { getAllShops } from './shops';
 
 // Extract unique locations from shops data (reuses shops cache)
+// This preserves all location fields including country and background_image
+// Note: shops.ts enriches location data with full country info from separate API calls
 export async function getAllLocations(): Promise<Location[]> {
   try {
     const shops = await getAllShops();
@@ -12,25 +14,42 @@ export async function getAllLocations(): Promise<Location[]> {
     const locationMap = new Map<string, Location>();
 
     for (const shop of shops) {
-      // Check direct location
+      // Check direct location (already enriched with full country data)
       const loc = shop.location;
       if (loc?.documentId && !locationMap.has(loc.documentId)) {
         locationMap.set(loc.documentId, {
           id: loc.id,
           documentId: loc.documentId,
           name: loc.name,
-          country: loc.country,
+          slug: loc.slug,
+          rating: loc.rating,
+          rating_stars: loc.rating_stars,
+          story: loc.story,
+          headline: loc.headline,
+          inFocus: loc.inFocus,
+          background_image: loc.background_image,
+          country: loc.country, // Already enriched with full country data
+          coordinates: loc.coordinates,
         } as Location);
       }
 
-      // Also check city_area's location (for shops linked through neighborhoods)
+      // Also check city_area's location (also enriched with full data)
       const cityArea = shop.city_area ?? shop.cityArea;
-      const areaLoc = cityArea?.location;
+      const areaLoc = cityArea?.location as Location | undefined;
       if (areaLoc?.documentId && !locationMap.has(areaLoc.documentId)) {
         locationMap.set(areaLoc.documentId, {
           id: areaLoc.id,
           documentId: areaLoc.documentId,
           name: areaLoc.name,
+          slug: areaLoc.slug,
+          rating: areaLoc.rating,
+          rating_stars: areaLoc.rating_stars,
+          story: areaLoc.story,
+          headline: areaLoc.headline,
+          inFocus: areaLoc.inFocus,
+          background_image: areaLoc.background_image,
+          country: areaLoc.country, // Already enriched with full country data
+          coordinates: areaLoc.coordinates,
         } as Location);
       }
     }

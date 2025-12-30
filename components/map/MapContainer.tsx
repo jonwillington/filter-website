@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Shop } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
@@ -15,10 +15,12 @@ interface MapContainerProps {
   onShopSelect: (shop: Shop) => void;
   center?: [number, number];
   zoom?: number;
+  isLoading?: boolean;
+  onTransitionComplete?: () => void;
 }
 
-const CLUSTER_RADIUS = 50;
-const CLUSTER_MAX_ZOOM = 14;
+const CLUSTER_RADIUS = 30;
+const CLUSTER_MAX_ZOOM = 11;
 
 export function MapContainer({
   shops,
@@ -26,6 +28,8 @@ export function MapContainer({
   onShopSelect,
   center = [28.9784, 41.0082],
   zoom = 12,
+  isLoading = false,
+  onTransitionComplete,
 }: MapContainerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -33,11 +37,32 @@ export function MapContainer({
   const selectedMarkerRef = useRef<string | null>(null);
   const shopsRef = useRef<Shop[]>(shops);
   const isZooming = useRef<boolean>(false);
+  const isDragging = useRef<boolean>(false);
+  const pendingCenter = useRef<[number, number] | null>(null);
+  const pendingZoom = useRef<number | null>(null);
+  const [displayedShops, setDisplayedShops] = useState<Shop[]>(shops);
+  const isTransitioning = useRef<boolean>(false);
+  const hasCalledTransitionComplete = useRef<boolean>(false);
 
   // Keep shopsRef in sync
   useEffect(() => {
     shopsRef.current = shops;
   }, [shops]);
+
+  // Update displayed shops only when not loading
+  useEffect(() => {
+    if (!isLoading) {
+      setDisplayedShops(shops);
+    }
+  }, [shops, isLoading]);
+
+  // Track loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      isTransitioning.current = true;
+      hasCalledTransitionComplete.current = false;
+    }
+  }, [isLoading]);
 
   // Helper to get coordinates
   const getCoords = useCallback((shop: Shop): [number, number] | null => {
@@ -52,46 +77,49 @@ export function MapContainer({
 
   // Create marker element
   const createMarkerElement = useCallback(
-    (shop: Shop, isSelected: boolean) => {
+    (shop: Shop, isSelected: boolean, fadeIn: boolean = false) => {
       const el = document.createElement('div');
       el.className = `shop-marker${isSelected ? ' selected' : ''}`;
 
       const logoUrl = getMediaUrl(shop.brand?.logo);
+      const baseStyles = `
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid ${isSelected ? '#8B6F47' : 'white'};
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+        opacity: 1;
+        will-change: transform;
+        transform-origin: center center;
+        position: absolute;
+        backface-visibility: hidden;
+        transform: translate3d(0, 0, 0);
+      `;
 
       if (logoUrl) {
         el.style.cssText = `
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: 3px solid ${isSelected ? '#8B6F47' : 'white'};
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          ${baseStyles}
           background-image: url(${logoUrl});
           background-size: cover;
           background-position: center;
           background-color: white;
-          cursor: pointer;
-          transition: transform 0.15s ease, border-color 0.15s ease;
         `;
       } else {
         el.innerHTML = '☕';
         el.style.cssText = `
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: 3px solid ${isSelected ? '#8B6F47' : 'white'};
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          ${baseStyles}
           background: white;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 18px;
-          cursor: pointer;
-          transition: transform 0.15s ease, border-color 0.15s ease;
         `;
       }
 
       if (isSelected) {
-        el.style.transform = 'scale(1.1)';
+        el.style.transform = 'translate3d(0, 0, 0) scale(1.1)';
         el.style.zIndex = '10';
       }
 
@@ -103,7 +131,7 @@ export function MapContainer({
   // Update marker element styling without replacing it
   const updateMarkerStyle = useCallback((el: HTMLElement, isSelected: boolean) => {
     el.style.borderColor = isSelected ? '#8B6F47' : 'white';
-    el.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
+    el.style.transform = isSelected ? 'translate3d(0, 0, 0) scale(1.1)' : 'translate3d(0, 0, 0) scale(1)';
     el.style.zIndex = isSelected ? '10' : '1';
     el.className = `shop-marker${isSelected ? ' selected' : ''}`;
   }, []);
@@ -114,7 +142,7 @@ export function MapContainer({
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center,
       zoom,
       attributionControl: false,
@@ -139,8 +167,33 @@ export function MapContainer({
   // Update center when it changes
   useEffect(() => {
     if (!map.current) return;
-    map.current.flyTo({ center, zoom, duration: 1000 });
-  }, [center, zoom]);
+
+    if (isLoading) {
+      // Store pending updates during loading
+      pendingCenter.current = center;
+      pendingZoom.current = zoom;
+    } else {
+      // Apply updates when not loading
+      map.current.flyTo({ center, zoom, duration: 800 });
+      pendingCenter.current = null;
+      pendingZoom.current = null;
+    }
+  }, [center, zoom, isLoading]);
+
+  // Apply pending updates when loading completes
+  useEffect(() => {
+    if (!map.current || isLoading) return;
+
+    if (pendingCenter.current && pendingZoom.current) {
+      map.current.flyTo({
+        center: pendingCenter.current,
+        zoom: pendingZoom.current,
+        duration: 800
+      });
+      pendingCenter.current = null;
+      pendingZoom.current = null;
+    }
+  }, [isLoading]);
 
   // Setup clustering source and layers
   useEffect(() => {
@@ -158,9 +211,9 @@ export function MapContainer({
       markers.current.forEach((marker) => marker.remove());
       markers.current.clear();
 
-      // Create GeoJSON from shops
+      // Create GeoJSON from displayed shops
       const features: GeoJSON.Feature[] = [];
-      shops.forEach((shop) => {
+      displayedShops.forEach((shop) => {
         const coords = getCoords(shop);
         if (!coords) return;
         features.push({
@@ -206,6 +259,9 @@ export function MapContainer({
           ],
           'circle-stroke-width': 3,
           'circle-stroke-color': '#fff',
+          'circle-color-transition': { duration: 0 },
+          'circle-radius-transition': { duration: 0 },
+          'circle-stroke-width-transition': { duration: 0 },
         },
       });
 
@@ -217,7 +273,7 @@ export function MapContainer({
         filter: ['has', 'point_count'],
         layout: {
           'text-field': '{point_count_abbreviated}',
-          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
           'text-size': 14,
         },
         paint: {
@@ -255,13 +311,13 @@ export function MapContainer({
         m.getCanvas().style.cursor = '';
       });
 
-      // Function to update visible markers
+      // Function to update visible markers - now just shows/hides instead of adding/removing
       const updateMarkers = () => {
         const m = map.current;
-        if (!m || isZooming.current) return;
+        if (!m) return;
 
         const features = m.querySourceFeatures('shops');
-        const newMarkerIds = new Set<string>();
+        const visibleMarkerIds = new Set<string>();
 
         features.forEach((feature) => {
           // Skip clusters
@@ -270,20 +326,39 @@ export function MapContainer({
           const id = feature.properties?.id;
           if (!id) return;
 
-          // Get coordinates from the original shop data for stability
-          const shop = shopsRef.current.find((s) => s.documentId === id);
-          if (!shop) return;
+          visibleMarkerIds.add(id);
+        });
 
+        // Show/hide markers based on clustering state
+        markers.current.forEach((marker, id) => {
+          const element = marker.getElement();
+          if (visibleMarkerIds.has(id)) {
+            // Show marker - it's not clustered
+            element.style.display = '';
+          } else {
+            // Hide marker - it's clustered
+            element.style.display = 'none';
+          }
+        });
+      };
+
+      // Create all markers upfront
+      const createAllMarkers = () => {
+        const m = map.current;
+        if (!m) return;
+
+        displayedShops.forEach((shop) => {
+          const id = shop.documentId;
           const coords = getCoords(shop);
           if (!coords) return;
 
-          newMarkerIds.add(id);
-
           // Skip if marker already exists
-          if (markers.current.has(id)) return;
+          if (markers.current.has(id)) {
+            return;
+          }
 
           const isSelected = id === selectedMarkerRef.current;
-          const el = createMarkerElement(shop, isSelected);
+          const el = createMarkerElement(shop, isSelected, false);
 
           const marker = new mapboxgl.Marker({
             element: el,
@@ -299,27 +374,65 @@ export function MapContainer({
 
           markers.current.set(id, marker);
         });
-
-        // Remove markers that are no longer visible (clustered)
-        markers.current.forEach((marker, id) => {
-          if (!newMarkerIds.has(id)) {
-            marker.remove();
-            markers.current.delete(id);
-          }
-        });
       };
 
-      // Track zoom state to prevent marker updates during animation
-      m.on('zoomstart', () => {
-        isZooming.current = true;
-      });
-      m.on('zoomend', () => {
-        isZooming.current = false;
-        updateMarkers();
+      // Track drag state - freeze marker updates during drag/glide
+      m.on('dragstart', () => {
+        isDragging.current = true;
+        // Disable transitions on all markers during drag for stability
+        markers.current.forEach((marker) => {
+          const el = marker.getElement();
+          el.style.transition = 'none';
+        });
       });
 
-      // Update markers when map becomes idle (all animations complete)
-      m.on('idle', updateMarkers);
+      m.on('dragend', () => {
+        isDragging.current = false;
+        // Don't re-enable transitions yet - map might still be gliding
+        // Will re-enable when map becomes idle
+      });
+
+      // Track zoom state - freeze marker updates during zoom
+      m.on('zoomstart', () => {
+        isZooming.current = true;
+        // Disable transitions on all markers during zoom for stability
+        markers.current.forEach((marker) => {
+          const el = marker.getElement();
+          el.style.transition = 'none';
+        });
+      });
+
+      m.on('zoomend', () => {
+        isZooming.current = false;
+        // Don't re-enable transitions yet - map might still be animating
+        // Will re-enable when map becomes idle
+      });
+
+      // Update markers when map becomes idle (completely stopped)
+      m.on('idle', () => {
+        if (!isZooming.current && !isDragging.current) {
+          // Re-enable transitions now that map has completely stopped
+          markers.current.forEach((marker) => {
+            const el = marker.getElement();
+            el.style.transition = 'transform 0.15s ease, border-color 0.15s ease';
+          });
+
+          updateMarkers();
+
+          // Call transition complete callback after map is idle and transitioning
+          if (isTransitioning.current && !hasCalledTransitionComplete.current && onTransitionComplete) {
+            hasCalledTransitionComplete.current = true;
+            isTransitioning.current = false;
+            // Small delay to ensure everything is rendered
+            setTimeout(() => {
+              onTransitionComplete();
+            }, 100);
+          }
+        }
+      });
+
+      // Create all markers initially, then use updateMarkers to show/hide
+      createAllMarkers();
       updateMarkers();
     };
 
@@ -328,7 +441,7 @@ export function MapContainer({
     } else {
       map.current.on('load', setupClustering);
     }
-  }, [shops, getCoords, createMarkerElement, onShopSelect]);
+  }, [displayedShops, getCoords, createMarkerElement, onShopSelect]);
 
   // Update selected marker styling
   useEffect(() => {
@@ -363,5 +476,21 @@ export function MapContainer({
     selectedMarkerRef.current = selectedShop?.documentId || null;
   }, [selectedShop, updateMarkerStyle, getCoords]);
 
-  return <div ref={mapContainer} className="map-container" />;
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} className="map-container" />
+      <div
+        className={`absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center pointer-events-none z-10 transition-opacity duration-500 ease-in-out ${
+          isLoading ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="relative">
+          {/* Spinner */}
+          <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
+          {/* Pulsing background circle */}
+          <div className="absolute inset-0 w-12 h-12 border-4 border-accent/10 rounded-full animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
 }
