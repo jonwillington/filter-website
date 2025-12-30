@@ -90,7 +90,7 @@ export function LocationDrawer({
       <div className="drawer-content">
         {/* Header with background image */}
         <div
-          className="relative h-48"
+          className="relative h-48 location-drawer-header"
           style={{
             backgroundColor: primaryColor,
             backgroundImage: backgroundImage

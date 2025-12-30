@@ -18,6 +18,7 @@ interface MapContainerProps {
   isLoading?: boolean;
   onTransitionComplete?: () => void;
   countries?: Country[];
+  onUnsupportedCountryClick?: (countryName: string) => void;
 }
 
 const CLUSTER_RADIUS = 30;
@@ -32,6 +33,7 @@ export function MapContainer({
   isLoading = false,
   onTransitionComplete,
   countries = [],
+  onUnsupportedCountryClick,
 }: MapContainerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -91,9 +93,9 @@ export function MapContainer({
         border: 3px solid ${isSelected ? '#8B6F47' : 'white'};
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         cursor: pointer;
-        transition: transform 0.15s ease, border-color 0.15s ease;
-        opacity: 1;
-        will-change: transform;
+        transition: transform 0.15s ease, border-color 0.15s ease, opacity 0.2s ease;
+        opacity: ${fadeIn ? '0' : '1'};
+        will-change: transform, opacity;
         transform-origin: center center;
         position: absolute;
         backface-visibility: hidden;
@@ -104,13 +106,38 @@ export function MapContainer({
       `;
 
       if (logoUrl) {
+        // Start with loading state - subtle pulsing background
         el.style.cssText = `
           ${baseStyles}
-          background-image: url(${logoUrl});
-          background-size: cover;
-          background-position: center;
-          background-color: white;
+          background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+          background-size: 200% 200%;
+          animation: shimmer 1.5s ease-in-out infinite;
         `;
+
+        // Add shimmer animation if not already in document
+        if (!document.getElementById('marker-shimmer-style')) {
+          const style = document.createElement('style');
+          style.id = 'marker-shimmer-style';
+          style.textContent = `
+            @keyframes shimmer {
+              0% { background-position: 200% 200%; }
+              100% { background-position: -200% -200%; }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Preload image and swap when ready
+        const img = new Image();
+        img.onload = () => {
+          el.style.backgroundImage = `url(${logoUrl})`;
+          el.style.backgroundSize = 'cover';
+          el.style.backgroundPosition = 'center';
+          el.style.backgroundColor = 'white';
+          el.style.background = `url(${logoUrl}) center/cover white`;
+          el.style.animation = 'none';
+        };
+        img.src = logoUrl;
       } else {
         el.innerHTML = '☕';
         el.style.cssText = `
@@ -126,6 +153,15 @@ export function MapContainer({
       if (isSelected) {
         el.style.transform = 'translate3d(0, 0, 0) scale(1.1)';
         el.style.zIndex = '10';
+      }
+
+      // Fade in after a brief delay if fadeIn is true
+      if (fadeIn) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.style.opacity = '1';
+          });
+        });
       }
 
       return el;
@@ -231,6 +267,33 @@ export function MapContainer({
         // Insert below the first symbol layer to keep country names visible
         m.getStyle().layers.find(layer => layer.type === 'symbol')?.id
       );
+
+      // Add click handler for unsupported countries
+      m.on('click', 'country-fills', (e) => {
+        if (!e.features || e.features.length === 0) return;
+
+        const feature = e.features[0];
+        const countryCode = feature.properties?.iso_3166_1;
+        const countryName = feature.properties?.name_en;
+
+        // Check if this is an unsupported country
+        if (countryCode && !supportedCountries.includes(countryCode)) {
+          onUnsupportedCountryClick?.(countryName || countryCode);
+        }
+      });
+
+      // Change cursor to pointer on unsupported countries
+      m.on('mouseenter', 'country-fills', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const countryCode = e.features[0].properties?.iso_3166_1;
+        if (countryCode && !supportedCountries.includes(countryCode)) {
+          m.getCanvas().style.cursor = 'pointer';
+        }
+      });
+
+      m.on('mouseleave', 'country-fills', () => {
+        m.getCanvas().style.cursor = '';
+      });
     };
 
     if (map.current.isStyleLoaded()) {
@@ -244,7 +307,7 @@ export function MapContainer({
         map.current.removeLayer('country-fills');
       }
     };
-  }, [countries]);
+  }, [countries, onUnsupportedCountryClick]);
 
   // Update center when it changes
   useEffect(() => {
@@ -393,13 +456,16 @@ export function MapContainer({
         m.getCanvas().style.cursor = '';
       });
 
+      // Track which markers are currently visible for fade-in effect
+      const visibleMarkersSet = new Set<string>();
+
       // Function to update visible markers - now just shows/hides instead of adding/removing
-      const updateMarkers = () => {
+      const updateMarkers = (withFade: boolean = false) => {
         const m = map.current;
         if (!m) return;
 
         const features = m.querySourceFeatures('shops');
-        const visibleMarkerIds = new Set<string>();
+        const newVisibleMarkerIds = new Set<string>();
 
         features.forEach((feature) => {
           // Skip clusters
@@ -408,18 +474,33 @@ export function MapContainer({
           const id = feature.properties?.id;
           if (!id) return;
 
-          visibleMarkerIds.add(id);
+          newVisibleMarkerIds.add(id);
         });
 
         // Show/hide markers based on clustering state
         markers.current.forEach((marker, id) => {
           const element = marker.getElement();
-          if (visibleMarkerIds.has(id)) {
-            // Show marker - it's not clustered
+          const wasVisible = visibleMarkersSet.has(id);
+          const shouldBeVisible = newVisibleMarkerIds.has(id);
+
+          if (shouldBeVisible && !wasVisible) {
+            // Marker is becoming visible - fade in
             element.style.display = '';
-          } else {
-            // Hide marker - it's clustered
+            if (withFade) {
+              element.style.opacity = '0';
+              element.style.transition = 'opacity 0.2s ease';
+              requestAnimationFrame(() => {
+                element.style.opacity = '1';
+              });
+            }
+            visibleMarkersSet.add(id);
+          } else if (!shouldBeVisible && wasVisible) {
+            // Marker is being hidden
             element.style.display = 'none';
+            visibleMarkersSet.delete(id);
+          } else if (shouldBeVisible) {
+            // Marker stays visible
+            element.style.display = '';
           }
         });
       };
@@ -474,20 +555,28 @@ export function MapContainer({
         // Will re-enable when map becomes idle
       });
 
-      // Track zoom state - freeze marker updates during zoom
+      // Track zoom state
       m.on('zoomstart', () => {
         isZooming.current = true;
-        // Disable transitions on all markers during zoom for stability
+        // Disable position transitions on all markers during zoom for stability
         markers.current.forEach((marker) => {
           const el = marker.getElement();
-          el.style.transition = 'none';
+          el.style.transition = 'opacity 0.2s ease';
         });
       });
 
       m.on('zoomend', () => {
         isZooming.current = false;
-        // Don't re-enable transitions yet - map might still be animating
-        // Will re-enable when map becomes idle
+        // Update markers immediately when zoom ends with fade effect
+        updateMarkers(true);
+      });
+
+      // Update markers during zoom for smoother cluster-to-marker transitions
+      m.on('zoom', () => {
+        // Only update during animated zooms (flyTo, etc)
+        if (isZooming.current) {
+          updateMarkers(true);
+        }
       });
 
       // Update markers when map becomes idle (completely stopped)
@@ -496,10 +585,10 @@ export function MapContainer({
           // Re-enable transitions now that map has completely stopped
           markers.current.forEach((marker) => {
             const el = marker.getElement();
-            el.style.transition = 'transform 0.15s ease, border-color 0.15s ease';
+            el.style.transition = 'transform 0.15s ease, border-color 0.15s ease, opacity 0.2s ease';
           });
 
-          updateMarkers();
+          updateMarkers(true);
 
           // Call transition complete callback after map is idle and transitioning
           if (isTransitioning.current && !hasCalledTransitionComplete.current && onTransitionComplete) {

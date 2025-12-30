@@ -94,6 +94,36 @@ body {
   height: 100%;
 }
 
+/* Drawer - shared styles for location and shop drawers */
+.drawer {
+  position: relative;
+  height: 100%;
+  background: white;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  animation: slideIn 0.3s ease-out;
+}
+
+.drawer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.drawer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drawer::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Premium color transitions for city changes - oh so beautiful */
+.location-drawer-header {
+  transition: background-color 900ms cubic-bezier(0.4, 0, 0.2, 1),
+              background-image 900ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: background-color, background-image;
+}
+
 /* Shop Drawer */
 .shop-drawer {
   position: relative;

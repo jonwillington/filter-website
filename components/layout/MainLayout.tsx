@@ -7,6 +7,7 @@ import { MapContainer } from '../map/MapContainer';
 import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
+import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
 import { Footer } from './Footer';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, slugify, getShopSlug } from '@/lib/utils';
@@ -44,6 +45,7 @@ export function MainLayout({
   const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
   const [mapZoom, setMapZoom] = useState<number>(2);
+  const [unsupportedCountry, setUnsupportedCountry] = useState<string | null>(null);
 
   const { coordinates, requestLocation } = useGeolocation();
 
@@ -356,11 +358,21 @@ export function MainLayout({
     setIsLoading(false);
   }, []);
 
+  const handleUnsupportedCountryClick = useCallback((countryName: string) => {
+    setUnsupportedCountry(countryName);
+  }, []);
+
   return (
     <>
       <WelcomeModal
         onFindNearMe={handleWelcomeFindNearMe}
         onExplore={handleWelcomeExplore}
+      />
+
+      <UnsupportedCountryModal
+        isOpen={!!unsupportedCountry}
+        countryName={unsupportedCountry || ''}
+        onClose={() => setUnsupportedCountry(null)}
       />
 
       {/* Mobile menu toggle */}
@@ -406,6 +418,7 @@ export function MainLayout({
           isLoading={isLoading}
           onTransitionComplete={handleMapTransitionComplete}
           countries={countries}
+          onUnsupportedCountryClick={handleUnsupportedCountryClick}
         />
 
         {selectedShop ? (
