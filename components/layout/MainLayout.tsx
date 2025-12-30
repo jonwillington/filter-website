@@ -244,6 +244,11 @@ export function MainLayout({
     ? shops.filter((shop) => hasCityAreaRecommendation(shop))
     : shops;
 
+  // Always include selected shop in the shops array for the map, even if it doesn't match filters
+  const shopsForMap = selectedShop && !filteredShops.find(s => s.documentId === selectedShop.documentId)
+    ? [...filteredShops, selectedShop]
+    : filteredShops;
+
   const handleShopSelect = useCallback(
     (shop: Shop) => {
       setSelectedShop(shop);
@@ -369,7 +374,7 @@ export function MainLayout({
         />
 
         <MapContainer
-          shops={isExploreMode ? shops : filteredShops}
+          shops={isExploreMode ? shops : shopsForMap}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           center={mapCenter}
