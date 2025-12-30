@@ -15,6 +15,18 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
+  // Extract street identifier from address (before first comma)
+  const getStreetIdentifier = (address: string) => {
+    // Split by comma and take first part
+    const parts = address.split(',');
+    if (parts.length > 0) {
+      return parts[0].trim();
+    }
+    return address;
+  };
+
+  const streetAddress = shop.address ? getStreetIdentifier(shop.address) : null;
+
   return (
     <button
       onClick={disabled ? undefined : onClick}
@@ -39,9 +51,9 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
         <h4 className="font-medium text-text truncate text-sm">
           {displayName}
         </h4>
-        {shop.address && (
+        {streetAddress && (
           <p className="text-xs text-textSecondary truncate">
-            {shop.address}
+            {streetAddress}
           </p>
         )}
       </div>
