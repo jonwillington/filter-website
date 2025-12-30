@@ -267,7 +267,8 @@ export function MainLayout({
 
       const countrySlug = slugify(shop.location?.country?.name ?? '');
       const citySlug = slugify(shop.location?.name ?? '');
-      const areaSlug = slugify(shop.city_area?.name ?? shop.cityArea?.name ?? '');
+      // Use "All" as fallback area if shop has no city_area
+      const areaSlug = slugify(shop.city_area?.name ?? shop.cityArea?.name ?? 'All');
       const shopSlug = shop.slug ?? slugify(shop.name);
 
       if (countrySlug && citySlug && areaSlug && shopSlug) {

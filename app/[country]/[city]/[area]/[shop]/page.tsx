@@ -16,7 +16,8 @@ export async function generateStaticParams() {
       .map((shop) => {
         const countryName = shop.location?.country?.name;
         const cityName = shop.location?.name;
-        const areaName = shop.city_area?.name ?? shop.cityArea?.name;
+        // Use "All" as fallback area if shop has no city_area
+        const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? 'All';
         const shopSlug = shop.slug || slugify(shop.name);
 
         if (countryName && cityName && areaName) {

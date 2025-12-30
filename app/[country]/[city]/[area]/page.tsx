@@ -17,7 +17,8 @@ export async function generateStaticParams() {
     shops.forEach((shop) => {
       const countryName = shop.location?.country?.name;
       const cityName = shop.location?.name;
-      const areaName = shop.city_area?.name ?? shop.cityArea?.name;
+      // Use "All" as fallback area if shop has no city_area
+      const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? 'All';
 
       if (countryName && cityName && areaName) {
         const key = `${countryName}-${cityName}-${areaName}`;
