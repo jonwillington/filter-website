@@ -1,9 +1,8 @@
 'use client';
 
-import { Select, SelectItem, SelectSection, type SharedSelection } from '@heroui/react';
+import { Select, SelectItem, type SharedSelection } from '@heroui/react';
 import { Location } from '@/lib/types';
 import { MapPin } from 'lucide-react';
-import { useMemo } from 'react';
 
 interface LocationSelectorProps {
   locations: Location[];
@@ -38,22 +37,6 @@ export function LocationSelector({
     ? new Set([selectedLocation.documentId])
     : new Set<string>();
 
-  // Group locations by country
-  const locationsByCountry = useMemo(() => {
-    const groups: Record<string, Location[]> = {};
-
-    locations.forEach((location) => {
-      const countryName = location.country?.name ?? 'Other';
-      if (!groups[countryName]) {
-        groups[countryName] = [];
-      }
-      groups[countryName].push(location);
-    });
-
-    // Sort countries alphabetically
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [locations]);
-
   return (
     <Select
       label="Location"
@@ -66,25 +49,19 @@ export function LocationSelector({
         value: 'text-text',
         label: 'text-textSecondary',
       }}
+      items={[
+        { key: 'nearby', name: 'Nearby', isNearby: true },
+        ...locations.map((l) => ({ key: l.documentId, name: l.name, isNearby: false })),
+      ]}
     >
-      <SelectSection title="Quick Access">
+      {(item) => (
         <SelectItem
-          key="nearby"
-          startContent={<MapPin className="w-4 h-4 text-accent" />}
+          key={item.key}
+          startContent={item.isNearby ? <MapPin className="w-4 h-4 text-accent" /> : undefined}
         >
-          Nearby
+          {item.name}
         </SelectItem>
-      </SelectSection>
-
-      {locationsByCountry.map(([countryName, countryLocations]) => (
-        <SelectSection key={countryName} title={countryName}>
-          {countryLocations.map((location) => (
-            <SelectItem key={location.documentId}>
-              {location.name}
-            </SelectItem>
-          ))}
-        </SelectSection>
-      ))}
+      )}
     </Select>
   );
 }
