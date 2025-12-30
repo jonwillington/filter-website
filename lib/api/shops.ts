@@ -139,60 +139,26 @@ async function getAllLocations(): Promise<Map<string, Partial<Location>>> {
   }
 }
 
-// Merge full country and location data into shop
+// Merge full country data into shop (skip slow location enrichment)
 function enrichShopData(
   shop: Shop,
-  countryMap: Map<string, Country>,
-  locationMap: Map<string, Partial<Location>>
+  countryMap: Map<string, Country>
 ): Shop {
-  // Enrich direct location
-  if (shop.location?.documentId) {
-    const fullLocation = locationMap.get(shop.location.documentId);
-    if (fullLocation) {
-      // Merge full location data (preserving country from nested populate)
-      shop.location = {
-        ...fullLocation,
-        ...shop.location,
-        // Override with full location fields
-        story: fullLocation.story ?? shop.location.story,
-        headline: fullLocation.headline ?? shop.location.headline,
-        rating_stars: fullLocation.rating_stars ?? shop.location.rating_stars,
-        inFocus: fullLocation.inFocus ?? shop.location.inFocus,
-      } as Location;
-    }
-
-    // Enrich country data
-    if (shop.location.country?.documentId) {
-      const fullCountry = countryMap.get(shop.location.country.documentId);
-      if (fullCountry) {
-        shop.location.country = fullCountry;
-      }
+  // Enrich direct location's country data
+  if (shop.location?.country?.documentId) {
+    const fullCountry = countryMap.get(shop.location.country.documentId);
+    if (fullCountry) {
+      shop.location.country = fullCountry;
     }
   }
 
-  // Enrich city_area's location
+  // Enrich city_area's location's country data
   const cityArea = shop.city_area ?? shop.cityArea;
-  if (cityArea?.location?.documentId) {
-    const fullLocation = locationMap.get(cityArea.location.documentId);
-    const existingLoc = cityArea.location as Location;
-    if (fullLocation) {
-      cityArea.location = {
-        ...fullLocation,
-        ...existingLoc,
-        story: fullLocation.story ?? existingLoc.story,
-        headline: fullLocation.headline ?? existingLoc.headline,
-        rating_stars: fullLocation.rating_stars ?? existingLoc.rating_stars,
-        inFocus: fullLocation.inFocus ?? existingLoc.inFocus,
-      } as Location;
-    }
-
-    // Enrich country data
-    const enrichedLoc = cityArea.location as Location;
-    if (enrichedLoc.country?.documentId) {
-      const fullCountry = countryMap.get(enrichedLoc.country.documentId);
-      if (fullCountry) {
-        enrichedLoc.country = fullCountry;
-      }
+  const enrichedLoc = cityArea?.location as Location | undefined;
+  if (enrichedLoc?.country?.documentId) {
+    const fullCountry = countryMap.get(enrichedLoc.country.documentId);
+    if (fullCountry) {
+      enrichedLoc.country = fullCountry;
     }
   }
 
@@ -237,15 +203,13 @@ export async function getAllShops(): Promise<Shop[]> {
       page++;
     }
 
-    // Fetch countries and locations to enrich shop data
-    // (Strapi nested relations only return minimal fields)
-    const [countryMap, locationMap] = await Promise.all([
-      getAllCountries(),
-      getAllLocations(),
-    ]);
+    // Fetch countries to enrich shop data
+    // (Strapi nested relations only return minimal country fields)
+    // Location data is already fully populated from shops endpoint
+    const countryMap = await getAllCountries();
 
     for (const shop of allShops) {
-      enrichShopData(shop, countryMap, locationMap);
+      enrichShopData(shop, countryMap);
     }
 
     shopsCache = allShops;
