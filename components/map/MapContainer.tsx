@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { Shop } from '@/lib/types';
+import { Shop, Country } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 
 if (typeof window !== 'undefined') {
@@ -17,6 +17,7 @@ interface MapContainerProps {
   zoom?: number;
   isLoading?: boolean;
   onTransitionComplete?: () => void;
+  countries?: Country[];
 }
 
 const CLUSTER_RADIUS = 30;
@@ -30,6 +31,7 @@ export function MapContainer({
   zoom = 12,
   isLoading = false,
   onTransitionComplete,
+  countries = [],
 }: MapContainerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -181,6 +183,62 @@ export function MapContainer({
       map.current = null;
     };
   }, []);
+
+  // Setup country boundaries highlighting
+  useEffect(() => {
+    if (!map.current || countries.length === 0) return;
+
+    const setupCountryHighlighting = () => {
+      const m = map.current!;
+
+      // Check if the layer already exists
+      if (m.getLayer('country-fills')) {
+        m.removeLayer('country-fills');
+      }
+
+      // Create a mapping of country codes to supported status
+      const supportedCountries = countries
+        .filter(c => c.supported)
+        .map(c => c.code);
+
+      // Add country boundary fill layer
+      m.addLayer(
+        {
+          id: 'country-fills',
+          type: 'fill',
+          source: {
+            type: 'vector',
+            url: 'mapbox://mapbox.country-boundaries-v1',
+          },
+          'source-layer': 'country_boundaries',
+          paint: {
+            'fill-color': [
+              'match',
+              ['get', 'iso_3166_1'],
+              supportedCountries,
+              '#8B6F47', // Supported countries - accent color
+              '#E5E5E5', // Unsupported countries - gray
+            ],
+            'fill-opacity': 0.15,
+          },
+        },
+        // Insert below the first symbol layer to keep country names visible
+        m.getStyle().layers.find(layer => layer.type === 'symbol')?.id
+      );
+    };
+
+    if (map.current.isStyleLoaded()) {
+      setupCountryHighlighting();
+    } else {
+      map.current.on('load', setupCountryHighlighting);
+    }
+
+    return () => {
+      if (map.current?.getLayer('country-fills')) {
+        map.current.removeLayer('country-fills');
+      }
+    };
+  }, [countries]);
 
   // Update center when it changes
   useEffect(() => {

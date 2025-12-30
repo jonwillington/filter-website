@@ -1,6 +1,7 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
 import { getShopsByLocation, getAllShops } from '@/lib/api/shops';
+import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { deslugify, slugify } from '@/lib/utils';
@@ -60,6 +61,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
   }
 
   const allShops = await getShopsByLocation(location.documentId);
+  const countries = await getAllCountries();
 
   // Filter to just this area
   const areaName = deslugify(area).toLowerCase();
@@ -73,6 +75,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
       locations={locations}
       initialLocation={location}
       shops={shops.length > 0 ? shops : allShops}
+      countries={countries}
     />
   );
 }

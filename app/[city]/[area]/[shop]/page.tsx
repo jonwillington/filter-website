@@ -1,6 +1,7 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
 import { getShopsByLocation, getShopBySlug, getAllShops } from '@/lib/api/shops';
+import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify, getMediaUrl } from '@/lib/utils';
@@ -73,6 +74,7 @@ export default async function ShopPage({ params }: ShopPageProps) {
   }
 
   const shops = await getShopsByLocation(location.documentId);
+  const countries = await getAllCountries();
 
   return (
     <MainLayout
@@ -80,6 +82,7 @@ export default async function ShopPage({ params }: ShopPageProps) {
       initialLocation={location}
       shops={shops}
       initialShop={shop}
+      countries={countries}
     />
   );
 }

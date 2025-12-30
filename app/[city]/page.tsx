@@ -1,6 +1,7 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
 import { getShopsByLocation } from '@/lib/api/shops';
+import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
@@ -52,12 +53,14 @@ export default async function CityPage({ params }: CityPageProps) {
   }
 
   const shops = await getShopsByLocation(location.documentId);
+  const countries = await getAllCountries();
 
   return (
     <MainLayout
       locations={locations}
       initialLocation={location}
       shops={shops}
+      countries={countries}
     />
   );
 }

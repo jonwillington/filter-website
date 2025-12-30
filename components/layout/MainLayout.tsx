@@ -8,7 +8,7 @@ import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
 import { Footer } from './Footer';
-import { Location, Shop } from '@/lib/types';
+import { Location, Shop, Country } from '@/lib/types';
 import { cn, slugify } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { detectUserArea } from '@/lib/api/geolocation';
@@ -20,6 +20,7 @@ interface MainLayoutProps {
   initialLocation?: Location | null;
   shops: Shop[];
   initialShop?: Shop | null;
+  countries?: Country[];
 }
 
 export function MainLayout({
@@ -27,6 +28,7 @@ export function MainLayout({
   initialLocation = null,
   shops,
   initialShop = null,
+  countries = [],
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -331,6 +333,7 @@ export function MainLayout({
           zoom={getMapZoom()}
           isLoading={isLoading}
           onTransitionComplete={handleMapTransitionComplete}
+          countries={countries}
         />
 
         {selectedShop ? (
