@@ -62,9 +62,10 @@ export function MainLayout({
           // Smoothly transition to the supported city
           setIsAreaUnsupported(false);
           setIsExploreMode(false);
-          setIsNearbyMode(true);
+          setIsNearbyMode(false); // Exit nearby mode
+          setShowTopRecommendations(false);
 
-          // Small delay for smooth transition
+          // Update location and route
           setTimeout(() => {
             setSelectedLocation(matchedLocation);
             router.push(`/${slugify(matchedLocation.name)}`);
@@ -255,7 +256,8 @@ export function MainLayout({
     if (coordinates && isNearbyMode) {
       return [coordinates.lng, coordinates.lat];
     }
-    if (isExploreMode) {
+    // ALWAYS stay zoomed out in explore mode or when no location selected
+    if (isExploreMode || !selectedLocation) {
       return [0, 20]; // World view center
     }
     if (shops.length > 0) {
@@ -270,7 +272,7 @@ export function MainLayout({
         return [avgLng, avgLat];
       }
     }
-    return [28.9784, 41.0082]; // Istanbul default
+    return [0, 20]; // Default to world view
   };
 
   const getMapZoom = (): number => {

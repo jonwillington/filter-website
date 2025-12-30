@@ -97,6 +97,23 @@ export function Sidebar({
               </p>
             </div>
           </div>
+        ) : !selectedLocation && !isNearbyMode ? (
+          <div className="flex-1 flex items-center justify-center p-8 text-center">
+            <div>
+              <p className="text-2xl font-bold text-text mb-4">Welcome to Filter</p>
+              <p className="text-textSecondary mb-4">
+                Discover the best specialty coffee shops around the world
+              </p>
+              <div className="text-left max-w-sm mx-auto space-y-3 text-sm text-textSecondary">
+                <p>🗺️ Explore cities on the map</p>
+                <p>📍 Find coffee shops near you</p>
+                <p>☕ Get curated recommendations</p>
+              </div>
+              <p className="text-sm text-textSecondary mt-6">
+                Select a city above or click "Nearby" to get started
+              </p>
+            </div>
+          </div>
         ) : (
           <ShopList
             shops={shops}
