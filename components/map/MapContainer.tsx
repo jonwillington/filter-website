@@ -96,6 +96,9 @@ export function MapContainer({
         position: absolute;
         backface-visibility: hidden;
         transform: translate3d(0, 0, 0);
+        contain: layout style paint;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
       `;
 
       if (logoUrl) {
@@ -158,7 +161,22 @@ export function MapContainer({
       'bottom-right'
     );
 
+    // Handle browser zoom changes to keep markers positioned correctly
+    let lastZoom = window.devicePixelRatio;
+    const checkBrowserZoom = () => {
+      const currentZoom = window.devicePixelRatio;
+      if (Math.abs(currentZoom - lastZoom) > 0.01) {
+        lastZoom = currentZoom;
+        // Force map to recalculate marker positions
+        map.current?.resize();
+      }
+    };
+
+    // Check for zoom changes periodically
+    const zoomCheckInterval = setInterval(checkBrowserZoom, 300);
+
     return () => {
+      clearInterval(zoomCheckInterval);
       map.current?.remove();
       map.current = null;
     };
