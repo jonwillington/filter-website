@@ -9,24 +9,12 @@ export default async function HomePage() {
   // Get all shops (uses cache from above call)
   const allShops = await getAllShops();
 
-  // Default to Istanbul or first location
-  const defaultLocation =
-    locations.find((l) => l.name.toLowerCase() === 'istanbul') ??
-    locations.find((l) => l.name.toLowerCase() === 'london') ??
-    locations[0];
-
-  // Filter shops for the default location
-  const shops = defaultLocation
-    ? allShops.filter(
-        (shop) => shop.location?.documentId === defaultLocation.documentId
-      )
-    : allShops.slice(0, 50);
-
+  // Start with no location selected - zoomed out world view
   return (
     <MainLayout
       locations={locations}
-      initialLocation={defaultLocation}
-      shops={shops}
+      initialLocation={null}
+      shops={allShops}
     />
   );
 }

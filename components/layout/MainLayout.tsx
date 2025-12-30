@@ -37,7 +37,7 @@ export function MainLayout({
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showTopRecommendations, setShowTopRecommendations] = useState(false);
-  const [isExploreMode, setIsExploreMode] = useState(false);
+  const [isExploreMode, setIsExploreMode] = useState(!initialLocation);
 
   const { coordinates, requestLocation } = useGeolocation();
 
