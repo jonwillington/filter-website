@@ -1,15 +1,20 @@
 'use client';
 
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react';
-import { Globe } from 'lucide-react';
+import Image from 'next/image';
 
 interface UnsupportedCountryModalProps {
   isOpen: boolean;
   countryName: string;
+  countryCode?: string;
   onClose: () => void;
 }
 
-export function UnsupportedCountryModal({ isOpen, countryName, onClose }: UnsupportedCountryModalProps) {
+export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onClose }: UnsupportedCountryModalProps) {
+  const flagUrl = countryCode
+    ? `https://hatscripts.github.io/circle-flags/flags/${countryCode.toLowerCase()}.svg`
+    : null;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -23,9 +28,19 @@ export function UnsupportedCountryModal({ isOpen, countryName, onClose }: Unsupp
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1 pt-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-              <Globe className="w-5 h-5 text-accent" />
-            </div>
+            {flagUrl ? (
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-md">
+                <Image
+                  src={flagUrl}
+                  alt={countryName}
+                  width={48}
+                  height={48}
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200" />
+            )}
             <h2 className="text-xl font-bold">Coming Soon</h2>
           </div>
         </ModalHeader>

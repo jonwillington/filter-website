@@ -18,7 +18,7 @@ interface MapContainerProps {
   isLoading?: boolean;
   onTransitionComplete?: () => void;
   countries?: Country[];
-  onUnsupportedCountryClick?: (countryName: string) => void;
+  onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
 }
 
 const CLUSTER_RADIUS = 30;
@@ -278,7 +278,7 @@ export function MapContainer({
 
         // Check if this is an unsupported country
         if (countryCode && !supportedCountries.includes(countryCode)) {
-          onUnsupportedCountryClick?.(countryName || countryCode);
+          onUnsupportedCountryClick?.(countryName || countryCode, countryCode);
         }
       });
 

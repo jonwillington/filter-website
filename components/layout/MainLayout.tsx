@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '../sidebar/Sidebar';
 import { MapContainer } from '../map/MapContainer';
@@ -45,7 +45,7 @@ export function MainLayout({
   const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
   const [mapZoom, setMapZoom] = useState<number>(2);
-  const [unsupportedCountry, setUnsupportedCountry] = useState<string | null>(null);
+  const [unsupportedCountry, setUnsupportedCountry] = useState<{ name: string; code: string } | null>(null);
 
   const { coordinates, requestLocation } = useGeolocation();
 
@@ -254,15 +254,19 @@ export function MainLayout({
     return false;
   };
 
-  // Filter shops based on top recommendations toggle
-  const filteredShops = showTopRecommendations
-    ? shops.filter((shop) => hasCityAreaRecommendation(shop))
-    : shops;
+  // Filter shops for sidebar based on selected location
+  const locationFilteredShops = useMemo(() => {
+    if (!selectedLocation) return shops;
+    return shops.filter((shop) => shop.location?.documentId === selectedLocation.documentId);
+  }, [shops, selectedLocation]);
 
-  // Always include selected shop in the shops array for the map, even if it doesn't match filters
-  const shopsForMap = selectedShop && !filteredShops.find(s => s.documentId === selectedShop.documentId)
-    ? [...filteredShops, selectedShop]
-    : filteredShops;
+  // Filter shops based on top recommendations toggle (for sidebar)
+  const sidebarShops = showTopRecommendations
+    ? locationFilteredShops.filter((shop) => hasCityAreaRecommendation(shop))
+    : locationFilteredShops;
+
+  // Map always shows all shops
+  const shopsForMap = shops;
 
   const handleShopSelect = useCallback(
     (shop: Shop) => {
@@ -358,8 +362,8 @@ export function MainLayout({
     setIsLoading(false);
   }, []);
 
-  const handleUnsupportedCountryClick = useCallback((countryName: string) => {
-    setUnsupportedCountry(countryName);
+  const handleUnsupportedCountryClick = useCallback((countryName: string, countryCode: string) => {
+    setUnsupportedCountry({ name: countryName, code: countryCode });
   }, []);
 
   return (
@@ -371,7 +375,8 @@ export function MainLayout({
 
       <UnsupportedCountryModal
         isOpen={!!unsupportedCountry}
-        countryName={unsupportedCountry || ''}
+        countryName={unsupportedCountry?.name || ''}
+        countryCode={unsupportedCountry?.code}
         onClose={() => setUnsupportedCountry(null)}
       />
 
@@ -396,8 +401,8 @@ export function MainLayout({
           locations={locations}
           selectedLocation={selectedLocation}
           onLocationChange={handleLocationChange}
-          shops={filteredShops}
-          allShops={shops}
+          shops={sidebarShops}
+          allShops={locationFilteredShops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           isNearbyMode={isNearbyMode}
@@ -410,7 +415,7 @@ export function MainLayout({
         />
 
         <MapContainer
-          shops={isExploreMode ? shops : shopsForMap}
+          shops={shopsForMap}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
           center={mapCenter}
