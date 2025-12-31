@@ -1,31 +1,7 @@
-import { apiClient } from './client';
 import { Shop, Country, Location } from '../types';
 import { getShopSlug as generateShopSlug } from '../utils';
-import { getBrandById } from './brands';
-import { fetchLocationById } from './locations';
-
-// Cache for all shops to avoid repeated API calls
-let shopsCache: Shop[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-// Cache for countries (fetched separately due to Strapi nested relation limitations)
-let countriesCache: Map<string, Country> | null = null;
-let countriesCacheTimestamp = 0;
-
-// Cache for locations (fetched via city-areas due to Strapi nested relation limitations)
-let locationsCache: Map<string, Partial<Location>> | null = null;
-let locationsCacheTimestamp = 0;
-
-// Force cache invalidation on module reload
-if (typeof window === 'undefined') {
-  shopsCache = null;
-  cacheTimestamp = 0;
-  countriesCache = null;
-  countriesCacheTimestamp = 0;
-  locationsCache = null;
-  locationsCacheTimestamp = 0;
-}
+import { getCached, setCache } from './cache';
+import { getAllBrands, Brand } from './brands';
 
 // Populate params to get all related data including nested city_area.location
 const SHOP_POPULATE = [
@@ -75,11 +51,9 @@ const SHOP_POPULATE = [
 
 // Fetch all countries with full data (Strapi limits nested relation fields)
 async function getAllCountries(): Promise<Map<string, Country>> {
-  const now = Date.now();
-
-  if (countriesCache && now - countriesCacheTimestamp < CACHE_TTL) {
-    return countriesCache;
-  }
+  const cacheKey = 'countries:all';
+  const cached = getCached<Map<string, Country>>(cacheKey);
+  if (cached) return cached;
 
   try {
     const response = await fetch(
@@ -108,23 +82,20 @@ async function getAllCountries(): Promise<Map<string, Country>> {
       }
     }
 
-    countriesCache = countryMap;
-    countriesCacheTimestamp = now;
+    setCache(cacheKey, countryMap);
     return countryMap;
   } catch (error) {
     console.error('Failed to fetch countries:', error);
-    return countriesCache ?? new Map();
+    return new Map();
   }
 }
 
 // Fetch locations with full data via city-areas endpoint
 // (Strapi nested relations only return minimal fields)
-async function getAllLocations(): Promise<Map<string, Partial<Location>>> {
-  const now = Date.now();
-
-  if (locationsCache && now - locationsCacheTimestamp < CACHE_TTL) {
-    return locationsCache;
-  }
+async function getAllLocationsMap(): Promise<Map<string, Partial<Location>>> {
+  const cacheKey = 'locations:map';
+  const cached = getCached<Map<string, Partial<Location>>>(cacheKey);
+  if (cached) return cached;
 
   try {
     const allLocations: Partial<Location>[] = [];
@@ -168,12 +139,11 @@ async function getAllLocations(): Promise<Map<string, Partial<Location>>> {
       }
     }
 
-    locationsCache = locationMap;
-    locationsCacheTimestamp = now;
+    setCache(cacheKey, locationMap);
     return locationMap;
   } catch (error) {
     console.error('Failed to fetch locations:', error);
-    return locationsCache ?? new Map();
+    return new Map();
   }
 }
 
@@ -204,12 +174,9 @@ function enrichShopData(
 }
 
 export async function getAllShops(): Promise<Shop[]> {
-  const now = Date.now();
-
-  // Return cached data if valid
-  if (shopsCache && now - cacheTimestamp < CACHE_TTL) {
-    return shopsCache;
-  }
+  const cacheKey = 'shops:all';
+  const cached = getCached<Shop[]>(cacheKey);
+  if (cached) return cached;
 
   try {
     const allShops: Shop[] = [];
@@ -241,46 +208,31 @@ export async function getAllShops(): Promise<Shop[]> {
       page++;
     }
 
-    // Fetch countries to enrich shop data
-    // (Strapi nested relations only return minimal country fields)
-    // Location data is already fully populated from shops endpoint
-    const countryMap = await getAllCountries();
+    // Fetch countries and brands in parallel (batch fetch, not N+1)
+    const [countryMap, brandMap] = await Promise.all([
+      getAllCountries(),
+      getAllBrands(),
+    ]);
 
+    // Enrich all shops with country and brand data
     for (const shop of allShops) {
       enrichShopData(shop, countryMap);
+
+      // Enrich brand data from batch-fetched brands
+      const brandDocumentId = shop.brand?.documentId;
+      if (brandDocumentId) {
+        const fullBrand = brandMap.get(brandDocumentId);
+        if (fullBrand) {
+          shop.brand = { ...shop.brand, ...fullBrand };
+        }
+      }
     }
 
-    // Enrich brand data - fetch full brand details separately
-    // (Strapi populate doesn't return all brand fields when brands are nested in shops)
-    const brandEnrichmentPromises = allShops.map(async (shop) => {
-      const brandDocumentId = shop.brand?.documentId;
-      if (!brandDocumentId) return;
-
-      try {
-        const fullBrand = await getBrandById(brandDocumentId);
-        if (fullBrand) {
-          // Merge full brand data into shop
-          shop.brand = {
-            ...shop.brand,
-            ...fullBrand,
-          };
-        }
-      } catch (error) {
-        console.error(`Failed to enrich brand for shop ${shop.documentId}:`, error);
-      }
-    });
-
-    await Promise.all(brandEnrichmentPromises);
-
-    // Location data is now fully populated via explicit field requests in SHOP_POPULATE
-    // No need to enrich separately (the /locations/:id endpoint has permission issues anyway)
-
-    shopsCache = allShops;
-    cacheTimestamp = now;
-    return shopsCache;
+    setCache(cacheKey, allShops);
+    return allShops;
   } catch (error) {
     console.error('Failed to fetch all shops:', error);
-    return shopsCache ?? [];
+    return [];
   }
 }
 

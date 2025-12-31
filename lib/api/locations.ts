@@ -1,6 +1,7 @@
 import { Location, Shop, CityArea } from '../types';
 import { deslugify } from '../utils';
 import { getAllShops } from './shops';
+import { getCached, setCache } from './cache';
 
 export interface ApiResponse<T> {
   data: T;
@@ -37,42 +38,20 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
 // Fetch unique locations from both city-areas and shops
 // This ensures all locations with shops are available in the selector
 export async function getAllLocations(): Promise<Location[]> {
+  const cacheKey = 'locations:all';
+  const cached = getCached<Location[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const locationMap = new Map<string, Location>();
 
     // 1. Get locations from city-areas (with full nested data)
-    let page = 1;
-    let pageCount = 1;
-
-    while (page <= pageCount) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          next: { revalidate: 300 },
-        }
-      );
-
-      if (!response.ok) {
-        console.error(`City Areas API Error: ${response.statusText}`);
-        break;
+    const cityAreas = await getAllCityAreas();
+    for (const cityArea of cityAreas) {
+      const loc = cityArea.location;
+      if (loc?.documentId && !locationMap.has(loc.documentId)) {
+        locationMap.set(loc.documentId, loc as Location);
       }
-
-      const json = await response.json();
-      const cityAreas = json.data || [];
-
-      for (const cityArea of cityAreas) {
-        const loc = cityArea.location;
-        if (loc?.documentId && !locationMap.has(loc.documentId)) {
-          locationMap.set(loc.documentId, loc as Location);
-        }
-      }
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
     }
 
     // 2. Also get locations directly from shops (in case some don't have city-areas)
@@ -88,9 +67,12 @@ export async function getAllLocations(): Promise<Location[]> {
       }
     }
 
-    return Array.from(locationMap.values()).sort((a, b) =>
+    const locations = Array.from(locationMap.values()).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
+
+    setCache(cacheKey, locations);
+    return locations;
   } catch (error) {
     console.error('Failed to fetch locations:', error);
     return [];
@@ -126,6 +108,10 @@ export async function getLocationById(documentId: string): Promise<Location | nu
 }
 
 export async function getAllCityAreas(): Promise<CityArea[]> {
+  const cacheKey = 'cityAreas:all';
+  const cached = getCached<CityArea[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const cityAreas: CityArea[] = [];
     let page = 1;
@@ -133,7 +119,7 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
 
     while (page <= pageCount) {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -155,6 +141,7 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
       page++;
     }
 
+    setCache(cacheKey, cityAreas);
     return cityAreas;
   } catch (error) {
     console.error('Failed to fetch city areas:', error);

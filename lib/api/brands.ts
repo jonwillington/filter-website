@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { getCached, setCache } from './cache';
 
 export interface Brand {
   id: number;
@@ -36,7 +36,66 @@ export interface ApiResponse<T> {
   meta?: any;
 }
 
+/**
+ * Fetch all brands in a single batch request
+ * Returns a Map for O(1) lookup by documentId
+ */
+export async function getAllBrands(): Promise<Map<string, Brand>> {
+  const cacheKey = 'brands:all';
+  const cached = getCached<Map<string, Brand>>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const allBrands: Brand[] = [];
+    let page = 1;
+    let pageCount = 1;
+
+    while (page <= pageCount) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands?populate=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+          },
+          next: { revalidate: 300 },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Brands API Error: ${response.statusText}`);
+      }
+
+      const json = await response.json();
+      allBrands.push(...(json.data || []));
+
+      pageCount = json.meta?.pagination?.pageCount || 1;
+      page++;
+    }
+
+    // Create lookup map by documentId
+    const brandMap = new Map<string, Brand>();
+    for (const brand of allBrands) {
+      if (brand.documentId) {
+        brandMap.set(brand.documentId, brand);
+      }
+    }
+
+    setCache(cacheKey, brandMap);
+    return brandMap;
+  } catch (error) {
+    console.error('Failed to fetch brands:', error);
+    return new Map();
+  }
+}
+
 export async function getBrandById(documentId: string): Promise<Brand | null> {
+  // Use batch-fetched brands cache when available
+  const brandMap = await getAllBrands();
+  const cached = brandMap.get(documentId);
+  if (cached) return cached;
+
+  // Fallback to individual fetch (shouldn't happen often)
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands/${documentId}?populate=*`,
