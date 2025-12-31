@@ -13,6 +13,24 @@
   --text: #1A1A1A;
   --text-secondary: #9A9A9A;
   --border: #E5DDD5;
+  --error: #DC2626;
+  --success: #16A34A;
+  --warning: #D97706;
+}
+
+.dark {
+  --background: #1A1A1A;
+  --surface: #262626;
+  --contrast-block: #FFFDFB;
+  --contrast-text: #2E1F17;
+  --accent: #B8956A;
+  --secondary: #D4C4B0;
+  --text: #FAFAFA;
+  --text-secondary: #9A9A9A;
+  --border: #404040;
+  --error: #EF4444;
+  --success: #22C55E;
+  --warning: #F59E0B;
 }
 
 * {
@@ -55,11 +73,19 @@ body {
   overflow: hidden;
 }
 
+.dark .sidebar {
+  background: rgba(26, 26, 26, 0.98);
+}
+
 .sidebar-header {
   padding: 20px;
   border-bottom: 1px solid var(--border);
   background: white;
   flex-shrink: 0;
+}
+
+.dark .sidebar-header {
+  background: var(--background);
 }
 
 .sidebar-content {
@@ -107,6 +133,10 @@ body {
   animation: slideIn 0.3s ease-out;
 }
 
+.dark .drawer {
+  background: var(--background);
+}
+
 .drawer::-webkit-scrollbar {
   width: 6px;
 }
@@ -135,6 +165,10 @@ body {
   border-left: 1px solid var(--border);
   overflow-y: auto;
   animation: slideIn 0.3s ease-out;
+}
+
+.dark .shop-drawer {
+  background: var(--background);
 }
 
 .shop-drawer::-webkit-scrollbar {
@@ -189,6 +223,10 @@ body {
   z-index: 200;
 }
 
+.dark .footer {
+  background: rgba(26, 26, 26, 0.98);
+}
+
 /* Map Markers */
 .shop-marker {
   cursor: pointer;
@@ -214,6 +252,10 @@ body {
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   z-index: 10;
+}
+
+.dark .area-header {
+  background: rgba(38, 38, 38, 0.95);
 }
 
 /* Shop Card */
@@ -283,26 +325,14 @@ body {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   }
 
-  .auth-toggle-mobile {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 150;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  .dark .mobile-toggle {
+    background: var(--surface);
   }
 }
 
-/* Auth toggle - Desktop */
-.auth-toggle {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 150;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+/* Auth component inside sidebar */
+.auth-in-sidebar {
+  flex-shrink: 0;
 }
 
 @media (max-width: 640px) {

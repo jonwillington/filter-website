@@ -403,7 +403,7 @@ export function MainLayout({
         onClose={() => setShowLoginModal(false)}
       />
 
-      {/* Mobile menu toggle and auth */}
+      {/* Mobile menu toggle */}
       <div className="mobile-toggle lg:hidden">
         <Button
           isIconOnly
@@ -417,43 +417,6 @@ export function MainLayout({
             <Menu className="w-5 h-5" />
           )}
         </Button>
-      </div>
-
-      {/* Auth UI - Desktop */}
-      <div className="auth-toggle hidden lg:block">
-        {!authLoading && (
-          user ? (
-            <UserMenu />
-          ) : (
-            <Button
-              variant="flat"
-              onPress={() => setShowLoginModal(true)}
-              startContent={<LogIn className="w-4 h-4" />}
-              className="bg-white"
-              size="sm"
-            >
-              Sign In
-            </Button>
-          )
-        )}
-      </div>
-
-      {/* Auth UI - Mobile */}
-      <div className="auth-toggle-mobile lg:hidden">
-        {!authLoading && (
-          user ? (
-            <UserMenu />
-          ) : (
-            <Button
-              isIconOnly
-              variant="flat"
-              onPress={() => setShowLoginModal(true)}
-              className="bg-white"
-            >
-              <LogIn className="w-5 h-5" />
-            </Button>
-          )
-        )}
       </div>
 
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>
@@ -472,6 +435,22 @@ export function MainLayout({
           showTopRecommendations={showTopRecommendations}
           onTopRecommendationsChange={setShowTopRecommendations}
           isAreaUnsupported={isAreaUnsupported}
+          authComponent={
+            !authLoading && (
+              user ? (
+                <UserMenu />
+              ) : (
+                <Button
+                  variant="flat"
+                  onPress={() => setShowLoginModal(true)}
+                  startContent={<LogIn className="w-4 h-4" />}
+                  size="sm"
+                >
+                  Sign In
+                </Button>
+              )
+            )
+          }
         />
 
         <MapContainer

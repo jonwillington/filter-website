@@ -5,7 +5,7 @@ import { ShopList } from './ShopList';
 import { Location, Shop } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { SegmentedControl } from '../ui/SegmentedControl';
-import { useMemo } from 'react';
+import { useMemo, ReactNode } from 'react';
 
 interface SidebarProps {
   locations: Location[];
@@ -22,6 +22,7 @@ interface SidebarProps {
   showTopRecommendations?: boolean;
   onTopRecommendationsChange?: (value: boolean) => void;
   isAreaUnsupported?: boolean;
+  authComponent?: ReactNode;
 }
 
 export function Sidebar({
@@ -39,6 +40,7 @@ export function Sidebar({
   showTopRecommendations = false,
   onTopRecommendationsChange,
   isAreaUnsupported = false,
+  authComponent,
 }: SidebarProps) {
   // Count shops for segmented control labels
   const { topPicksCount, allCount } = useMemo(() => {
@@ -62,7 +64,10 @@ export function Sidebar({
   return (
     <aside className={cn('sidebar', isOpen && 'open')}>
       <div className="sidebar-header">
-        <h1 className="text-2xl font-bold text-contrastBlock mb-4">Filter</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-contrastBlock">Filter</h1>
+          {authComponent && <div className="auth-in-sidebar">{authComponent}</div>}
+        </div>
         <LocationSelector
           locations={locations}
           selectedLocation={selectedLocation}

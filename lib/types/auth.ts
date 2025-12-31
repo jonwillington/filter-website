@@ -51,7 +51,7 @@ export interface AICachedSummary {
 
 export interface UserPreferences {
   themeType: 'normal' | 'greenBean' | 'darkRoast';
-  themeMode: 'light' | 'dark';
+  themeMode: 'light' | 'dark' | 'system';
   locationMode: 'gps' | 'simulation';
   simulationLocationId?: string;
   preferredBrewMethods?: string[];

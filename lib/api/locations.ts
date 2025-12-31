@@ -34,12 +34,13 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
   }
 }
 
-// Fetch unique locations directly from city-areas endpoint
-// The shops endpoint doesn't return full location fields due to Strapi restrictions
-// but city-areas endpoint does work correctly
+// Fetch unique locations from both city-areas and shops
+// This ensures all locations with shops are available in the selector
 export async function getAllLocations(): Promise<Location[]> {
   try {
     const locationMap = new Map<string, Location>();
+
+    // 1. Get locations from city-areas (with full nested data)
     let page = 1;
     let pageCount = 1;
 
@@ -72,6 +73,19 @@ export async function getAllLocations(): Promise<Location[]> {
 
       pageCount = json.meta?.pagination?.pageCount || 1;
       page++;
+    }
+
+    // 2. Also get locations directly from shops (in case some don't have city-areas)
+    const shops = await getAllShops();
+    for (const shop of shops) {
+      // Check direct location reference
+      if (shop.location?.documentId && !locationMap.has(shop.location.documentId)) {
+        locationMap.set(shop.location.documentId, shop.location as Location);
+      }
+      // Check location via city_area
+      if (shop.city_area?.location?.documentId && !locationMap.has(shop.city_area.location.documentId)) {
+        locationMap.set(shop.city_area.location.documentId, shop.city_area.location as Location);
+      }
     }
 
     return Array.from(locationMap.values()).sort((a, b) =>

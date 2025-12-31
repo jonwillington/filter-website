@@ -2,7 +2,7 @@
 
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Avatar, DropdownSection } from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
-import { User, Heart, Settings, LogOut } from 'lucide-react';
+import { User, Heart, Settings, LogOut, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function UserMenu() {
@@ -18,6 +18,9 @@ export function UserMenu() {
         break;
       case 'favorites':
         router.push('/favorites');
+        break;
+      case 'reviews':
+        router.push('/reviews');
         break;
       case 'settings':
         router.push('/settings');
@@ -68,6 +71,12 @@ export function UserMenu() {
             startContent={<Heart className="w-4 h-4" />}
           >
             Favorites
+          </DropdownItem>
+          <DropdownItem
+            key="reviews"
+            startContent={<MessageSquare className="w-4 h-4" />}
+          >
+            My Reviews
           </DropdownItem>
           <DropdownItem
             key="settings"

@@ -60,6 +60,10 @@ export interface CityArea {
     id?: number;
     documentId?: string;
     name?: string;
+    country?: {
+      primaryColor?: string;
+      secondaryColor?: string;
+    };
   };
   shops?: Shop[];
 }
