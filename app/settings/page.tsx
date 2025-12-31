@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Divider } from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -17,6 +17,12 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent SSR issues with HeroUI components
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -43,6 +49,20 @@ export default function SettingsPage() {
       setShowDeleteConfirm(false);
     }
   };
+
+  // Return loading placeholder during SSR to avoid HeroUI location errors
+  if (!mounted) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-32" />
+            <div className="h-4 bg-gray-200 rounded w-48" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     router.push('/');
