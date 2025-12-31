@@ -3,6 +3,23 @@
 @source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Custom Fonts */
+@font-face {
+  font-family: 'Refrankt';
+  src: url('/fonts/Trial-Refrankt-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PPNeueMontreal';
+  src: url('/fonts/PPNeueMontreal-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #FFFFFF;
   --surface: #FAFAFA;
@@ -47,6 +64,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+h1 {
+  font-family: 'Refrankt', system-ui, sans-serif;
+  font-weight: 600;
+}
+
 /* Main Layout */
 .main-layout {
   display: grid;
@@ -82,6 +104,7 @@ body {
   border-bottom: 1px solid var(--border);
   background: white;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .dark .sidebar-header {

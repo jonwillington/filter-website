@@ -77,8 +77,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
   return (
     <div ref={drawerRef} className="shop-drawer">
       {/* Sticky header */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 p-4 border-b border-border flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-contrastBlock">Details</h2>
+      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 p-4 border-b border-border flex justify-end">
         <Button
           isIconOnly
           variant="light"

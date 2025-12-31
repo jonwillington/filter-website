@@ -13,6 +13,16 @@ interface LocationSelectorProps {
   onNearbyToggle: () => void;
 }
 
+// Convert country code to flag emoji
+const getCountryFlag = (countryCode: string): string => {
+  if (!countryCode || countryCode.length !== 2) return '';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
 export function LocationSelector({
   locations,
   selectedLocation,
@@ -40,14 +50,15 @@ export function LocationSelector({
 
   // Group locations by country and create a flat list with section headers
   const groupedItems = useMemo(() => {
-    const groups: Record<string, Location[]> = {};
+    const groups: Record<string, { locations: Location[]; code: string }> = {};
 
     locations.forEach((location) => {
       const countryName = location.country?.name ?? 'Other';
+      const countryCode = location.country?.code ?? '';
       if (!groups[countryName]) {
-        groups[countryName] = [];
+        groups[countryName] = { locations: [], code: countryCode };
       }
-      groups[countryName].push(location);
+      groups[countryName].locations.push(location);
     });
 
     // Sort countries alphabetically
@@ -59,16 +70,18 @@ export function LocationSelector({
       name: string;
       isNearby?: boolean;
       isHeader?: boolean;
+      countryCode?: string;
     }> = [
       { key: 'nearby', name: 'Nearby', isNearby: true }
     ];
 
-    sortedCountries.forEach(([countryName, countryLocations]) => {
+    sortedCountries.forEach(([countryName, { locations: countryLocations, code }]) => {
       // Add country header
       items.push({
         key: `header-${countryName}`,
         name: countryName,
-        isHeader: true
+        isHeader: true,
+        countryCode: code
       });
       // Add locations under this country
       countryLocations.forEach((location) => {
@@ -88,12 +101,15 @@ export function LocationSelector({
       placeholder="Select a city"
       selectedKeys={selectedKeys}
       onSelectionChange={handleChange}
-      startContent={<MapPin className="w-4 h-4 text-accent" />}
+      startContent={<MapPin className="w-4 h-4 text-accent flex-shrink-0" />}
       classNames={{
-        trigger: 'bg-surface border-border hover:bg-white',
-        value: 'text-text',
+        base: 'w-full max-w-full',
+        trigger: 'bg-white border-border hover:bg-gray-50 shadow-sm',
+        value: 'text-text truncate',
         label: 'text-textSecondary',
-        listbox: 'p-0',
+        innerWrapper: 'max-w-full',
+        listbox: 'p-0 bg-white',
+        popoverContent: 'bg-white shadow-lg',
       }}
       items={groupedItems}
       disabledKeys={groupedItems.filter(item => item.isHeader).map(item => item.key)}
@@ -103,9 +119,16 @@ export function LocationSelector({
           key={item.key}
           textValue={item.name}
           startContent={item.isNearby ? <MapPin className="w-4 h-4 text-accent" /> : undefined}
-          className={item.isHeader ? 'text-xs font-semibold text-textSecondary uppercase tracking-wider opacity-100 cursor-default px-2 py-1 bg-gray-50' : ''}
+          className={item.isHeader ? 'opacity-100 cursor-default px-2 py-1 bg-gray-100/80 pointer-events-none' : ''}
         >
-          {item.name}
+          {item.isHeader ? (
+            <span className="flex items-center gap-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+              {item.countryCode && <span>{getCountryFlag(item.countryCode)}</span>}
+              {item.name}
+            </span>
+          ) : (
+            item.name
+          )}
         </SelectItem>
       )}
     </Select>

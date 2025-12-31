@@ -76,7 +76,7 @@ export function Sidebar({
           onNearbyToggle={onNearbyToggle}
         />
         {shouldShowSegments && (
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4">
             <SegmentedControl
               segments={[
                 { key: 'topPicks', label: `Top Picks (${topPicksCount})` },

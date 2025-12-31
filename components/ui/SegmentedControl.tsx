@@ -45,13 +45,16 @@ export function SegmentedControl({
       selectedKey={activeSegment}
       onSelectionChange={(key) => onSegmentChange(key as string)}
       variant="solid"
-      color="primary"
+      color="default"
       size="sm"
+      fullWidth
       className={className}
       classNames={{
-        tabList: 'bg-surface p-1',
-        tab: 'text-sm font-medium',
-        cursor: 'bg-white shadow-sm',
+        base: 'w-full',
+        tabList: 'bg-gray-200/80 p-1 w-full gap-0 rounded-lg',
+        tab: 'text-sm font-medium h-8',
+        tabContent: 'text-gray-600 group-data-[selected=true]:text-gray-900',
+        cursor: 'bg-white shadow-md rounded-md',
       }}
     >
       {segments.map((segment) => (
