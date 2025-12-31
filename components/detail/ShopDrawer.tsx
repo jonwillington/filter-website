@@ -22,6 +22,21 @@ interface ShopDrawerProps {
 }
 
 export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawerProps) {
+  // Debug: Log the shop and brand data
+  console.log('🔍 ShopDrawer - Full shop object:', shop);
+  console.log('🔍 ShopDrawer - Brand object:', shop.brand);
+  console.log('🔍 ShopDrawer - Brand fields:', {
+    name: shop.brand?.name,
+    description: shop.brand?.description,
+    story: shop.brand?.story,
+    has_wifi: shop.brand?.has_wifi,
+    has_food: shop.brand?.has_food,
+    has_espresso: shop.brand?.has_espresso,
+    has_filter_coffee: shop.brand?.has_filter_coffee,
+    roastOwnBeans: shop.brand?.roastOwnBeans,
+    suppliers: shop.brand?.suppliers,
+  });
+
   // Get more shops from the same brand
   const moreFromBrand = useMemo(() => {
     if (!shop.brand?.documentId) return [];

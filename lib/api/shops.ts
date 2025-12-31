@@ -27,7 +27,7 @@ if (typeof window === 'undefined') {
 
 // Populate params to get all related data including nested city_area.location
 const SHOP_POPULATE = [
-  'populate[brand][populate]=logo',
+  'populate[brand][populate]=*',
   'populate[featured_image]=*',
   'populate[gallery]=*',
   'populate[city_area][populate]=location',

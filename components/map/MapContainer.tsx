@@ -224,28 +224,45 @@ export function MapContainer({
   useEffect(() => {
     if (!map.current || countries.length === 0) return;
 
-    const setupCountryHighlighting = () => {
-      const m = map.current!;
+    const m = map.current;
+    let isSetup = false;
 
-      // Check if the layer already exists
+    const cleanupCountryLayer = () => {
       if (m.getLayer('country-fills')) {
+        m.off('click', 'country-fills');
+        m.off('mouseenter', 'country-fills');
+        m.off('mouseleave', 'country-fills');
         m.removeLayer('country-fills');
       }
+      if (m.getSource('country-fills')) {
+        m.removeSource('country-fills');
+      }
+    };
+
+    const setupCountryHighlighting = () => {
+      if (isSetup) return; // Prevent double setup
+      isSetup = true;
+
+      // Remove existing layer and source if they exist
+      cleanupCountryLayer();
 
       // Create a mapping of country codes to supported status
       const supportedCountries = countries
         .filter(c => c.supported)
         .map(c => c.code);
 
+      // Add source first
+      m.addSource('country-fills', {
+        type: 'vector',
+        url: 'mapbox://mapbox.country-boundaries-v1',
+      });
+
       // Add country boundary fill layer - darken unsupported countries
       m.addLayer(
         {
           id: 'country-fills',
           type: 'fill',
-          source: {
-            type: 'vector',
-            url: 'mapbox://mapbox.country-boundaries-v1',
-          },
+          source: 'country-fills',
           'source-layer': 'country_boundaries',
           paint: {
             'fill-color': [
@@ -269,7 +286,7 @@ export function MapContainer({
       );
 
       // Add click handler for unsupported countries
-      m.on('click', 'country-fills', (e) => {
+      const handleClick = (e: mapboxgl.MapLayerMouseEvent) => {
         if (!e.features || e.features.length === 0) return;
 
         const feature = e.features[0];
@@ -280,32 +297,38 @@ export function MapContainer({
         if (countryCode && !supportedCountries.includes(countryCode)) {
           onUnsupportedCountryClick?.(countryName || countryCode, countryCode);
         }
-      });
+      };
 
       // Change cursor to pointer on unsupported countries
-      m.on('mouseenter', 'country-fills', (e) => {
+      const handleMouseEnter = (e: mapboxgl.MapLayerMouseEvent) => {
         if (!e.features || e.features.length === 0) return;
         const countryCode = e.features[0].properties?.iso_3166_1;
         if (countryCode && !supportedCountries.includes(countryCode)) {
           m.getCanvas().style.cursor = 'pointer';
         }
-      });
+      };
 
-      m.on('mouseleave', 'country-fills', () => {
+      const handleMouseLeave = () => {
         m.getCanvas().style.cursor = '';
-      });
+      };
+
+      m.on('click', 'country-fills', handleClick);
+      m.on('mouseenter', 'country-fills', handleMouseEnter);
+      m.on('mouseleave', 'country-fills', handleMouseLeave);
     };
 
-    if (map.current.isStyleLoaded()) {
+    if (m.isStyleLoaded()) {
       setupCountryHighlighting();
     } else {
-      map.current.on('load', setupCountryHighlighting);
+      const onLoad = () => {
+        setupCountryHighlighting();
+        m.off('load', onLoad);
+      };
+      m.on('load', onLoad);
     }
 
     return () => {
-      if (map.current?.getLayer('country-fills')) {
-        map.current.removeLayer('country-fills');
-      }
+      cleanupCountryLayer();
     };
   }, [countries, onUnsupportedCountryClick]);
 
