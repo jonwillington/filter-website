@@ -75,30 +75,30 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
   const areaName = currentShop.city_area?.name ?? currentShop.cityArea?.name;
 
   return (
-    <div ref={drawerRef} className="shop-drawer">
-      {/* Sticky header */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 p-4 border-b border-border flex justify-end">
-        <Button
-          isIconOnly
-          variant="light"
-          size="sm"
-          onPress={onClose}
-          aria-label="Close"
-        >
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
+    <div ref={drawerRef} className="shop-drawer relative">
+      {/* Floating close button */}
+      <Button
+        isIconOnly
+        variant="flat"
+        onPress={onClose}
+        aria-label="Close"
+        className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur-sm"
+      >
+        <X className="w-5 h-5" />
+      </Button>
 
       {/* Content */}
       <div
-        className="p-5 space-y-6 transition-opacity duration-150"
+        className="transition-opacity duration-150"
         style={{ opacity: isTransitioning ? 0 : 1 }}
       >
-        {/* Header with hero image */}
+        {/* Header with hero image - no padding */}
         <ShopHeader shop={currentShop} />
 
-        {/* Action bar */}
-        <ActionBar shop={currentShop} />
+        {/* Rest of content with padding */}
+        <div className="p-5 space-y-6">
+          {/* Action bar */}
+          <ActionBar shop={currentShop} />
 
         <Divider className="my-4" />
 
@@ -173,6 +173,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
             </Accordion>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
     <div className="space-y-4">
       {/* Hero Image */}
       {heroUrl && (
-        <div className="relative -mx-5 -mt-5">
+        <div className="relative">
           <div className="aspect-[16/9] overflow-hidden">
             <img
               src={heroUrl}

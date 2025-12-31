@@ -1,13 +1,10 @@
-import { apiClient } from './client';
 import { Shop, Country, Location } from '../types';
 import { getShopSlug as generateShopSlug } from '../utils';
-import { getBrandById } from './brands';
-import { fetchLocationById } from './locations';
 
 // Cache for all shops to avoid repeated API calls
 let shopsCache: Shop[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes - shops data doesn't change frequently
 
 // Cache for countries (fetched separately due to Strapi nested relation limitations)
 let countriesCache: Map<string, Country> | null = null;
@@ -250,30 +247,8 @@ export async function getAllShops(): Promise<Shop[]> {
       enrichShopData(shop, countryMap);
     }
 
-    // Enrich brand data - fetch full brand details separately
-    // (Strapi populate doesn't return all brand fields when brands are nested in shops)
-    const brandEnrichmentPromises = allShops.map(async (shop) => {
-      const brandDocumentId = shop.brand?.documentId;
-      if (!brandDocumentId) return;
-
-      try {
-        const fullBrand = await getBrandById(brandDocumentId);
-        if (fullBrand) {
-          // Merge full brand data into shop
-          shop.brand = {
-            ...shop.brand,
-            ...fullBrand,
-          };
-        }
-      } catch (error) {
-        console.error(`Failed to enrich brand for shop ${shop.documentId}:`, error);
-      }
-    });
-
-    await Promise.all(brandEnrichmentPromises);
-
-    // Location data is now fully populated via explicit field requests in SHOP_POPULATE
-    // No need to enrich separately (the /locations/:id endpoint has permission issues anyway)
+    // Brand data is already fully populated via SHOP_POPULATE with explicit field requests
+    // No need for individual brand fetches - this was causing N+1 API calls
 
     shopsCache = allShops;
     cacheTimestamp = now;

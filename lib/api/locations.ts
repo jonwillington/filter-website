@@ -7,6 +7,24 @@ export interface ApiResponse<T> {
   meta?: any;
 }
 
+// Cache for locations
+let locationsCache: Location[] | null = null;
+let locationsCacheTimestamp = 0;
+const LOCATIONS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// Cache for city areas
+let cityAreasCache: CityArea[] | null = null;
+let cityAreasCacheTimestamp = 0;
+const CITY_AREAS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// Force cache invalidation on module reload (server-side)
+if (typeof window === 'undefined') {
+  locationsCache = null;
+  locationsCacheTimestamp = 0;
+  cityAreasCache = null;
+  cityAreasCacheTimestamp = 0;
+}
+
 // Fetch a single location directly from API with all fields
 export async function fetchLocationById(documentId: string): Promise<Location | null> {
   try {
@@ -37,6 +55,13 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
 // Fetch unique locations from both city-areas and shops
 // This ensures all locations with shops are available in the selector
 export async function getAllLocations(): Promise<Location[]> {
+  const now = Date.now();
+
+  // Return cached data if valid
+  if (locationsCache && now - locationsCacheTimestamp < LOCATIONS_CACHE_TTL) {
+    return locationsCache;
+  }
+
   try {
     const locationMap = new Map<string, Location>();
 
@@ -88,12 +113,16 @@ export async function getAllLocations(): Promise<Location[]> {
       }
     }
 
-    return Array.from(locationMap.values()).sort((a, b) =>
+    const locations = Array.from(locationMap.values()).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
+
+    locationsCache = locations;
+    locationsCacheTimestamp = now;
+    return locations;
   } catch (error) {
     console.error('Failed to fetch locations:', error);
-    return [];
+    return locationsCache ?? [];
   }
 }
 
@@ -126,6 +155,13 @@ export async function getLocationById(documentId: string): Promise<Location | nu
 }
 
 export async function getAllCityAreas(): Promise<CityArea[]> {
+  const now = Date.now();
+
+  // Return cached data if valid
+  if (cityAreasCache && now - cityAreasCacheTimestamp < CITY_AREAS_CACHE_TTL) {
+    return cityAreasCache;
+  }
+
   try {
     const cityAreas: CityArea[] = [];
     let page = 1;
@@ -155,10 +191,12 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
       page++;
     }
 
+    cityAreasCache = cityAreas;
+    cityAreasCacheTimestamp = now;
     return cityAreas;
   } catch (error) {
     console.error('Failed to fetch city areas:', error);
-    return [];
+    return cityAreasCache ?? [];
   }
 }
 
