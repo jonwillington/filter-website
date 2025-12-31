@@ -1,6 +1,26 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import { Tabs, Tab } from '@heroui/react';
+
+/**
+ * SegmentedControl - A tab-based segmented control using HeroUI Tabs
+ *
+ * Features:
+ * - Keyboard navigation (Arrow keys, Home, End)
+ * - Proper ARIA attributes for accessibility
+ * - Smooth animations
+ * - Consistent with HeroUI design system
+ *
+ * @example
+ * <SegmentedControl
+ *   segments={[
+ *     { key: 'top', label: 'Top Picks' },
+ *     { key: 'all', label: 'All' }
+ *   ]}
+ *   activeSegment="top"
+ *   onSegmentChange={(key) => setFilter(key)}
+ * />
+ */
 
 interface Segment {
   key: string;
@@ -21,29 +41,22 @@ export function SegmentedControl({
   className,
 }: SegmentedControlProps) {
   return (
-    <div
-      className={cn(
-        'inline-flex rounded-lg bg-gray-200 p-1 gap-1',
-        className
-      )}
+    <Tabs
+      selectedKey={activeSegment}
+      onSelectionChange={(key) => onSegmentChange(key as string)}
+      variant="solid"
+      color="primary"
+      size="sm"
+      className={className}
+      classNames={{
+        tabList: 'bg-surface p-1',
+        tab: 'text-sm font-medium',
+        cursor: 'bg-white shadow-sm',
+      }}
     >
-      {segments.map((segment) => {
-        const isActive = segment.key === activeSegment;
-        return (
-          <button
-            key={segment.key}
-            onClick={() => onSegmentChange(segment.key)}
-            className={cn(
-              'px-4 py-2 rounded-md text-sm font-medium transition-all duration-200',
-              isActive
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            {segment.label}
-          </button>
-        );
-      })}
-    </div>
+      {segments.map((segment) => (
+        <Tab key={segment.key} title={segment.label} />
+      ))}
+    </Tabs>
   );
 }

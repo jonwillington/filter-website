@@ -34,56 +34,44 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
   }
 }
 
-// Extract unique locations from shops data (reuses shops cache)
-// This preserves all location fields including country and background_image
-// Note: shops.ts enriches location data with full country info from separate API calls
+// Fetch unique locations directly from city-areas endpoint
+// The shops endpoint doesn't return full location fields due to Strapi restrictions
+// but city-areas endpoint does work correctly
 export async function getAllLocations(): Promise<Location[]> {
   try {
-    const shops = await getAllShops();
-
-    if (!Array.isArray(shops)) return [];
-
     const locationMap = new Map<string, Location>();
+    let page = 1;
+    let pageCount = 1;
 
-    for (const shop of shops) {
-      // Check direct location (already enriched with full country data)
-      const loc = shop.location;
-      if (loc?.documentId && !locationMap.has(loc.documentId)) {
-        locationMap.set(loc.documentId, {
-          id: loc.id,
-          documentId: loc.documentId,
-          name: loc.name,
-          slug: loc.slug,
-          rating: loc.rating,
-          rating_stars: loc.rating_stars,
-          story: loc.story,
-          headline: loc.headline,
-          inFocus: loc.inFocus,
-          background_image: loc.background_image,
-          country: loc.country, // Already enriched with full country data
-          coordinates: loc.coordinates,
-        } as Location);
+    while (page <= pageCount) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+          },
+          next: { revalidate: 300 },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`City Areas API Error: ${response.statusText}`);
+        break;
       }
 
-      // Also check city_area's location (also enriched with full data)
-      const cityArea = shop.city_area ?? shop.cityArea;
-      const areaLoc = cityArea?.location as Location | undefined;
-      if (areaLoc?.documentId && !locationMap.has(areaLoc.documentId)) {
-        locationMap.set(areaLoc.documentId, {
-          id: areaLoc.id,
-          documentId: areaLoc.documentId,
-          name: areaLoc.name,
-          slug: areaLoc.slug,
-          rating: areaLoc.rating,
-          rating_stars: areaLoc.rating_stars,
-          story: areaLoc.story,
-          headline: areaLoc.headline,
-          inFocus: areaLoc.inFocus,
-          background_image: areaLoc.background_image,
-          country: areaLoc.country, // Already enriched with full country data
-          coordinates: areaLoc.coordinates,
-        } as Location);
+      const json = await response.json();
+      const cityAreas = json.data || [];
+
+      for (const cityArea of cityAreas) {
+        const loc = cityArea.location;
+        if (loc?.documentId && !locationMap.has(loc.documentId)) {
+          locationMap.set(loc.documentId, loc as Location);
+        }
       }
+
+      pageCount = json.meta?.pagination?.pageCount || 1;
+      page++;
     }
 
     return Array.from(locationMap.values()).sort((a, b) =>

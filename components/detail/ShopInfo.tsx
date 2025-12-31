@@ -1,6 +1,5 @@
 import { Shop, OpeningHours } from '@/lib/types';
 import { MapPin, Clock, Star, ChevronDown, ChevronUp } from 'lucide-react';
-import { Chip } from '@heroui/react';
 import { useState } from 'react';
 
 interface ShopInfoProps {

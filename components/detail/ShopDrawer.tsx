@@ -11,7 +11,7 @@ import { BrewMethods } from './BrewMethods';
 import { BeansSection } from './BeansSection';
 import { PhotoGallery } from './PhotoGallery';
 import { ShopMiniCard } from './ShopMiniCard';
-import { Button, Accordion, AccordionItem } from '@heroui/react';
+import { Button, Accordion, AccordionItem, Divider } from '@heroui/react';
 import { X } from 'lucide-react';
 
 interface ShopDrawerProps {
@@ -100,11 +100,15 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
         {/* Action bar */}
         <ActionBar shop={currentShop} />
 
+        <Divider className="my-4" />
+
         {/* Basic info (address, hours, rating) */}
         <ShopInfo shop={currentShop} />
 
         {/* About/Description */}
         <AboutSection shop={currentShop} />
+
+        <Divider className="my-4" />
 
         {/* Amenities */}
         <AmenityList shop={currentShop} />
@@ -114,6 +118,8 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
 
         {/* Coffee Sourcing */}
         <BeansSection shop={currentShop} />
+
+        <Divider className="my-4" />
 
         {/* Photo Gallery */}
         <PhotoGallery shop={currentShop} />

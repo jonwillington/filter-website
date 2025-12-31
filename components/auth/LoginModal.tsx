@@ -41,9 +41,20 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} placement="center">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      placement="center"
+      aria-labelledby="login-modal-title"
+      aria-describedby="login-modal-description"
+    >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">Sign in to Filter</ModalHeader>
+        <ModalHeader className="flex flex-col gap-1">
+          <span id="login-modal-title">Sign in to Filter</span>
+          <span id="login-modal-description" className="text-sm font-normal text-default-500">
+            Choose your preferred sign-in method
+          </span>
+        </ModalHeader>
         <ModalBody className="pb-6">
           <div className="flex flex-col gap-4">
             <Button
@@ -52,6 +63,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               isDisabled={loading !== null}
               variant="bordered"
               className="w-full"
+              aria-label="Sign in with Google"
               startContent={
                 loading !== 'google' ? (
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -84,6 +96,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               isDisabled={loading !== null}
               variant="bordered"
               className="w-full"
+              aria-label="Sign in with Apple"
               startContent={
                 loading !== 'apple' ? (
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -96,7 +109,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </Button>
 
             {error && (
-              <div className="p-3 rounded-lg bg-danger-50 border border-danger-200">
+              <div
+                role="alert"
+                aria-live="polite"
+                className="p-3 rounded-lg bg-danger-50 border border-danger-200"
+              >
                 <p className="text-sm text-danger-600">{error}</p>
               </div>
             )}

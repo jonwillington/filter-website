@@ -2,6 +2,7 @@
 
 import { Shop, OpeningHours } from '@/lib/types';
 import { Avatar, Chip } from '@heroui/react';
+import { StatusChip } from '@/components/ui';
 import { getMediaUrl, getShopDisplayName, countBrewMethods } from '@/lib/utils';
 import { Coffee } from 'lucide-react';
 
@@ -86,13 +87,9 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
             {/* Status chips */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {isOpen !== undefined && (
-                <Chip
-                  size="sm"
-                  color={isOpen ? 'success' : 'default'}
-                  variant="flat"
-                >
+                <StatusChip status={isOpen ? 'success' : 'danger'}>
                   {isOpen ? 'Open' : 'Closed'}
-                </Chip>
+                </StatusChip>
               )}
 
               {brewMethodCount > 0 && (

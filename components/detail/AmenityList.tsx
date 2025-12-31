@@ -1,5 +1,5 @@
 import { Shop } from '@/lib/types';
-import { Chip } from '@heroui/react';
+import { AmenityChip } from '@/components/ui';
 import { Wifi, UtensilsCrossed, Sun, Dog } from 'lucide-react';
 import { getMergedAmenities } from '@/lib/utils';
 
@@ -30,18 +30,12 @@ export function AmenityList({ shop }: AmenityListProps) {
       </h3>
       <div className="flex flex-wrap gap-2">
         {activeAmenities.map(({ key, label, icon: Icon }) => (
-          <Chip
+          <AmenityChip
             key={key}
-            variant="flat"
-            size="sm"
-            startContent={<Icon className="w-3.5 h-3.5" />}
-            classNames={{
-              base: 'bg-surface',
-              content: 'text-text text-xs',
-            }}
+            icon={<Icon className="w-3.5 h-3.5" />}
           >
             {label}
-          </Chip>
+          </AmenityChip>
         ))}
       </div>
     </div>

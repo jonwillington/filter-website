@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { Spinner } from '@heroui/react';
 import { Shop, Country } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 
@@ -28,8 +29,8 @@ export function MapContainer({
   shops,
   selectedShop,
   onShopSelect,
-  center = [28.9784, 41.0082],
-  zoom = 12,
+  center = [0, 20],
+  zoom = 2,
   isLoading = false,
   onTransitionComplete,
   countries = [],
@@ -681,12 +682,7 @@ export function MapContainer({
           isLoading ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div className="relative">
-          {/* Spinner */}
-          <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
-          {/* Pulsing background circle */}
-          <div className="absolute inset-0 w-12 h-12 border-4 border-accent/10 rounded-full animate-pulse" />
-        </div>
+        <Spinner size="lg" color="primary" />
       </div>
     </div>
   );

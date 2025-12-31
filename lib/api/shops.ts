@@ -62,8 +62,13 @@ const SHOP_POPULATE = [
   // Other shop fields
   'populate[featured_image]=*',
   'populate[gallery]=*',
-  'populate[city_area][populate]=location',
-  // Populate location with country and background_image
+  // Populate city_area with full location data
+  // Use populate[location]=* to get base fields, then explicitly populate relations
+  'populate[city_area][populate][location]=*',
+  'populate[city_area][populate][location][populate][country]=*',
+  'populate[city_area][populate][location][populate][background_image]=*',
+  // Populate direct location with full data
+  'populate[location]=*',
   'populate[location][populate][country]=*',
   'populate[location][populate][background_image]=*',
 ].join('&');
@@ -128,7 +133,7 @@ async function getAllLocations(): Promise<Map<string, Partial<Location>>> {
 
     while (page <= pageCount) {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -267,27 +272,8 @@ export async function getAllShops(): Promise<Shop[]> {
 
     await Promise.all(brandEnrichmentPromises);
 
-    // Enrich location data - fetch full location details separately
-    // (Strapi populate doesn't return fields like rating_stars, story, background_image)
-    const locationEnrichmentPromises = allShops.map(async (shop) => {
-      const locationDocumentId = shop.location?.documentId;
-      if (!locationDocumentId) return;
-
-      try {
-        const fullLocation = await fetchLocationById(locationDocumentId);
-        if (fullLocation) {
-          // Merge full location data into shop
-          shop.location = {
-            ...shop.location,
-            ...fullLocation,
-          };
-        }
-      } catch (error) {
-        console.error(`Failed to enrich location for shop ${shop.documentId}:`, error);
-      }
-    });
-
-    await Promise.all(locationEnrichmentPromises);
+    // Location data is now fully populated via explicit field requests in SHOP_POPULATE
+    // No need to enrich separately (the /locations/:id endpoint has permission issues anyway)
 
     shopsCache = allShops;
     cacheTimestamp = now;

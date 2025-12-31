@@ -1,5 +1,6 @@
 import { Shop, OpeningHours } from '@/lib/types';
-import { Avatar, Chip } from '@heroui/react';
+import { Avatar } from '@heroui/react';
+import { StatusChip } from '@/components/ui';
 import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
 
 interface ShopMiniCardProps {
@@ -64,14 +65,12 @@ export function ShopMiniCard({ shop, onClick }: ShopMiniCardProps) {
           <p className="text-xs text-textSecondary truncate mt-0.5">{shop.address}</p>
         )}
         {isOpen !== undefined && (
-          <Chip
-            size="sm"
-            color={isOpen ? 'success' : 'default'}
-            variant="flat"
+          <StatusChip
+            status={isOpen ? 'success' : 'danger'}
             className="mt-1.5"
           >
             {isOpen ? 'Open' : 'Closed'}
-          </Chip>
+          </StatusChip>
         )}
       </div>
     </button>

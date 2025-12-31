@@ -11,12 +11,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#FFFFFF',
+        // App-specific custom colors (not HeroUI semantic colors)
+        // Light mode defaults
         surface: '#FAFAFA',
         contrastBlock: '#2E1F17',
         contrastText: '#FFFDFB',
         accent: '#8B6F47',
-        secondary: '#4A3B2E',
         text: '#1A1A1A',
         textSecondary: '#9A9A9A',
         border: '#E5DDD5',

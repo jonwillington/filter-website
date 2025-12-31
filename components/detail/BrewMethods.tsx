@@ -1,5 +1,5 @@
 import { Shop } from '@/lib/types';
-import { Chip } from '@heroui/react';
+import { BrewMethodChip } from '@/components/ui';
 import { getMergedBrewMethods } from '@/lib/utils';
 import { Coffee } from 'lucide-react';
 
@@ -34,18 +34,12 @@ export function BrewMethods({ shop }: BrewMethodsProps) {
       </h3>
       <div className="flex flex-wrap gap-2">
         {activeMethodKeys.map((key) => (
-          <Chip
+          <BrewMethodChip
             key={key}
-            variant="flat"
-            size="sm"
-            startContent={<Coffee className="w-3.5 h-3.5" />}
-            classNames={{
-              base: 'bg-accent/10',
-              content: 'text-accent text-xs font-medium',
-            }}
+            icon={<Coffee className="w-3.5 h-3.5" />}
           >
             {brewMethodLabels[key] || key}
-          </Chip>
+          </BrewMethodChip>
         ))}
       </div>
     </div>

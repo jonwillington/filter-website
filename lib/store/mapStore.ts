@@ -39,8 +39,8 @@ export const useMapStore = create<MapState>((set) => ({
   isNearbyMode: false,
   isDrawerOpen: false,
   isSidebarOpen: true,
-  mapCenter: [28.9784, 41.0082], // Istanbul
-  mapZoom: 12,
+  mapCenter: [0, 20], // World view - will center on user location if granted
+  mapZoom: 2,
 
   setSelectedLocation: (location) => set({ selectedLocation: location }),
   setSelectedArea: (area) => set({ selectedArea: area }),
