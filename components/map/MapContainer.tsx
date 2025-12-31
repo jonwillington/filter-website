@@ -233,9 +233,6 @@ export function MapContainer({
       if (!m || !m.getStyle()) return;
 
       if (m.getLayer('country-fills')) {
-        m.off('click', 'country-fills');
-        m.off('mouseenter', 'country-fills');
-        m.off('mouseleave', 'country-fills');
         m.removeLayer('country-fills');
       }
       if (m.getSource('country-fills')) {

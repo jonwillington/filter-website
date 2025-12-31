@@ -131,7 +131,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
               More Shops
             </h3>
             <Accordion variant="splitted">
-              {moreFromBrand.length > 0 && (
+              {moreFromBrand.length > 0 ? (
                 <AccordionItem
                   key="brand"
                   aria-label={`More from ${currentShop.brand?.name || 'this brand'}`}
@@ -147,8 +147,8 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
                     ))}
                   </div>
                 </AccordionItem>
-              )}
-              {nearbyShops.length > 0 && (
+              ) : null}
+              {nearbyShops.length > 0 ? (
                 <AccordionItem
                   key="nearby"
                   aria-label={areaName ? `More in ${areaName}` : 'Nearby'}
@@ -164,7 +164,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
                     ))}
                   </div>
                 </AccordionItem>
-              )}
+              ) : null}
             </Accordion>
           </div>
         )}

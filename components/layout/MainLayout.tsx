@@ -81,7 +81,11 @@ export function MainLayout({
         }
       }
     } else if (initialLocation && shops.length > 0) {
-      const validShops = shops.filter((s) => getShopCoords(s));
+      const locationShops = shops.filter(s =>
+        s.location?.documentId === initialLocation.documentId ||
+        s.city_area?.location?.documentId === initialLocation.documentId
+      );
+      const validShops = locationShops.filter((s) => getShopCoords(s));
       if (validShops.length > 0) {
         const avgLng =
           validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
@@ -124,7 +128,10 @@ export function MainLayout({
           setShowTopRecommendations(false);
 
           // Calculate map center for this location
-          const locationShops = shops.filter(s => s.location?.documentId === matchedLocation.documentId);
+          const locationShops = shops.filter(s =>
+            s.location?.documentId === matchedLocation.documentId ||
+            s.city_area?.location?.documentId === matchedLocation.documentId
+          );
           const validShops = locationShops.filter((s) => getShopCoords(s));
           if (validShops.length > 0) {
             const avgLng =
@@ -203,7 +210,10 @@ export function MainLayout({
       // Calculate new map position
       if (location) {
         // Get shops for this location to calculate center
-        const locationShops = shops.filter(s => s.location?.documentId === location.documentId);
+        const locationShops = shops.filter(s =>
+          s.location?.documentId === location.documentId ||
+          s.city_area?.location?.documentId === location.documentId
+        );
         const validShops = locationShops.filter((s) => getShopCoords(s));
         if (validShops.length > 0) {
           const avgLng =
@@ -262,7 +272,10 @@ export function MainLayout({
   // Filter shops for sidebar based on selected location
   const locationFilteredShops = useMemo(() => {
     if (!selectedLocation) return shops;
-    return shops.filter((shop) => shop.location?.documentId === selectedLocation.documentId);
+    return shops.filter((shop) =>
+      shop.location?.documentId === selectedLocation.documentId ||
+      shop.city_area?.location?.documentId === selectedLocation.documentId
+    );
   }, [shops, selectedLocation]);
 
   // Filter shops based on top recommendations toggle (for sidebar)

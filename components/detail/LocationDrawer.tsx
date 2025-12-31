@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { X, Star } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { Location, Shop } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
+import { StarRating } from '@/components/ui/StarRating';
 
 interface LocationDrawerProps {
   location: Location;
@@ -22,26 +23,27 @@ export function LocationDrawer({
 }: LocationDrawerProps) {
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [storyTruncated, setStoryTruncated] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(location);
 
-  // Reset story state when location changes
+  // Handle location transitions with animation
   useEffect(() => {
-    setStoryExpanded(false);
-    setStoryTruncated(false);
+    if (location.documentId !== currentLocation.documentId) {
+      // Start fade out
+      setIsTransitioning(true);
 
-    // Debug logging
-    console.log('Location data:', {
-      name: location.name,
-      hasCountry: !!location.country,
-      countryObject: location.country, // Full country object
-      countryCode: location.country?.code,
-      countryPrimaryColor: location.country?.primaryColor,
-      locationPrimaryColor: location.primaryColor,
-      hasBackgroundImage: !!location.background_image,
-      backgroundImageObject: location.background_image, // Full image object
-      backgroundImageUrl: location.background_image?.url,
-    });
-    console.log('Full location object:', location);
-  }, [location]);
+      // Wait for fade out, then update location and fade in
+      const timeout = setTimeout(() => {
+        setCurrentLocation(location);
+        setStoryExpanded(false);
+        setStoryTruncated(false);
+        setIsTransitioning(false);
+      }, 200);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [location, currentLocation.documentId]);
+
 
   // Get top recommendation shops for this location
   const topRecommendationShops = useMemo(() => {
@@ -49,8 +51,8 @@ export function LocationDrawer({
       .filter((shop) => {
         // Match shops in this location
         const isInLocation =
-          shop.location?.documentId === location.documentId ||
-          shop.city_area?.location?.documentId === location.documentId;
+          shop.location?.documentId === currentLocation.documentId ||
+          shop.city_area?.location?.documentId === currentLocation.documentId;
 
         if (!isInLocation) return false;
 
@@ -63,14 +65,14 @@ export function LocationDrawer({
         );
       })
       .slice(0, 6);
-  }, [allShops, location.documentId]);
+  }, [allShops, currentLocation.documentId]);
 
   // Get country info
-  const countryCode = location.country?.code?.toLowerCase();
+  const countryCode = currentLocation.country?.code?.toLowerCase();
   // Cascade color priority: location-level → country-level → default
   const primaryColor =
-    location.primaryColor ||
-    location.country?.primaryColor ||
+    currentLocation.primaryColor ||
+    currentLocation.country?.primaryColor ||
     '#8B6F47';
   const flagUrl = countryCode
     ? `https://hatscripts.github.io/circle-flags/flags/${countryCode}.svg`
@@ -79,11 +81,11 @@ export function LocationDrawer({
   // Calculate total shops in location
   const totalShops = allShops.filter(
     (shop) =>
-      shop.location?.documentId === location.documentId ||
-      shop.city_area?.location?.documentId === location.documentId
+      shop.location?.documentId === currentLocation.documentId ||
+      shop.city_area?.location?.documentId === currentLocation.documentId
   ).length;
 
-  const backgroundImage = getMediaUrl(location.background_image);
+  const backgroundImage = getMediaUrl(currentLocation.background_image);
 
   return (
     <div className="drawer">
@@ -105,7 +107,7 @@ export function LocationDrawer({
               <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-md">
                 <Image
                   src={flagUrl}
-                  alt={location.country?.name || 'Country flag'}
+                  alt={currentLocation.country?.name || 'Country flag'}
                   width={40}
                   height={40}
                   className="object-cover"
@@ -127,30 +129,31 @@ export function LocationDrawer({
               City Guide
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">
-              {location.name}
+              {currentLocation.name}
             </h2>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div
+          className="p-6 space-y-6 transition-opacity duration-200"
+          style={{ opacity: isTransitioning ? 0 : 1 }}
+        >
           {/* Highlight cards */}
           <div className="grid grid-cols-2 gap-4">
             {/* City Rating */}
-            {location.rating_stars && (
+            {currentLocation.rating_stars && (
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="text-sm text-gray-600 mb-2">City Rating</div>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-5 h-5"
-                      fill={i < (location.rating_stars || 0) ? '#FFB800' : 'none'}
-                      stroke={i < (location.rating_stars || 0) ? '#FFB800' : '#D1D5DB'}
-                    />
-                  ))}
-                  <span className="ml-2 text-lg font-semibold">
-                    {location.rating_stars.toFixed(1)}
+                <div className="flex items-center gap-2">
+                  <StarRating
+                    rating={currentLocation.rating_stars}
+                    size={20}
+                    animate={!isTransitioning}
+                    animationDelay={0}
+                  />
+                  <span className="ml-1 text-lg font-semibold">
+                    {currentLocation.rating_stars.toFixed(1)}
                   </span>
                 </div>
               </div>
@@ -164,7 +167,7 @@ export function LocationDrawer({
           </div>
 
           {/* Story */}
-          {location.story && (
+          {currentLocation.story && (
             <div>
               <div className="relative">
                 <p
@@ -182,7 +185,7 @@ export function LocationDrawer({
                     }
                   }}
                 >
-                  {location.story.trim()}
+                  {currentLocation.story.trim()}
                 </p>
                 {storyTruncated && !storyExpanded && (
                   <button
@@ -199,7 +202,7 @@ export function LocationDrawer({
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (
             <div>
-              <h3 className="text-xl font-bold mb-4">Top Choices</h3>
+              <h3 className="text-2xl font-bold mb-5 tracking-tight">Top Choices</h3>
               <div className="grid grid-cols-2 gap-4">
                 {topRecommendationShops.map((shop) => {
                   const imageUrl = getMediaUrl(shop.featured_image);
@@ -209,7 +212,7 @@ export function LocationDrawer({
                     <button
                       key={shop.documentId}
                       onClick={() => onShopSelect(shop)}
-                      className="group relative overflow-hidden rounded-lg bg-gray-100 aspect-[3/4] hover:shadow-lg transition-shadow"
+                      className="group relative overflow-hidden rounded-xl bg-gray-100 aspect-[3/4] hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
                     >
                       {imageUrl && (
                         <Image
@@ -219,24 +222,24 @@ export function LocationDrawer({
                           className="object-cover"
                         />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4 text-left">
                         {logoUrl && (
-                          <div className="w-10 h-10 rounded-md overflow-hidden bg-white mb-2">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-white mb-3 shadow-md">
                             <Image
                               src={logoUrl}
                               alt={shop.brand?.name || shop.name}
-                              width={40}
-                              height={40}
+                              width={48}
+                              height={48}
                               className="object-cover"
                             />
                           </div>
                         )}
-                        <h4 className="font-semibold text-white text-sm line-clamp-2">
+                        <h4 className="font-bold text-white text-base leading-tight line-clamp-2 mb-1">
                           {shop.name}
                         </h4>
                         {shop.city_area?.name && (
-                          <p className="text-white/80 text-xs mt-1">
+                          <p className="text-white/90 text-sm font-medium">
                             {shop.city_area.name}
                           </p>
                         )}
