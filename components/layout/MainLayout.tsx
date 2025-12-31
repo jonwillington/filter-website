@@ -9,12 +9,15 @@ import { LocationDrawer } from '../detail/LocationDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
 import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
 import { Footer } from './Footer';
+import { LoginModal } from '../auth/LoginModal';
+import { UserMenu } from '../auth/UserMenu';
+import { useAuth } from '@/lib/context/AuthContext';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, slugify, getShopSlug } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { detectUserArea } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn } from 'lucide-react';
 
 interface MainLayoutProps {
   locations: Location[];
@@ -46,8 +49,10 @@ export function MainLayout({
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
   const [mapZoom, setMapZoom] = useState<number>(2);
   const [unsupportedCountry, setUnsupportedCountry] = useState<{ name: string; code: string } | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
+  const { user, loading: authLoading } = useAuth();
 
   // Track previous initialShop to detect shop-to-shop transitions
   const prevInitialShopRef = useRef<Shop | null>(null);
@@ -380,7 +385,12 @@ export function MainLayout({
         onClose={() => setUnsupportedCountry(null)}
       />
 
-      {/* Mobile menu toggle */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
+
+      {/* Mobile menu toggle and auth */}
       <div className="mobile-toggle lg:hidden">
         <Button
           isIconOnly
@@ -394,6 +404,43 @@ export function MainLayout({
             <Menu className="w-5 h-5" />
           )}
         </Button>
+      </div>
+
+      {/* Auth UI - Desktop */}
+      <div className="auth-toggle hidden lg:block">
+        {!authLoading && (
+          user ? (
+            <UserMenu />
+          ) : (
+            <Button
+              variant="flat"
+              onPress={() => setShowLoginModal(true)}
+              startContent={<LogIn className="w-4 h-4" />}
+              className="bg-white"
+              size="sm"
+            >
+              Sign In
+            </Button>
+          )
+        )}
+      </div>
+
+      {/* Auth UI - Mobile */}
+      <div className="auth-toggle-mobile lg:hidden">
+        {!authLoading && (
+          user ? (
+            <UserMenu />
+          ) : (
+            <Button
+              isIconOnly
+              variant="flat"
+              onPress={() => setShowLoginModal(true)}
+              className="bg-white"
+            >
+              <LogIn className="w-5 h-5" />
+            </Button>
+          )
+        )}
       </div>
 
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>

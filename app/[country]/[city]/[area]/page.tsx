@@ -1,6 +1,6 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
-import { getShopsByLocation, getAllShops } from '@/lib/api/shops';
+import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
@@ -68,21 +68,14 @@ export default async function AreaPage({ params }: AreaPageProps) {
     notFound();
   }
 
-  const allShops = await getShopsByLocation(location.documentId);
+  const allShops = await getAllShops();
   const countries = await getAllCountries();
-
-  // Filter to just this area
-  const areaName = deslugify(area).toLowerCase();
-  const shops = allShops.filter((shop) => {
-    const shopArea = (shop.city_area?.name ?? shop.cityArea?.name ?? '').toLowerCase();
-    return shopArea === areaName || shopArea.includes(areaName) || areaName.includes(shopArea);
-  });
 
   return (
     <MainLayout
       locations={locations}
       initialLocation={location}
-      shops={shops.length > 0 ? shops : allShops}
+      shops={allShops}
       countries={countries}
     />
   );
