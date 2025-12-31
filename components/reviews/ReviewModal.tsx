@@ -29,6 +29,13 @@ interface ReviewModalProps {
     locationName?: string;
   };
   onSuccess?: () => void;
+  existingReview?: {
+    id: string;
+    overallRating: number;
+    ratings: { coffee: number; service: number; interior: number };
+    tags: string[];
+    comment: string | null;
+  };
 }
 
 const ratingCategories = ['Coffee', 'Service', 'Interior'] as const;
@@ -42,7 +49,9 @@ export function ReviewModal({
   publicTags = [],
   locationData,
   onSuccess,
+  existingReview,
 }: ReviewModalProps) {
+  const isEditMode = !!existingReview;
   const { user, userProfile } = useAuth();
 
   const [overallRating, setOverallRating] = useState(0);
@@ -58,18 +67,32 @@ export function ReviewModal({
   const [error, setError] = useState<string | null>(null);
   const [showDetailRatings, setShowDetailRatings] = useState(false);
 
-  // Reset form when modal opens/closes
+  // Reset/prefill form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setOverallRating(0);
-      setRatings({ Coffee: 0, Service: 0, Interior: 0 });
-      setSelectedTags(new Set());
-      setComment('');
+      if (existingReview) {
+        // Edit mode: prefill with existing values
+        setOverallRating(existingReview.overallRating);
+        setRatings({
+          Coffee: existingReview.ratings.coffee,
+          Service: existingReview.ratings.service,
+          Interior: existingReview.ratings.interior,
+        });
+        setSelectedTags(new Set(existingReview.tags));
+        setComment(existingReview.comment || '');
+        setShowDetailRatings(existingReview.overallRating > 0);
+      } else {
+        // Create mode: reset form
+        setOverallRating(0);
+        setRatings({ Coffee: 0, Service: 0, Interior: 0 });
+        setSelectedTags(new Set());
+        setComment('');
+        setShowDetailRatings(false);
+      }
       setShowSuccess(false);
       setError(null);
-      setShowDetailRatings(false);
     }
-  }, [isOpen]);
+  }, [isOpen, existingReview]);
 
   // Show detail ratings when overall rating is set
   useEffect(() => {
@@ -119,21 +142,37 @@ export function ReviewModal({
     setError(null);
 
     try {
-      await reviewsService.createReview(
-        shopId,
-        shopName,
-        user.uid,
-        userProfile.displayName,
-        overallRating,
-        {
-          coffee: ratings.Coffee,
-          service: ratings.Service,
-          interior: ratings.Interior,
-        },
-        Array.from(selectedTags),
-        comment.trim() || null,
-        locationData
-      );
+      if (isEditMode && existingReview) {
+        // Update existing review
+        await reviewsService.updateReview(
+          existingReview.id,
+          overallRating,
+          {
+            coffee: ratings.Coffee,
+            service: ratings.Service,
+            interior: ratings.Interior,
+          },
+          Array.from(selectedTags),
+          comment.trim() || null
+        );
+      } else {
+        // Create new review
+        await reviewsService.createReview(
+          shopId,
+          shopName,
+          user.uid,
+          userProfile.displayName,
+          overallRating,
+          {
+            coffee: ratings.Coffee,
+            service: ratings.Service,
+            interior: ratings.Interior,
+          },
+          Array.from(selectedTags),
+          comment.trim() || null,
+          locationData
+        );
+      }
 
       setShowSuccess(true);
       onSuccess?.();
@@ -144,7 +183,7 @@ export function ReviewModal({
       }, 2000);
     } catch (err) {
       console.error('Failed to submit review:', err);
-      setError('Failed to submit review. Please try again.');
+      setError(isEditMode ? 'Failed to update review. Please try again.' : 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -176,16 +215,16 @@ export function ReviewModal({
               className="text-xl font-semibold mb-2"
               style={{ color: 'var(--text)' }}
             >
-              Thanks!
+              {isEditMode ? 'Updated!' : 'Thanks!'}
             </h3>
             <p style={{ color: 'var(--text-secondary)' }}>
-              Your feedback was submitted.
+              {isEditMode ? 'Your review has been updated.' : 'Your feedback was submitted.'}
             </p>
           </div>
         ) : (
           <>
             <ModalHeader className="flex flex-col gap-1">
-              <span>How was {shopName}?</span>
+              <span>{isEditMode ? `Edit review for ${shopName}` : `How was ${shopName}?`}</span>
             </ModalHeader>
             <ModalBody className="gap-6">
               {/* Overall Rating */}
@@ -297,7 +336,7 @@ export function ReviewModal({
                 isLoading={isSubmitting}
                 isDisabled={!hasSelections}
               >
-                Submit
+                {isEditMode ? 'Update Review' : 'Submit'}
               </Button>
               <p
                 className="text-xs text-center"

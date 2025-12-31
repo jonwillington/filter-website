@@ -2,18 +2,32 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Spinner } from '@heroui/react';
+import {
+  Button,
+  Spinner,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { reviewsService } from '@/lib/services/reviewsService';
 import { Review } from '@/lib/types/auth';
-import { ReviewCard } from '@/components/reviews/ReviewCard';
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { ReviewsList } from '@/components/reviews/ReviewsList';
+import { ReviewModal } from '@/components/reviews/ReviewModal';
+import { Toast, useToast } from '@/components/ui/Toast';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ReviewsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const { toast, success, error: showError, hideToast } = useToast();
 
   const loadReviews = useCallback(async () => {
     if (!user?.uid) return;
@@ -21,12 +35,13 @@ export default function ReviewsPage() {
     try {
       const userReviews = await reviewsService.getUserReviews(user.uid);
       setReviews(userReviews);
-    } catch (error) {
-      console.error('Failed to load reviews:', error);
+    } catch (err) {
+      console.error('Failed to load reviews:', err);
+      showError('Failed to load reviews');
     } finally {
       setIsLoading(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, showError]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -38,6 +53,30 @@ export default function ReviewsPage() {
       loadReviews();
     }
   }, [user, authLoading, router, loadReviews]);
+
+  const handleDeleteReview = async () => {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
+    try {
+      await reviewsService.deleteReview(deleteTarget);
+      setReviews((prev) => prev.filter((r) => r.id !== deleteTarget));
+      success('Review deleted');
+    } catch (err) {
+      console.error('Failed to delete review:', err);
+      showError('Failed to delete review');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleEditSuccess = async () => {
+    // Reload reviews to get updated data
+    await loadReviews();
+    setEditingReview(null);
+    success('Review updated');
+  };
 
   if (authLoading || !user) {
     return (
@@ -55,6 +94,66 @@ export default function ReviewsPage() {
       className="min-h-screen"
       style={{ backgroundColor: 'var(--background)', paddingBottom: '80px' }}
     >
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.isVisible}
+          onClose={hideToast}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        placement="center"
+      >
+        <ModalContent>
+          <ModalHeader>Delete Review</ModalHeader>
+          <ModalBody>
+            <p style={{ color: 'var(--text)' }}>
+              Are you sure you want to delete this review? This action cannot be undone.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="flat"
+              onPress={() => setDeleteTarget(null)}
+              isDisabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onPress={handleDeleteReview}
+              isLoading={isDeleting}
+            >
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Review Modal */}
+      {editingReview && (
+        <ReviewModal
+          isOpen={!!editingReview}
+          onClose={() => setEditingReview(null)}
+          shopId={editingReview.shopId}
+          shopName={editingReview.shopName}
+          onSuccess={handleEditSuccess}
+          existingReview={{
+            id: editingReview.id,
+            overallRating: editingReview.overallRating,
+            ratings: editingReview.ratings,
+            tags: editingReview.tags,
+            comment: editingReview.comment,
+          }}
+        />
+      )}
+
       {/* Header */}
       <div
         className="sticky top-0 z-10 backdrop-blur-md"
@@ -80,46 +179,18 @@ export default function ReviewsPage() {
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner size="lg" />
-          </div>
-        ) : reviews.length > 0 ? (
-          <div className="space-y-4">
-            <p style={{ color: 'var(--text-secondary)' }}>
-              You&apos;ve written {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-            </p>
-            {reviews.map((review) => (
-              <div key={review.id} className="space-y-2">
-                <p className="text-sm font-medium" style={{ color: 'var(--accent)' }}>
-                  {review.shopName}
-                </p>
-                <ReviewCard review={review} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div
-            className="text-center py-16 rounded-lg"
-            style={{ backgroundColor: 'var(--surface)' }}
-          >
-            <MessageSquare className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
-            <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
-              No reviews yet
-            </h2>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              Visit a coffee shop and share your experience!
-            </p>
-            <Button
-              color="primary"
-              variant="flat"
-              className="mt-4"
-              onPress={() => router.push('/')}
-            >
-              Explore Shops
-            </Button>
-          </div>
-        )}
+        <ReviewsList
+          reviews={reviews}
+          isLoading={isLoading}
+          showShopName
+          emptyMessage="No reviews yet"
+          emptyAction={{
+            label: 'Explore Shops',
+            onPress: () => router.push('/'),
+          }}
+          onEditReview={(review) => setEditingReview(review)}
+          onDeleteReview={(reviewId) => setDeleteTarget(reviewId)}
+        />
       </div>
     </div>
   );

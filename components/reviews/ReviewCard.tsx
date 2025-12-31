@@ -1,14 +1,17 @@
 'use client';
 
 import { Review } from '@/lib/types/auth';
-import { Star, User } from 'lucide-react';
+import { Star, User, Pencil, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@heroui/react';
 
 interface ReviewCardProps {
   review: Review;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export function ReviewCard({ review }: ReviewCardProps) {
+export function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps) {
   const formatDate = (date: Date) => {
     try {
       return formatDistanceToNow(date, { addSuffix: true });
@@ -106,6 +109,33 @@ export function ReviewCard({ review }: ReviewCardProps) {
               {tag.charAt(0).toUpperCase() + tag.slice(1)}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      {(onEdit || onDelete) && (
+        <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+          {onEdit && (
+            <Button
+              size="sm"
+              variant="light"
+              startContent={<Pencil className="w-3 h-3" />}
+              onPress={onEdit}
+            >
+              Edit
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              size="sm"
+              variant="light"
+              color="danger"
+              startContent={<Trash2 className="w-3 h-3" />}
+              onPress={onDelete}
+            >
+              Delete
+            </Button>
+          )}
         </div>
       )}
     </div>
