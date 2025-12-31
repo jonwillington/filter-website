@@ -1,4 +1,4 @@
-import { Location, Shop } from '../types';
+import { Location, Shop, CityArea } from '../types';
 import { deslugify } from '../utils';
 import { getAllShops } from './shops';
 
@@ -107,6 +107,62 @@ export async function getLocationById(documentId: string): Promise<Location | nu
     return locations.find((loc) => loc.documentId === documentId) ?? null;
   } catch (error) {
     console.error('Failed to fetch location:', error);
+    return null;
+  }
+}
+
+export async function getAllCityAreas(): Promise<CityArea[]> {
+  try {
+    const cityAreas: CityArea[] = [];
+    let page = 1;
+    let pageCount = 1;
+
+    while (page <= pageCount) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+          },
+          next: { revalidate: 300 },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`City Areas API Error: ${response.statusText}`);
+        break;
+      }
+
+      const json = await response.json();
+      cityAreas.push(...(json.data || []));
+
+      pageCount = json.meta?.pagination?.pageCount || 1;
+      page++;
+    }
+
+    return cityAreas;
+  } catch (error) {
+    console.error('Failed to fetch city areas:', error);
+    return [];
+  }
+}
+
+export async function getCityAreaBySlug(slug: string, citySlug: string): Promise<CityArea | null> {
+  try {
+    const cityAreas = await getAllCityAreas();
+    const areaName = deslugify(slug).toLowerCase();
+    const cityName = deslugify(citySlug).toLowerCase();
+
+    return (
+      cityAreas.find(
+        (area) =>
+          area.name.toLowerCase() === areaName &&
+          area.location?.name?.toLowerCase() === cityName
+      ) ?? null
+    );
+  } catch (error) {
+    console.error('Failed to fetch city area:', error);
     return null;
   }
 }
