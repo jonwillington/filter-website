@@ -34,7 +34,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_STRAPI_URL: https://helpful-oasis-8bb949e05d.strapiapp.com/api
-          NEXT_PUBLIC_STRAPI_TOKEN: ${{ secrets.NEXT_PUBLIC_STRAPI_TOKEN }}
+          NEXT_PUBLIC_STRAPI_TOKEN: ${{ secrets.STRAPI_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
