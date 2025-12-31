@@ -1,10 +1,10 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug, getCityAreaBySlug } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { deslugify, slugify } from '@/lib/utils';
+import { deslugify, slugify, getMediaUrl } from '@/lib/utils';
 
 export const dynamicParams = false;
 
@@ -48,9 +48,26 @@ export async function generateMetadata({ params }: AreaPageProps): Promise<Metad
   const areaName = deslugify(area);
   const cityName = deslugify(city);
 
+  // Fetch city area data for rich metadata
+  const cityArea = await getCityAreaBySlug(area, city);
+  const location = await getLocationBySlug(city);
+
+  // Use CityArea description/summary if available
+  const description = cityArea?.description || cityArea?.summary
+    ? `${cityArea.description || cityArea.summary}`
+    : `Find specialty coffee in ${areaName}, ${cityName}. Browse local cafes, roasters, and coffee spots.`;
+
+  const ogDescription = cityArea?.summary || cityArea?.description || `Specialty coffee in ${areaName}, ${cityName}`;
+  const imageUrl = getMediaUrl(cityArea?.featuredImage) || getMediaUrl(location?.background_image);
+
   return {
     title: `Coffee Shops in ${areaName}, ${cityName} | Filter`,
-    description: `Find specialty coffee in ${areaName}, ${cityName}. Browse local cafes, roasters, and coffee spots.`,
+    description,
+    openGraph: {
+      title: `Coffee in ${areaName}, ${cityName} | Filter`,
+      description: ogDescription,
+      images: imageUrl ? [imageUrl] : [],
+    },
   };
 }
 
