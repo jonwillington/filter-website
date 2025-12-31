@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopHeader } from './ShopHeader';
 import { ActionBar } from './ActionBar';
@@ -10,8 +10,8 @@ import { AmenityList } from './AmenityList';
 import { BrewMethods } from './BrewMethods';
 import { BeansSection } from './BeansSection';
 import { PhotoGallery } from './PhotoGallery';
-import { RelatedShops } from './RelatedShops';
-import { Button } from '@heroui/react';
+import { ShopMiniCard } from './ShopMiniCard';
+import { Button, Accordion, AccordionItem } from '@heroui/react';
 import { X } from 'lucide-react';
 
 interface ShopDrawerProps {
@@ -22,49 +22,59 @@ interface ShopDrawerProps {
 }
 
 export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawerProps) {
-  // Debug: Log the shop and brand data
-  console.log('🔍 ShopDrawer - Full shop object:', shop);
-  console.log('🔍 ShopDrawer - Brand object:', shop.brand);
-  console.log('🔍 ShopDrawer - Brand fields:', {
-    name: shop.brand?.name,
-    description: shop.brand?.description,
-    story: shop.brand?.story,
-    has_wifi: shop.brand?.has_wifi,
-    has_food: shop.brand?.has_food,
-    has_espresso: shop.brand?.has_espresso,
-    has_filter_coffee: shop.brand?.has_filter_coffee,
-    roastOwnBeans: shop.brand?.roastOwnBeans,
-    suppliers: shop.brand?.suppliers,
-  });
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [currentShop, setCurrentShop] = useState(shop);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Handle shop transitions
+  useEffect(() => {
+    if (shop.documentId !== currentShop.documentId) {
+      // Fade out
+      setIsTransitioning(true);
+
+      // Wait for fade out, then update shop and fade in
+      const timeout = setTimeout(() => {
+        setCurrentShop(shop);
+        setIsTransitioning(false);
+
+        // Scroll to top of drawer
+        if (drawerRef.current) {
+          drawerRef.current.scrollTop = 0;
+        }
+      }, 150);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [shop, currentShop.documentId]);
 
   // Get more shops from the same brand
   const moreFromBrand = useMemo(() => {
-    if (!shop.brand?.documentId) return [];
+    if (!currentShop.brand?.documentId) return [];
     return allShops.filter(
       (s) =>
-        s.documentId !== shop.documentId &&
-        s.brand?.documentId === shop.brand?.documentId &&
-        s.location?.documentId === shop.location?.documentId
+        s.documentId !== currentShop.documentId &&
+        s.brand?.documentId === currentShop.brand?.documentId &&
+        s.location?.documentId === currentShop.location?.documentId
     );
-  }, [shop, allShops]);
+  }, [currentShop, allShops]);
 
   // Get nearby shops from the same area
   const nearbyShops = useMemo(() => {
-    const areaId = shop.city_area?.documentId ?? shop.cityArea?.documentId;
+    const areaId = currentShop.city_area?.documentId ?? currentShop.cityArea?.documentId;
     if (!areaId) return [];
     return allShops.filter(
       (s) =>
-        s.documentId !== shop.documentId &&
+        s.documentId !== currentShop.documentId &&
         (s.city_area?.documentId === areaId || s.cityArea?.documentId === areaId) &&
         // Exclude shops already shown in "more from brand"
         !moreFromBrand.some((b) => b.documentId === s.documentId)
     );
-  }, [shop, allShops, moreFromBrand]);
+  }, [currentShop, allShops, moreFromBrand]);
 
-  const areaName = shop.city_area?.name ?? shop.cityArea?.name;
+  const areaName = currentShop.city_area?.name ?? currentShop.cityArea?.name;
 
   return (
-    <div className="shop-drawer">
+    <div ref={drawerRef} className="shop-drawer">
       {/* Sticky header */}
       <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 p-4 border-b border-border flex justify-between items-center">
         <h2 className="text-lg font-semibold text-contrastBlock">Details</h2>
@@ -80,47 +90,77 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
       </div>
 
       {/* Content */}
-      <div className="p-5 space-y-6">
+      <div
+        className="p-5 space-y-6 transition-opacity duration-150"
+        style={{ opacity: isTransitioning ? 0 : 1 }}
+      >
         {/* Header with hero image */}
-        <ShopHeader shop={shop} />
+        <ShopHeader shop={currentShop} />
 
         {/* Action bar */}
-        <ActionBar shop={shop} />
+        <ActionBar shop={currentShop} />
 
         {/* Basic info (address, hours, rating) */}
-        <ShopInfo shop={shop} />
+        <ShopInfo shop={currentShop} />
 
         {/* About/Description */}
-        <AboutSection shop={shop} />
+        <AboutSection shop={currentShop} />
 
         {/* Amenities */}
-        <AmenityList shop={shop} />
+        <AmenityList shop={currentShop} />
 
         {/* Brew Methods */}
-        <BrewMethods shop={shop} />
+        <BrewMethods shop={currentShop} />
 
         {/* Coffee Sourcing */}
-        <BeansSection shop={shop} />
+        <BeansSection shop={currentShop} />
 
         {/* Photo Gallery */}
-        <PhotoGallery shop={shop} />
+        <PhotoGallery shop={currentShop} />
 
-        {/* More from Brand */}
-        {moreFromBrand.length > 0 && (
-          <RelatedShops
-            title={`More from ${shop.brand?.name || 'this brand'}`}
-            shops={moreFromBrand}
-            onShopSelect={onShopSelect}
-          />
-        )}
-
-        {/* Nearby Shops */}
-        {nearbyShops.length > 0 && (
-          <RelatedShops
-            title={areaName ? `More in ${areaName}` : 'Nearby'}
-            shops={nearbyShops}
-            onShopSelect={onShopSelect}
-          />
+        {/* Related Shops Accordion */}
+        {(moreFromBrand.length > 0 || nearbyShops.length > 0) && (
+          <div>
+            <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
+              More Shops
+            </h3>
+            <Accordion variant="splitted">
+              {moreFromBrand.length > 0 && (
+                <AccordionItem
+                  key="brand"
+                  aria-label={`More from ${currentShop.brand?.name || 'this brand'}`}
+                  title={`By ${currentShop.brand?.name || 'this brand'} (${moreFromBrand.length})`}
+                >
+                  <div className="space-y-2 pb-2">
+                    {moreFromBrand.slice(0, 5).map((relatedShop) => (
+                      <ShopMiniCard
+                        key={relatedShop.documentId}
+                        shop={relatedShop}
+                        onClick={() => onShopSelect(relatedShop)}
+                      />
+                    ))}
+                  </div>
+                </AccordionItem>
+              )}
+              {nearbyShops.length > 0 && (
+                <AccordionItem
+                  key="nearby"
+                  aria-label={areaName ? `More in ${areaName}` : 'Nearby'}
+                  title={`In ${areaName || 'this area'} (${nearbyShops.length})`}
+                >
+                  <div className="space-y-2 pb-2">
+                    {nearbyShops.slice(0, 5).map((relatedShop) => (
+                      <ShopMiniCard
+                        key={relatedShop.documentId}
+                        shop={relatedShop}
+                        onClick={() => onShopSelect(relatedShop)}
+                      />
+                    ))}
+                  </div>
+                </AccordionItem>
+              )}
+            </Accordion>
+          </div>
         )}
       </div>
     </div>

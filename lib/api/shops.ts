@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import { Shop, Country, Location } from '../types';
 import { getShopSlug as generateShopSlug } from '../utils';
+import { getBrandById } from './brands';
+import { fetchLocationById } from './locations';
 
 // Cache for all shops to avoid repeated API calls
 let shopsCache: Shop[] | null = null;
@@ -27,7 +29,37 @@ if (typeof window === 'undefined') {
 
 // Populate params to get all related data including nested city_area.location
 const SHOP_POPULATE = [
-  'populate[brand][populate]=*',
+  // Explicitly populate all brand fields (Strapi v5 doesn't fully support populate=* for nested relations)
+  'populate[brand][fields][0]=name',
+  'populate[brand][fields][1]=type',
+  'populate[brand][fields][2]=description',
+  'populate[brand][fields][3]=story',
+  'populate[brand][fields][4]=website',
+  'populate[brand][fields][5]=phone',
+  'populate[brand][fields][6]=instagram',
+  'populate[brand][fields][7]=facebook',
+  'populate[brand][fields][8]=tiktok',
+  'populate[brand][fields][9]=has_wifi',
+  'populate[brand][fields][10]=has_food',
+  'populate[brand][fields][11]=has_outdoor_space',
+  'populate[brand][fields][12]=is_pet_friendly',
+  'populate[brand][fields][13]=has_espresso',
+  'populate[brand][fields][14]=has_filter_coffee',
+  'populate[brand][fields][15]=has_v60',
+  'populate[brand][fields][16]=has_chemex',
+  'populate[brand][fields][17]=has_aeropress',
+  'populate[brand][fields][18]=has_french_press',
+  'populate[brand][fields][19]=has_cold_brew',
+  'populate[brand][fields][20]=has_batch_brew',
+  'populate[brand][fields][21]=roastOwnBeans',
+  'populate[brand][fields][22]=ownRoastDesc',
+  // Populate brand relations
+  'populate[brand][populate][logo]=*',
+  'populate[brand][populate][suppliers][populate][logo]=*',
+  'populate[brand][populate][suppliers][populate][country]=*',
+  'populate[brand][populate][coffee_partner][populate][logo]=*',
+  'populate[brand][populate][ownRoastCountry]=*',
+  // Other shop fields
   'populate[featured_image]=*',
   'populate[gallery]=*',
   'populate[city_area][populate]=location',
@@ -212,6 +244,50 @@ export async function getAllShops(): Promise<Shop[]> {
     for (const shop of allShops) {
       enrichShopData(shop, countryMap);
     }
+
+    // Enrich brand data - fetch full brand details separately
+    // (Strapi populate doesn't return all brand fields when brands are nested in shops)
+    const brandEnrichmentPromises = allShops.map(async (shop) => {
+      const brandDocumentId = shop.brand?.documentId;
+      if (!brandDocumentId) return;
+
+      try {
+        const fullBrand = await getBrandById(brandDocumentId);
+        if (fullBrand) {
+          // Merge full brand data into shop
+          shop.brand = {
+            ...shop.brand,
+            ...fullBrand,
+          };
+        }
+      } catch (error) {
+        console.error(`Failed to enrich brand for shop ${shop.documentId}:`, error);
+      }
+    });
+
+    await Promise.all(brandEnrichmentPromises);
+
+    // Enrich location data - fetch full location details separately
+    // (Strapi populate doesn't return fields like rating_stars, story, background_image)
+    const locationEnrichmentPromises = allShops.map(async (shop) => {
+      const locationDocumentId = shop.location?.documentId;
+      if (!locationDocumentId) return;
+
+      try {
+        const fullLocation = await fetchLocationById(locationDocumentId);
+        if (fullLocation) {
+          // Merge full location data into shop
+          shop.location = {
+            ...shop.location,
+            ...fullLocation,
+          };
+        }
+      } catch (error) {
+        console.error(`Failed to enrich location for shop ${shop.documentId}:`, error);
+      }
+    });
+
+    await Promise.all(locationEnrichmentPromises);
 
     shopsCache = allShops;
     cacheTimestamp = now;

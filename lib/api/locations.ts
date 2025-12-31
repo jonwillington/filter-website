@@ -2,6 +2,38 @@ import { Location, Shop } from '../types';
 import { deslugify } from '../utils';
 import { getAllShops } from './shops';
 
+export interface ApiResponse<T> {
+  data: T;
+  meta?: any;
+}
+
+// Fetch a single location directly from API with all fields
+export async function fetchLocationById(documentId: string): Promise<Location | null> {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations/${documentId}?populate=*`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+        },
+        next: { revalidate: 300 },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch location ${documentId}:`, response.statusText);
+      return null;
+    }
+
+    const json: ApiResponse<Location> = await response.json();
+    return json.data;
+  } catch (error) {
+    console.error(`Error fetching location ${documentId}:`, error);
+    return null;
+  }
+}
+
 // Extract unique locations from shops data (reuses shops cache)
 // This preserves all location fields including country and background_image
 // Note: shops.ts enriches location data with full country info from separate API calls

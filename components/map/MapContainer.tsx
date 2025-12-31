@@ -228,6 +228,9 @@ export function MapContainer({
     let isSetup = false;
 
     const cleanupCountryLayer = () => {
+      // Check if map still exists before trying to clean up
+      if (!m || !m.getStyle()) return;
+
       if (m.getLayer('country-fills')) {
         m.off('click', 'country-fills');
         m.off('mouseenter', 'country-fills');
