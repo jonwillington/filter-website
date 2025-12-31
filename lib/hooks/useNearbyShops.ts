@@ -12,9 +12,6 @@ export function useNearbyShops(
     queryKey: ['nearby-shops', lat, lng],
     queryFn: () => getNearbyShops(lat!, lng!),
     enabled: enabled && lat !== null && lng !== null,
-    staleTime: 5 * 60 * 1000, // 5 minutes - nearby shops don't change often
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    staleTime: 30 * 1000, // 30 seconds
   });
 }

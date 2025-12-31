@@ -15,7 +15,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, slugify, getShopSlug } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
-import { useDetectUserArea } from '@/lib/hooks/useDetectUserArea';
+import { detectUserArea } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, X, LogIn } from 'lucide-react';
 
@@ -53,13 +53,6 @@ export function MainLayout({
 
   const { coordinates, requestLocation } = useGeolocation();
   const { user, loading: authLoading } = useAuth();
-
-  // Use react-query to cache area detection results
-  const { data: areaData } = useDetectUserArea(
-    coordinates?.lat ?? null,
-    coordinates?.lng ?? null,
-    isExploreMode && !selectedLocation
-  );
 
   // Track previous initialShop to detect shop-to-shop transitions
   const prevInitialShopRef = useRef<Shop | null>(null);
@@ -112,50 +105,63 @@ export function MainLayout({
     prevInitialShopRef.current = initialShop;
   }, [initialShop, initialLocation, shops]); // Update when initialShop changes
 
-  // Handle area detection results from react-query hook
+  // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
-    // Only process when we have coordinates and areaData has loaded
-    if (!coordinates || !isExploreMode || selectedLocation || areaData === undefined) return;
+    // Only run when we have coordinates and we're in explore mode (waiting for nearby detection)
+    // and we don't already have a selected location
+    if (!coordinates || !isExploreMode || selectedLocation) return;
 
-    if (areaData?.area) {
-      // User is in a supported area - find and select the corresponding location
-      const matchedLocation = locations.find(
-        (loc) => loc.documentId === areaData.area?.location?.documentId
-      );
+    const checkArea = async () => {
+      const areaData = await detectUserArea(coordinates.lat, coordinates.lng);
 
-      if (matchedLocation) {
-        // Smoothly transition to the supported city
-        setIsAreaUnsupported(false);
-        setIsExploreMode(false);
-        setIsNearbyMode(false); // Exit nearby mode
-        setShowTopRecommendations(false);
-
-        // Calculate map center for this location
-        const locationShops = shops.filter(s =>
-          s.location?.documentId === matchedLocation.documentId ||
-          s.city_area?.location?.documentId === matchedLocation.documentId
+      if (areaData?.area) {
+        // User is in a supported area - find and select the corresponding location
+        const matchedLocation = locations.find(
+          (loc) => loc.documentId === areaData.area?.location?.documentId
         );
-        const validShops = locationShops.filter((s) => getShopCoords(s));
-        if (validShops.length > 0) {
-          const avgLng =
-            validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
-            validShops.length;
-          const avgLat =
-            validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
-            validShops.length;
-          setMapCenter([avgLng, avgLat]);
+
+        if (matchedLocation) {
+          // Smoothly transition to the supported city
+          setIsAreaUnsupported(false);
+          setIsExploreMode(false);
+          setIsNearbyMode(false); // Exit nearby mode
+          setShowTopRecommendations(false);
+
+          // Calculate map center for this location
+          const locationShops = shops.filter(s =>
+            s.location?.documentId === matchedLocation.documentId ||
+            s.city_area?.location?.documentId === matchedLocation.documentId
+          );
+          const validShops = locationShops.filter((s) => getShopCoords(s));
+          if (validShops.length > 0) {
+            const avgLng =
+              validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
+              validShops.length;
+            const avgLat =
+              validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
+              validShops.length;
+            setMapCenter([avgLng, avgLat]);
+            setMapZoom(12);
+          }
+
+          // Update location and route
+          setTimeout(() => {
+            setSelectedLocation(matchedLocation);
+            const countrySlug = slugify(matchedLocation.country?.name ?? '');
+            const citySlug = slugify(matchedLocation.name);
+            router.push(`/${countrySlug}/${citySlug}`);
+          }, 200);
+        } else {
+          // Area detected but location not in our list
+          setIsNearbyMode(true);
+          setIsExploreMode(false);
+          setIsAreaUnsupported(true);
+          // Center on user location
+          setMapCenter([coordinates.lng, coordinates.lat]);
           setMapZoom(12);
         }
-
-        // Update location and route
-        setTimeout(() => {
-          setSelectedLocation(matchedLocation);
-          const countrySlug = slugify(matchedLocation.country?.name ?? '');
-          const citySlug = slugify(matchedLocation.name);
-          router.push(`/${countrySlug}/${citySlug}`);
-        }, 200);
       } else {
-        // Area detected but location not in our list
+        // No supported area detected - show nearby shops
         setIsNearbyMode(true);
         setIsExploreMode(false);
         setIsAreaUnsupported(true);
@@ -163,16 +169,10 @@ export function MainLayout({
         setMapCenter([coordinates.lng, coordinates.lat]);
         setMapZoom(12);
       }
-    } else if (areaData === null) {
-      // No supported area detected - show nearby shops
-      setIsNearbyMode(true);
-      setIsExploreMode(false);
-      setIsAreaUnsupported(true);
-      // Center on user location
-      setMapCenter([coordinates.lng, coordinates.lat]);
-      setMapZoom(12);
-    }
-  }, [coordinates, isExploreMode, selectedLocation, areaData, locations, router, shops]);
+    };
+
+    checkArea();
+  }, [coordinates, isExploreMode, selectedLocation, locations, router, shops]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -312,20 +312,16 @@ export function MainLayout({
   );
 
   const handleCloseDrawer = useCallback(() => {
-    if (selectedShop) {
-      // Closing shop drawer - go back to location view
-      setSelectedShop(null);
-      if (selectedLocation) {
-        const countrySlug = slugify(selectedLocation.country?.name ?? '');
-        const citySlug = slugify(selectedLocation.name);
-        router.push(`/${countrySlug}/${citySlug}`, { scroll: false });
-      }
-    } else if (selectedLocation) {
-      // Closing location drawer - go back to main view
-      setSelectedLocation(null);
+    setSelectedShop(null);
+
+    if (selectedLocation) {
+      const countrySlug = slugify(selectedLocation.country?.name ?? '');
+      const citySlug = slugify(selectedLocation.name);
+      router.push(`/${countrySlug}/${citySlug}`, { scroll: false });
+    } else {
       router.push('/', { scroll: false });
     }
-  }, [router, selectedLocation, selectedShop]);
+  }, [router, selectedLocation]);
 
   const handleNearbyToggle = useCallback(async () => {
     // Clear any existing timeout

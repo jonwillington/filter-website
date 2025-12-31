@@ -4,7 +4,7 @@ import { Country } from '../types';
 // Cache for countries
 let countriesCache: Country[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes - country data rarely changes
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Force cache invalidation on module reload
 if (typeof window === 'undefined') {
