@@ -22,8 +22,8 @@ interface MapContainerProps {
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
 }
 
-const CLUSTER_RADIUS = 30;
-const CLUSTER_MAX_ZOOM = 11;
+const CLUSTER_RADIUS = 50; // Larger radius for better city grouping at world view
+const CLUSTER_MAX_ZOOM = 14; // Keep clustering until zoomed in closer
 
 export function MapContainer({
   shops,
@@ -80,12 +80,12 @@ export function MapContainer({
     return distance;
   }, []);
 
-  // Update displayed shops only when not loading
+  // Update displayed shops - always keep in sync
   useEffect(() => {
-    if (!isLoading) {
-      setDisplayedShops(shops);
-    }
-  }, [shops, isLoading]);
+    // Always update displayed shops to stay in sync, even during loading
+    // This prevents markers from disappearing when switching locations
+    setDisplayedShops(shops);
+  }, [shops]);
 
   // Track loading state changes
   useEffect(() => {
@@ -133,9 +133,6 @@ export function MapContainer({
   // Create marker element
   const createMarkerElement = useCallback(
     (shop: Shop, isSelected: boolean, fadeIn: boolean = false, density: number = 0, zoomLevel: number = 12) => {
-      const el = document.createElement('div');
-      el.className = `shop-marker${isSelected ? ' selected' : ''}`;
-
       // Density threshold - use simple markers when there are many nearby shops
       // Higher threshold (30) means logos appear in moderately dense areas too
       const HIGH_DENSITY_THRESHOLD = 30;
@@ -149,6 +146,8 @@ export function MapContainer({
 
       if (useSimpleMarker) {
         // Simple marker for high-density areas - use country's primary color
+        const el = document.createElement('div');
+        el.className = `shop-marker${isSelected ? ' selected' : ''}`;
         const countryColor = shop.location?.country?.primaryColor ||
                             shop.city_area?.location?.country?.primaryColor ||
                             '#FF6B6B';
@@ -169,28 +168,49 @@ export function MapContainer({
           contain: layout style paint;
         `;
         el.style.zIndex = isSelected ? '10' : '1';
+
+        // Fade in after a brief delay if fadeIn is true
+        if (fadeIn) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              el.style.opacity = '1';
+            });
+          });
+        }
+
+        return el;
       } else {
-        // Detailed marker for low-density areas
+        // Detailed marker with logo and text label
+        const container = document.createElement('div');
+        container.className = `shop-marker${isSelected ? ' selected' : ''}`;
+        container.style.cssText = `
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          cursor: pointer;
+          position: absolute;
+          opacity: ${fadeIn ? '0' : '1'};
+          transition: opacity 0.2s ease;
+        `;
+        container.style.zIndex = isSelected ? '10' : '1';
+
+        // Create logo circle
+        const logoEl = document.createElement('div');
         const baseStyles = `
           width: 36px;
           height: 36px;
           border-radius: 50%;
           border: 3px solid ${isSelected ? '#8B6F47' : 'white'};
           box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-          cursor: pointer;
-          transition: border-color 0.2s ease, opacity 0.2s ease;
-          opacity: ${fadeIn ? '0' : '1'};
-          transform-origin: center center;
-          position: absolute;
-          transform: translate3d(0, 0, 0);
-          contain: layout style paint;
+          transition: border-color 0.2s ease;
           image-rendering: -webkit-optimize-contrast;
           image-rendering: crisp-edges;
+          flex-shrink: 0;
         `;
 
         if (logoUrl) {
-          // Start with loading state - subtle pulsing background
-          el.style.cssText = `
+          // Start with loading state
+          logoEl.style.cssText = `
             ${baseStyles}
             background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
             background-size: 200% 200%;
@@ -213,17 +233,17 @@ export function MapContainer({
           // Preload image and swap when ready
           const img = new Image();
           img.onload = () => {
-            el.style.backgroundImage = `url(${logoUrl})`;
-            el.style.backgroundSize = 'cover';
-            el.style.backgroundPosition = 'center';
-            el.style.backgroundColor = 'white';
-            el.style.background = `url(${logoUrl}) center/cover white`;
-            el.style.animation = 'none';
+            logoEl.style.backgroundImage = `url(${logoUrl})`;
+            logoEl.style.backgroundSize = 'cover';
+            logoEl.style.backgroundPosition = 'center';
+            logoEl.style.backgroundColor = 'white';
+            logoEl.style.background = `url(${logoUrl}) center/cover white`;
+            logoEl.style.animation = 'none';
           };
           img.src = logoUrl;
         } else {
-          el.innerHTML = '☕';
-          el.style.cssText = `
+          logoEl.innerHTML = '☕';
+          logoEl.style.cssText = `
             ${baseStyles}
             background: white;
             display: flex;
@@ -233,38 +253,70 @@ export function MapContainer({
           `;
         }
 
+        // Create text label
+        const textLabel = document.createElement('div');
+        const brandName = shop.brand?.name || shop.name;
+        const locationName = shop.location?.name || '';
+        textLabel.textContent = `${brandName} · ${locationName}`;
+        textLabel.style.cssText = `
+          background: white;
+          color: #1a1a1a;
+          font-size: 11px;
+          font-weight: 500;
+          padding: 3px 8px;
+          border-radius: 10px;
+          white-space: nowrap;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          margin-top: 4px;
+          max-width: 150px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        `;
+
+        container.appendChild(logoEl);
+        container.appendChild(textLabel);
+
         if (isSelected) {
-          el.style.transform = 'translate3d(0, 0, 0) scale(1.1)';
-          el.style.zIndex = '10';
+          container.style.transform = 'scale(1.1)';
         }
-      }
 
-      // Fade in after a brief delay if fadeIn is true
-      if (fadeIn) {
-        requestAnimationFrame(() => {
+        // Fade in after a brief delay if fadeIn is true
+        if (fadeIn) {
           requestAnimationFrame(() => {
-            el.style.opacity = '1';
+            requestAnimationFrame(() => {
+              container.style.opacity = '1';
+            });
           });
-        });
-      }
+        }
 
-      return el;
+        return container;
+      }
     },
     []
   );
 
   // Update marker element styling without replacing it
   const updateMarkerStyle = useCallback((el: HTMLElement, isSelected: boolean, shop?: Shop) => {
-    // Check if it's a simple marker (smaller size indicates simple marker)
+    // Check if it's a container with children (logo + text label) or a simple marker
+    const hasChildren = el.children.length > 0;
     const isSimpleMarker = el.style.width === '22px';
 
     if (isSimpleMarker) {
+      // Simple circular marker
       const countryColor = shop?.location?.country?.primaryColor ||
                           shop?.city_area?.location?.country?.primaryColor ||
                           '#FF6B6B';
       el.style.backgroundColor = isSelected ? '#8B6F47' : countryColor;
       el.style.transform = isSelected ? 'translate3d(0, 0, 0) scale(1.3)' : 'translate3d(0, 0, 0) scale(1)';
+    } else if (hasChildren) {
+      // Container with logo and text label
+      const logoEl = el.children[0] as HTMLElement;
+      if (logoEl) {
+        logoEl.style.borderColor = isSelected ? '#8B6F47' : 'white';
+      }
+      el.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
     } else {
+      // Legacy single element logo marker
       el.style.borderColor = isSelected ? '#8B6F47' : 'white';
       el.style.transform = isSelected ? 'translate3d(0, 0, 0) scale(1.15)' : 'translate3d(0, 0, 0) scale(1)';
     }
@@ -283,6 +335,9 @@ export function MapContainer({
       center,
       zoom,
       attributionControl: false,
+      // Add padding to account for floating sidebar on the left
+      // This shifts the visual center to account for the 360px sidebar + 20px margin
+      padding: { left: 200, right: 0, top: 0, bottom: 0 },
     });
 
     map.current.addControl(
@@ -453,7 +508,11 @@ export function MapContainer({
 
         setTimeout(() => {
           // Jump to new position while fully faded
-          map.current?.jumpTo({ center, zoom });
+          map.current?.jumpTo({
+            center,
+            zoom,
+            padding: { left: 200, right: 0, top: 0, bottom: 0 }
+          });
           lastCenter.current = center;
 
           // Hold the fade for a moment before fading back in
@@ -463,7 +522,12 @@ export function MapContainer({
         }, 250); // Quick fade out
       } else {
         // Use smooth flyTo for nearby locations
-        map.current.flyTo({ center, zoom, duration: 800 });
+        map.current.flyTo({
+          center,
+          zoom,
+          duration: 800,
+          padding: { left: 200, right: 0, top: 0, bottom: 0 }
+        });
         lastCenter.current = center;
       }
 
@@ -487,7 +551,8 @@ export function MapContainer({
         setTimeout(() => {
           map.current?.jumpTo({
             center: pendingCenter.current!,
-            zoom: pendingZoom.current!
+            zoom: pendingZoom.current!,
+            padding: { left: 200, right: 0, top: 0, bottom: 0 }
           });
           lastCenter.current = pendingCenter.current!;
 
@@ -501,7 +566,8 @@ export function MapContainer({
         map.current.flyTo({
           center: pendingCenter.current,
           zoom: pendingZoom.current,
-          duration: 800
+          duration: 800,
+          padding: { left: 200, right: 0, top: 0, bottom: 0 }
         });
         lastCenter.current = pendingCenter.current;
       }
@@ -569,7 +635,7 @@ export function MapContainer({
         }
       });
 
-      // Add cluster circle layer with dynamic country colors
+      // Add cluster circle layer with dynamic country colors and zoom-based sizing
       m.addLayer({
         id: 'clusters',
         type: 'circle',
@@ -581,22 +647,68 @@ export function MapContainer({
             ['get', 'clusterColor'],
             '#8B6F47'
           ],
+          // Dynamic radius based on both zoom and point count
           'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-            20,  // radius for count < 10
-            10, 25,  // radius for count >= 10
-            30, 30,  // radius for count >= 30
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            // At world view (zoom 0-4): tiny, discrete dots - just hint at presence
+            0, 5,   // Very tiny dots at world view
+            3, 7,   // Still very small
+            4, 9,   // Gradually increase
+            // At country/region view (zoom 5-8): start showing variation
+            5, [
+              'step',
+              ['get', 'point_count'],
+              14,
+              10, 20,
+              50, 26,
+              100, 32,
+            ],
+            // At city view (zoom 9-11): medium clusters
+            9, [
+              'step',
+              ['get', 'point_count'],
+              18,
+              10, 24,
+              30, 30,
+              50, 36,
+            ],
+            // At neighborhood view (zoom 12+): detailed clusters
+            12, [
+              'step',
+              ['get', 'point_count'],
+              15,
+              5, 20,
+              10, 25,
+              20, 30,
+            ],
           ],
-          'circle-stroke-width': 3,
+          'circle-stroke-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 1.5, // Very thin stroke at world view
+            4, 2,   // Thin stroke
+            5, 3,   // Normal stroke when zoomed in
+          ],
           'circle-stroke-color': '#fff',
+          'circle-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 0.75,  // More subtle at world view
+            4, 0.85,  // Gradually increase
+            5, 0.9,   // More prominent when zoomed in
+            12, 0.8,
+          ],
           'circle-color-transition': { duration: 0 },
           'circle-radius-transition': { duration: 0 },
           'circle-stroke-width-transition': { duration: 0 },
         },
       });
 
-      // Add cluster count label
+      // Add cluster count label with dynamic sizing
       m.addLayer({
         id: 'cluster-count',
         type: 'symbol',
@@ -605,10 +717,28 @@ export function MapContainer({
         layout: {
           'text-field': '{point_count_abbreviated}',
           'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
-          'text-size': 14,
+          // Hide text at world view, show when zoomed in
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 0,   // Hidden at world view - too cluttered
+            4, 0,   // Hidden until zoom 5
+            5, 12,  // Start showing text at country view
+            8, 14,
+            12, 12,
+          ],
         },
         paint: {
           'text-color': '#ffffff',
+          'text-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 0,    // Hidden at world view
+            4, 0,    // Hidden until zoom 5
+            5, 1,    // Fully visible at country view
+          ],
         },
       });
 
@@ -630,6 +760,7 @@ export function MapContainer({
             center: geometry.coordinates as [number, number],
             zoom: zoom ?? 14,
             duration: 500,
+            padding: { left: 200, right: 0, top: 0, bottom: 0 }
           });
         });
       });
@@ -782,6 +913,7 @@ export function MapContainer({
             el.style.transition = 'background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease';
           });
 
+          // Force marker update to ensure they're visible
           updateMarkers(true);
 
           // Call transition complete callback after map is idle and transitioning
@@ -791,6 +923,8 @@ export function MapContainer({
             // Small delay to ensure everything is rendered
             setTimeout(() => {
               onTransitionComplete();
+              // Force another marker update after transition completes
+              updateMarkers(false);
             }, 100);
           }
         }
@@ -896,6 +1030,7 @@ export function MapContainer({
             center: coords,
             zoom: Math.max(map.current?.getZoom() || 14, 14),
             duration: 800,
+            padding: { left: 200, right: 0, top: 0, bottom: 0 }
           });
         }
       }

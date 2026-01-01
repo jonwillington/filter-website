@@ -21,12 +21,14 @@ interface ShopDrawerProps {
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
   onOpenLoginModal?: () => void;
+  useWrapper?: boolean;
 }
 
-export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal }: ShopDrawerProps) {
+export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal, useWrapper = true }: ShopDrawerProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentShop, setCurrentShop] = useState(shop);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Handle shop transitions with smoother animation
   useEffect(() => {
@@ -39,8 +41,14 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         setCurrentShop(shop);
 
         // Scroll to top immediately
-        if (drawerRef.current) {
+        if (useWrapper && drawerRef.current) {
           drawerRef.current.scrollTop = 0;
+        } else if (!useWrapper && contentRef.current) {
+          // Find the scrollable parent (UnifiedDrawer)
+          const scrollParent = contentRef.current.parentElement;
+          if (scrollParent) {
+            scrollParent.scrollTop = 0;
+          }
         }
 
         // Slight delay before fading in for smoother transition
@@ -51,7 +59,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
       return () => clearTimeout(timeout);
     }
-  }, [shop, currentShop.documentId]);
+  }, [shop, currentShop.documentId, useWrapper]);
 
   // Get more shops from the same brand
   const moreFromBrand = useMemo(() => {
@@ -79,8 +87,8 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
   const areaName = currentShop.city_area?.name ?? currentShop.cityArea?.name;
 
-  return (
-    <div ref={drawerRef} className="shop-drawer relative">
+  const content = (
+    <>
       {/* Floating close button */}
       <CircularCloseButton
         onPress={onClose}
@@ -175,6 +183,20 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         )}
         </div>
       </div>
+    </>
+  );
+
+  if (useWrapper) {
+    return (
+      <div ref={drawerRef} className="shop-drawer relative">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={contentRef} className="relative">
+      {content}
     </div>
   );
 }

@@ -122,7 +122,7 @@ export function LocationSelector({
           className={item.isHeader ? 'opacity-100 cursor-default px-2 py-1 bg-gray-100/80 pointer-events-none' : ''}
         >
           {item.isHeader ? (
-            <span className="flex items-center gap-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 text-[10px] font-medium text-gray-900 uppercase tracking-wider">
               {item.countryCode && <span>{getCountryFlag(item.countryCode)}</span>}
               {item.name}
             </span>

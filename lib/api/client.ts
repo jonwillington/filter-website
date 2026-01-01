@@ -1,5 +1,34 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
-const API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_TOKEN;
+/**
+ * Get Strapi config based on environment
+ * Development: local Strapi (http://localhost:1337)
+ * Production: cloud Strapi (helpful-oasis)
+ */
+function getStrapiConfig() {
+  const isProd = process.env.NEXT_PUBLIC_ENV === 'production' ||
+                 process.env.NODE_ENV === 'production';
+
+  if (isProd) {
+    return {
+      url: process.env.NEXT_PUBLIC_STRAPI_URL_PROD || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api',
+      token: process.env.NEXT_PUBLIC_STRAPI_TOKEN_PROD,
+    };
+  } else {
+    return {
+      url: process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337/api',
+      token: process.env.NEXT_PUBLIC_STRAPI_TOKEN,
+    };
+  }
+}
+
+const { url: API_BASE_URL, token: API_TOKEN } = getStrapiConfig();
+
+// Debug: Log which Strapi instance is being used
+if (typeof window !== 'undefined') {
+  console.log('[Strapi] Using:', {
+    environment: process.env.NEXT_PUBLIC_ENV || 'development',
+    url: API_BASE_URL,
+  });
+}
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {

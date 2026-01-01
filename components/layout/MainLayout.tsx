@@ -6,6 +6,7 @@ import { Sidebar } from '../sidebar/Sidebar';
 import { MapContainer } from '../map/MapContainer';
 import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
+import { UnifiedDrawer } from '../detail/UnifiedDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
 import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
 import { SearchModal } from '../modals/SearchModal';
@@ -53,9 +54,24 @@ export function MainLayout({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
   const { user, loading: authLoading } = useAuth();
+
+  // Track desktop/mobile viewport
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    // Initial check
+    checkDesktop();
+
+    // Listen for resize
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   // Track previous initialShop to detect shop-to-shop transitions
   const prevInitialShopRef = useRef<Shop | null>(null);
@@ -481,25 +497,33 @@ export function MainLayout({
           onUnsupportedCountryClick={handleUnsupportedCountryClick}
         />
 
-        {selectedShop ? (
-          <ShopDrawer
-            shop={selectedShop}
-            allShops={shops}
-            onClose={handleCloseDrawer}
-            onShopSelect={handleShopSelect}
-            onOpenLoginModal={() => setShowLoginModal(true)}
-          />
-        ) : selectedLocation && !isNearbyMode && (showMobileCityGuide || typeof window !== 'undefined' && window.innerWidth >= 1024) ? (
-          <LocationDrawer
-            location={selectedLocation}
-            allShops={shops}
-            onClose={() => {
-              setShowMobileCityGuide(false);
-              handleCloseDrawer();
-            }}
-            onShopSelect={handleShopSelect}
-          />
-        ) : null}
+        {(selectedShop || (selectedLocation && !isNearbyMode && (showMobileCityGuide || isDesktop))) && (
+          <UnifiedDrawer key="unified-drawer" contentType={selectedShop ? 'shop' : 'location'}>
+            {selectedShop ? (
+              <ShopDrawer
+                key="shop-drawer"
+                shop={selectedShop}
+                allShops={shops}
+                onClose={handleCloseDrawer}
+                onShopSelect={handleShopSelect}
+                onOpenLoginModal={() => setShowLoginModal(true)}
+                useWrapper={false}
+              />
+            ) : selectedLocation ? (
+              <LocationDrawer
+                key="location-drawer"
+                location={selectedLocation}
+                allShops={shops}
+                onClose={() => {
+                  setShowMobileCityGuide(false);
+                  handleCloseDrawer();
+                }}
+                onShopSelect={handleShopSelect}
+                useWrapper={false}
+              />
+            ) : null}
+          </UnifiedDrawer>
+        )}
       </div>
 
       <Footer />

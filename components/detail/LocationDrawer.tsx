@@ -12,6 +12,7 @@ interface LocationDrawerProps {
   allShops: Shop[];
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
+  useWrapper?: boolean;
 }
 
 export function LocationDrawer({
@@ -19,6 +20,7 @@ export function LocationDrawer({
   allShops,
   onClose,
   onShopSelect,
+  useWrapper = true,
 }: LocationDrawerProps) {
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [storyTruncated, setStoryTruncated] = useState(false);
@@ -86,8 +88,8 @@ export function LocationDrawer({
 
   const backgroundImage = getMediaUrl(currentLocation.background_image);
 
-  return (
-    <div className="drawer">
+  const content = (
+    <>
       <div className="drawer-content">
         {/* Header with background image */}
         <div
@@ -244,6 +246,12 @@ export function LocationDrawer({
           )}
         </div>
       </div>
-    </div>
+    </>
   );
+
+  if (useWrapper) {
+    return <div className="drawer">{content}</div>;
+  }
+
+  return content;
 }
