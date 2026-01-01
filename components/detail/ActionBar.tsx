@@ -11,12 +11,18 @@ interface ActionBarProps {
 
 export function ActionBar({ shop }: ActionBarProps) {
   const contact = getMergedContact(shop);
-  const coords = shop.coordinates ?? (shop.latitude && shop.longitude
-    ? { lat: shop.latitude, lng: shop.longitude }
-    : null);
 
-  const mapsUrl = coords
-    ? `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`
+  // Prefer shop name and address for better navigation
+  const destination = shop.address
+    ? encodeURIComponent(`${shop.name}, ${shop.address}`)
+    : shop.coordinates
+      ? `${shop.coordinates.lat},${shop.coordinates.lng}`
+      : shop.latitude && shop.longitude
+        ? `${shop.latitude},${shop.longitude}`
+        : null;
+
+  const mapsUrl = destination
+    ? `https://www.google.com/maps/dir/?api=1&destination=${destination}`
     : null;
 
   const hasAnyAction = contact.phone || mapsUrl || contact.website || contact.instagram;

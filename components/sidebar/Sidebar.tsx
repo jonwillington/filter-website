@@ -6,6 +6,7 @@ import { Location, Shop } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { useMemo, ReactNode } from 'react';
+import Link from 'next/link';
 
 interface SidebarProps {
   locations: Location[];
@@ -127,6 +128,21 @@ export function Sidebar({
             isLoading={isLoading}
           />
         )}
+      </div>
+
+      {/* Mobile footer - only visible on mobile */}
+      <div className="lg:hidden border-t border-border p-4">
+        <div className="flex items-center justify-center gap-4 text-xs text-textSecondary">
+          <Link href="/privacy" className="hover:text-accent transition-colors">
+            Privacy
+          </Link>
+          <span className="text-border">•</span>
+          <Link href="/terms" className="hover:text-accent transition-colors">
+            Terms
+          </Link>
+          <span className="text-border">•</span>
+          <span>© {new Date().getFullYear()} Filter</span>
+        </div>
       </div>
     </aside>
   );

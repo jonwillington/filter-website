@@ -24,3 +24,5 @@ export {
 } from './StatusChip';
 
 export type { StatusType } from './StatusChip';
+
+export { CircularCloseButton } from './CircularCloseButton';

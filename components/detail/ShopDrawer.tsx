@@ -12,37 +12,42 @@ import { BeansSection } from './BeansSection';
 import { PhotoGallery } from './PhotoGallery';
 import { ShopMiniCard } from './ShopMiniCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
-import { Button, Accordion, AccordionItem, Divider } from '@heroui/react';
-import { X } from 'lucide-react';
+import { Accordion, AccordionItem, Divider } from '@heroui/react';
+import { CircularCloseButton } from '@/components/ui';
 
 interface ShopDrawerProps {
   shop: Shop;
   allShops: Shop[];
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
+  onOpenLoginModal?: () => void;
 }
 
-export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawerProps) {
+export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal }: ShopDrawerProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentShop, setCurrentShop] = useState(shop);
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Handle shop transitions
+  // Handle shop transitions with smoother animation
   useEffect(() => {
     if (shop.documentId !== currentShop.documentId) {
-      // Fade out
+      // Start transition
       setIsTransitioning(true);
 
-      // Wait for fade out, then update shop and fade in
+      // Wait for fade out, then update shop
       const timeout = setTimeout(() => {
         setCurrentShop(shop);
-        setIsTransitioning(false);
 
-        // Scroll to top of drawer
+        // Scroll to top immediately
         if (drawerRef.current) {
           drawerRef.current.scrollTop = 0;
         }
-      }, 150);
+
+        // Slight delay before fading in for smoother transition
+        requestAnimationFrame(() => {
+          setIsTransitioning(false);
+        });
+      }, 200);
 
       return () => clearTimeout(timeout);
     }
@@ -77,19 +82,14 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
   return (
     <div ref={drawerRef} className="shop-drawer relative">
       {/* Floating close button */}
-      <Button
-        isIconOnly
-        variant="flat"
+      <CircularCloseButton
         onPress={onClose}
-        aria-label="Close"
-        className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur-sm"
-      >
-        <X className="w-5 h-5" />
-      </Button>
+        className="absolute top-3 right-3 z-20"
+      />
 
       {/* Content */}
       <div
-        className="transition-opacity duration-150"
+        className="transition-opacity duration-200 ease-in-out"
         style={{ opacity: isTransitioning ? 0 : 1 }}
       >
         {/* Header with hero image - no padding */}
@@ -127,7 +127,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect }: ShopDrawer
         <Divider className="my-4" />
 
         {/* Reviews */}
-        <ShopReviewsSection shop={currentShop} />
+        <ShopReviewsSection shop={currentShop} onOpenLoginModal={onOpenLoginModal} />
 
         {/* Related Shops Accordion */}
         {(moreFromBrand.length > 0 || nearbyShops.length > 0) && (

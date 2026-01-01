@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@heroui/react';
 import { Location, Shop } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
+import { CircularCloseButton } from '@/components/ui';
 
 interface LocationDrawerProps {
   location: Location;
@@ -114,14 +113,7 @@ export function LocationDrawer({
                 />
               </div>
             )}
-            <Button
-              isIconOnly
-              variant="flat"
-              onPress={onClose}
-              className="bg-white/90 backdrop-blur-sm"
-            >
-              <X className="w-5 h-5" />
-            </Button>
+            <CircularCloseButton onPress={onClose} />
           </div>
 
           <div className="absolute bottom-4 left-4 right-4">

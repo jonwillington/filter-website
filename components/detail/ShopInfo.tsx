@@ -113,7 +113,11 @@ export function ShopInfo({ shop }: ShopInfoProps) {
                 <div className="mt-2 space-y-1 pl-0">
                   {shop.opening_hours.map((entry, index) => {
                     if (typeof entry !== 'string') return null;
-                    const [day, hours] = entry.split(':').map(s => s.trim());
+                    // Split only on the first colon to handle times like "7:00 AM"
+                    const colonIndex = entry.indexOf(':');
+                    if (colonIndex === -1) return null;
+                    const day = entry.substring(0, colonIndex).trim();
+                    const hours = entry.substring(colonIndex + 1).trim();
                     return (
                       <div key={index} className="flex justify-between text-xs">
                         <span className="text-textSecondary">{day}</span>

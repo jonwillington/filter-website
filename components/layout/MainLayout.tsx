@@ -313,15 +313,9 @@ export function MainLayout({
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedShop(null);
-
-    if (selectedLocation) {
-      const countrySlug = slugify(selectedLocation.country?.name ?? '');
-      const citySlug = slugify(selectedLocation.name);
-      router.push(`/${countrySlug}/${citySlug}`, { scroll: false });
-    } else {
-      router.push('/', { scroll: false });
-    }
-  }, [router, selectedLocation]);
+    setSelectedLocation(null);
+    router.push('/', { scroll: false });
+  }, [router]);
 
   const handleNearbyToggle = useCallback(async () => {
     // Clear any existing timeout
@@ -471,6 +465,7 @@ export function MainLayout({
             allShops={shops}
             onClose={handleCloseDrawer}
             onShopSelect={handleShopSelect}
+            onOpenLoginModal={() => setShowLoginModal(true)}
           />
         ) : selectedLocation && !isNearbyMode ? (
           <LocationDrawer

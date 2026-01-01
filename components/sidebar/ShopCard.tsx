@@ -52,7 +52,7 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
           {displayName}
         </h4>
         {streetAddress && (
-          <p className="text-xs text-textSecondary truncate">
+          <p className="text-xs text-textSecondary line-clamp-2">
             {streetAddress}
           </p>
         )}

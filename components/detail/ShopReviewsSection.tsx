@@ -12,14 +12,14 @@ import { MessageSquarePlus, Star } from 'lucide-react';
 
 interface ShopReviewsSectionProps {
   shop: Shop;
+  onOpenLoginModal?: () => void;
 }
 
-export function ShopReviewsSection({ shop }: ShopReviewsSectionProps) {
+export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectionProps) {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -38,8 +38,7 @@ export function ShopReviewsSection({ shop }: ShopReviewsSectionProps) {
 
   const handleWriteReview = () => {
     if (!user) {
-      setShowLoginPrompt(true);
-      setTimeout(() => setShowLoginPrompt(false), 3000);
+      onOpenLoginModal?.();
       return;
     }
     setIsModalOpen(true);
@@ -76,15 +75,6 @@ export function ShopReviewsSection({ shop }: ShopReviewsSectionProps) {
           Write Review
         </Button>
       </div>
-
-      {showLoginPrompt && (
-        <div
-          className="p-3 rounded-lg text-sm"
-          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--accent)', color: 'var(--text)' }}
-        >
-          Please sign in to write a review
-        </div>
-      )}
 
       {isLoading ? (
         <div className="flex justify-center py-8">

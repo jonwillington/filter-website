@@ -104,7 +104,7 @@ export function LocationSelector({
       startContent={<MapPin className="w-4 h-4 text-accent flex-shrink-0" />}
       classNames={{
         base: 'w-full max-w-full',
-        trigger: 'bg-white border-border hover:bg-gray-50 shadow-sm',
+        trigger: 'bg-surface border border-border hover:bg-gray-50 shadow-sm',
         value: 'text-text truncate',
         label: 'text-textSecondary',
         innerWrapper: 'max-w-full',

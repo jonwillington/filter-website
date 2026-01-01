@@ -59,7 +59,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
       )}
 
       {/* Shop Info */}
-      <div className={heroUrl ? 'pt-2' : ''}>
+      <div className={heroUrl ? 'pt-2 px-5' : 'px-5'}>
         <div className="flex items-start gap-4">
           {/* Show logo here if no hero image */}
           {!heroUrl && (
