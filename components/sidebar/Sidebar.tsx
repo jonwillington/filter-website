@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { useMemo, ReactNode } from 'react';
 import Link from 'next/link';
+import { Button } from '@heroui/react';
+import { Map } from 'lucide-react';
 
 interface SidebarProps {
   locations: Location[];
@@ -24,6 +26,7 @@ interface SidebarProps {
   onTopRecommendationsChange?: (value: boolean) => void;
   isAreaUnsupported?: boolean;
   authComponent?: ReactNode;
+  onOpenCityGuide?: () => void;
 }
 
 export function Sidebar({
@@ -42,6 +45,7 @@ export function Sidebar({
   onTopRecommendationsChange,
   isAreaUnsupported = false,
   authComponent,
+  onOpenCityGuide,
 }: SidebarProps) {
   // Count shops for segmented control labels
   const { topPicksCount, allCount } = useMemo(() => {
@@ -86,6 +90,20 @@ export function Sidebar({
               activeSegment={showTopRecommendations ? 'topPicks' : 'all'}
               onSegmentChange={(key) => onTopRecommendationsChange(key === 'topPicks')}
             />
+          </div>
+        )}
+        {selectedLocation && onOpenCityGuide && (
+          <div className="mt-4 lg:hidden">
+            <Button
+              onPress={onOpenCityGuide}
+              variant="flat"
+              color="primary"
+              fullWidth
+              startContent={<Map className="w-4 h-4" />}
+              size="sm"
+            >
+              See City Guide
+            </Button>
           </div>
         )}
       </div>

@@ -50,6 +50,7 @@ export function MainLayout({
   const [mapZoom, setMapZoom] = useState<number>(2);
   const [unsupportedCountry, setUnsupportedCountry] = useState<{ name: string; code: string } | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
   const { user, loading: authLoading } = useAuth();
@@ -429,6 +430,7 @@ export function MainLayout({
           showTopRecommendations={showTopRecommendations}
           onTopRecommendationsChange={setShowTopRecommendations}
           isAreaUnsupported={isAreaUnsupported}
+          onOpenCityGuide={() => setShowMobileCityGuide(true)}
           authComponent={
             !authLoading && (
               user ? (
@@ -467,11 +469,14 @@ export function MainLayout({
             onShopSelect={handleShopSelect}
             onOpenLoginModal={() => setShowLoginModal(true)}
           />
-        ) : selectedLocation && !isNearbyMode ? (
+        ) : selectedLocation && !isNearbyMode && (showMobileCityGuide || typeof window !== 'undefined' && window.innerWidth >= 1024) ? (
           <LocationDrawer
             location={selectedLocation}
             allShops={shops}
-            onClose={handleCloseDrawer}
+            onClose={() => {
+              setShowMobileCityGuide(false);
+              handleCloseDrawer();
+            }}
             onShopSelect={handleShopSelect}
           />
         ) : null}
