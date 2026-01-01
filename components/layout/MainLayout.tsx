@@ -8,6 +8,7 @@ import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
 import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
+import { SearchModal } from '../modals/SearchModal';
 import { Footer } from './Footer';
 import { LoginModal } from '../auth/LoginModal';
 import { UserMenu } from '../auth/UserMenu';
@@ -17,7 +18,7 @@ import { cn, slugify, getShopSlug } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { detectUserArea } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
-import { Menu, X, LogIn } from 'lucide-react';
+import { Menu, X, LogIn, Search } from 'lucide-react';
 
 interface MainLayoutProps {
   locations: Location[];
@@ -51,6 +52,7 @@ export function MainLayout({
   const [unsupportedCountry, setUnsupportedCountry] = useState<{ name: string; code: string } | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
   const { user, loading: authLoading } = useAuth();
@@ -398,6 +400,13 @@ export function MainLayout({
         onClose={() => setShowLoginModal(false)}
       />
 
+      <SearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        locations={locations}
+        shops={shops}
+      />
+
       {/* Mobile menu toggle */}
       <div className="mobile-toggle lg:hidden">
         <Button
@@ -433,18 +442,29 @@ export function MainLayout({
           onOpenCityGuide={() => setShowMobileCityGuide(true)}
           authComponent={
             !authLoading && (
-              user ? (
-                <UserMenu />
-              ) : (
+              <div className="flex items-center gap-2">
                 <Button
+                  isIconOnly
                   variant="flat"
-                  onPress={() => setShowLoginModal(true)}
-                  startContent={<LogIn className="w-4 h-4" />}
+                  onPress={() => setShowSearchModal(true)}
                   size="sm"
+                  aria-label="Search"
                 >
-                  Sign In
+                  <Search className="w-4 h-4" />
                 </Button>
-              )
+                {user ? (
+                  <UserMenu />
+                ) : (
+                  <Button
+                    variant="flat"
+                    onPress={() => setShowLoginModal(true)}
+                    startContent={<LogIn className="w-4 h-4" />}
+                    size="sm"
+                  >
+                    Sign In
+                  </Button>
+                )}
+              </div>
             )
           }
         />
