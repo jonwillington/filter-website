@@ -335,10 +335,11 @@ export function MapContainer({
       center,
       zoom,
       attributionControl: false,
-      // Add padding to account for floating sidebar on the left
-      // This shifts the visual center to account for the 360px sidebar + 20px margin
-      padding: { left: 200, right: 0, top: 0, bottom: 0 },
     });
+
+    // Add padding to account for floating sidebar on the left
+    // This shifts the visual center to account for the 360px sidebar + 20px margin
+    map.current.setPadding({ left: 200, right: 0, top: 0, bottom: 0 });
 
     map.current.addControl(
       new mapboxgl.NavigationControl({ showCompass: false }),
