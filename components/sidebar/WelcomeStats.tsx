@@ -3,15 +3,17 @@
 import { useMemo } from 'react';
 import { Location, Shop } from '@/lib/types';
 import { Coffee, MapPin, Globe, Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getMediaUrl } from '@/lib/utils';
+import Image from 'next/image';
 
 interface WelcomeStatsProps {
   locations: Location[];
   shops: Shop[];
   onShopSelect: (shop: Shop) => void;
+  compact?: boolean;
 }
 
-export function WelcomeStats({ locations, shops, onShopSelect }: WelcomeStatsProps) {
+export function WelcomeStats({ locations, shops, onShopSelect, compact = false }: WelcomeStatsProps) {
   // Calculate stats
   const stats = useMemo(() => {
     const uniqueCountries = new Set(
@@ -96,39 +98,91 @@ export function WelcomeStats({ locations, shops, onShopSelect }: WelcomeStatsPro
             <Star className="w-4 h-4 text-amber-500" />
             Featured Shops
           </h3>
-          <div className="space-y-2">
-            {topShops.map((shop) => (
-              <button
-                key={shop.documentId}
-                onClick={() => onShopSelect(shop)}
-                className={cn(
-                  'w-full text-left p-3 rounded-lg',
-                  'bg-surface hover:bg-surfaceHover',
-                  'border border-border',
-                  'transition-colors cursor-pointer'
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-text text-sm truncate">
-                      {shop.prefName || shop.name}
-                    </p>
-                    <p className="text-xs text-textSecondary truncate">
-                      {shop.location?.name}
-                      {shop.location?.country?.name && `, ${shop.location.country.name}`}
-                    </p>
-                  </div>
+          <div className="grid grid-cols-2 gap-3">
+            {topShops.map((shop) => {
+              const imageUrl = getMediaUrl(shop.featured_image);
+              const countryCode = shop.location?.country?.code?.toLowerCase();
+              const flagUrl = countryCode
+                ? `https://hatscripts.github.io/circle-flags/flags/${countryCode}.svg`
+                : null;
+
+              return (
+                <button
+                  key={shop.documentId}
+                  onClick={() => onShopSelect(shop)}
+                  className={cn(
+                    "group relative overflow-hidden rounded-xl bg-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
+                    compact ? "aspect-[4/3]" : "aspect-square"
+                  )}
+                >
+                  {imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={shop.prefName || shop.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-accent/40" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+                  {/* Flag in top right */}
+                  {flagUrl && (
+                    <div className={cn(
+                      "absolute top-2 right-2 rounded-full overflow-hidden bg-white shadow-md",
+                      compact ? "w-5 h-5" : "w-7 h-7"
+                    )}>
+                      <Image
+                        src={flagUrl}
+                        alt={shop.location?.country?.name || 'Country'}
+                        width={compact ? 20 : 28}
+                        height={compact ? 20 : 28}
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Rating badge */}
                   {shop.google_rating && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      <span className="text-xs font-medium text-text">
+                    <div className={cn(
+                      "absolute top-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full",
+                      compact ? "px-1.5 py-0.5" : "px-2 py-1"
+                    )}>
+                      <Star className={cn(
+                        "fill-amber-400 text-amber-400",
+                        compact ? "w-2.5 h-2.5" : "w-3.5 h-3.5"
+                      )} />
+                      <span className={cn(
+                        "font-medium text-white",
+                        compact ? "text-[10px]" : "text-xs"
+                      )}>
                         {shop.google_rating.toFixed(1)}
                       </span>
                     </div>
                   )}
-                </div>
-              </button>
-            ))}
+
+                  <div className={cn(
+                    "absolute bottom-0 left-0 right-0 text-left",
+                    compact ? "p-2" : "p-3"
+                  )}>
+                    <h4 className={cn(
+                      "font-bold text-white leading-tight line-clamp-2 mb-0.5",
+                      compact ? "text-xs" : "text-sm"
+                    )}>
+                      {shop.prefName || shop.name}
+                    </h4>
+                    <p className={cn(
+                      "text-white/80 truncate",
+                      compact ? "text-[10px]" : "text-xs"
+                    )}>
+                      {shop.location?.name}
+                      {shop.location?.country?.name && `, ${shop.location.country.name}`}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

@@ -84,7 +84,6 @@ export function MapContainer({
   useEffect(() => {
     // Always update displayed shops to stay in sync, even during loading
     // This prevents markers from disappearing when switching locations
-    console.log('MapContainer: Updating displayedShops, count:', shops.length);
     setDisplayedShops(shops);
   }, [shops]);
 
@@ -453,7 +452,17 @@ export function MapContainer({
         const countryName = feature.properties?.name_en;
 
         // Check if this is an unsupported country
-        if (countryCode && !supportedCountries.includes(countryCode)) {
+        // Don't show modal if:
+        // 1. Country is in supported list, OR
+        // 2. We have shops (using ref for current value), OR
+        // 3. There are shops in this country
+        const hasShops = shopsRef.current.length > 0;
+        const hasShopsInCountry = shopsRef.current.some(shop =>
+          shop.location?.country?.code === countryCode ||
+          shop.country?.code === countryCode
+        );
+
+        if (countryCode && !supportedCountries.includes(countryCode) && !hasShops && !hasShopsInCountry) {
           onUnsupportedCountryClick?.(countryName || countryCode, countryCode);
         }
       };
@@ -581,7 +590,9 @@ export function MapContainer({
 
   // Setup clustering source and layers
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current) {
+      return;
+    }
 
     const setupClustering = () => {
       const m = map.current!;
@@ -623,8 +634,6 @@ export function MapContainer({
         type: 'FeatureCollection',
         features,
       };
-
-      console.log('MapContainer: Setting up clustering with features:', features.length, 'displayedShops:', displayedShops.length);
 
       // Add clustered source with cluster properties for color aggregation
       m.addSource('shops', {
@@ -777,52 +786,14 @@ export function MapContainer({
         m.getCanvas().style.cursor = '';
       });
 
-      // Track which markers are currently visible for fade-in effect
-      const visibleMarkersSet = new Set<string>();
-
-      // Function to update visible markers - now just shows/hides instead of adding/removing
-      const updateMarkers = (withFade: boolean = false) => {
-        const m = map.current;
-        if (!m) return;
-
-        const features = m.querySourceFeatures('shops');
-        const newVisibleMarkerIds = new Set<string>();
-
-        features.forEach((feature) => {
-          // Skip clusters
-          if (feature.properties?.cluster) return;
-
-          const id = feature.properties?.id;
-          if (!id) return;
-
-          newVisibleMarkerIds.add(id);
-        });
-
-        // Show/hide markers based on clustering state
-        markers.current.forEach((marker, id) => {
-          const element = marker.getElement();
-          const wasVisible = visibleMarkersSet.has(id);
-          const shouldBeVisible = newVisibleMarkerIds.has(id);
-
-          if (shouldBeVisible && !wasVisible) {
-            // Marker is becoming visible - fade in
-            element.style.display = '';
-            if (withFade) {
-              element.style.opacity = '0';
-              element.style.transition = 'opacity 0.2s ease';
-              requestAnimationFrame(() => {
-                element.style.opacity = '1';
-              });
-            }
-            visibleMarkersSet.add(id);
-          } else if (!shouldBeVisible && wasVisible) {
-            // Marker is being hidden
-            element.style.display = 'none';
-            visibleMarkersSet.delete(id);
-          } else if (shouldBeVisible) {
-            // Marker stays visible
-            element.style.display = '';
-          }
+      // Simple approach: always show all markers
+      // When zoomed out, clusters cover them visually
+      // When zoomed in, markers are visible
+      const ensureAllMarkersVisible = () => {
+        markers.current.forEach((marker) => {
+          const el = marker.getElement();
+          el.style.display = '';
+          el.style.opacity = '1';
         });
       };
 
@@ -833,17 +804,13 @@ export function MapContainer({
 
         const mapZoom = m.getZoom();
 
-        console.log('MapContainer: Creating all markers, count:', displayedShops.length, 'zoom:', mapZoom);
-
         displayedShops.forEach((shop) => {
           const id = shop.documentId;
           const coords = getCoords(shop);
           if (!coords) return;
 
           // Skip if marker already exists
-          if (markers.current.has(id)) {
-            return;
-          }
+          if (markers.current.has(id)) return;
 
           const isSelected = id === selectedMarkerRef.current;
           const density = calculateLocalDensity(shop, displayedShops);
@@ -858,95 +825,112 @@ export function MapContainer({
 
           el.addEventListener('click', (e) => {
             e.stopPropagation();
-            onShopSelect(shop);
+            onShopSelectRef.current(shop);
           });
 
           markers.current.set(id, marker);
         });
       };
 
-      // Track drag state - freeze marker updates during drag/glide
-      m.on('dragstart', () => {
+      // Event handlers - simplified, just track state
+      const handleDragStart = () => {
         isDragging.current = true;
-        // Disable transitions on all markers during drag for stability
-        markers.current.forEach((marker) => {
-          const el = marker.getElement();
-          el.style.transition = 'none';
-        });
-      });
+      };
 
-      m.on('dragend', () => {
+      const handleDragEnd = () => {
         isDragging.current = false;
-        // Don't re-enable transitions yet - map might still be gliding
-        // Will re-enable when map becomes idle
-      });
+      };
 
-      // Track zoom state
-      m.on('zoomstart', () => {
+      const handleZoomStart = () => {
         isZooming.current = true;
-        // Disable transitions on all markers during zoom for stability
-        markers.current.forEach((marker) => {
-          const el = marker.getElement();
-          el.style.transition = 'none';
-        });
-      });
+      };
 
-      m.on('zoomend', () => {
+      const handleZoomEnd = () => {
         isZooming.current = false;
-        // Re-enable transitions
-        markers.current.forEach((marker) => {
-          const el = marker.getElement();
-          el.style.transition = 'background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease';
-        });
-        // Update markers immediately when zoom ends with fade effect
-        updateMarkers(true);
-      });
+        ensureAllMarkersVisible();
+      };
 
-      // Update markers during zoom for smoother cluster-to-marker transitions
-      m.on('zoom', () => {
-        // Only update during animated zooms (flyTo, etc)
-        if (isZooming.current) {
-          updateMarkers(true);
+      const handleSourceData = (e: mapboxgl.MapSourceDataEvent) => {
+        if (e.sourceId === 'shops' && e.isSourceLoaded) {
+          ensureAllMarkersVisible();
         }
-      });
+      };
 
-      // Update markers when map becomes idle (completely stopped)
-      m.on('idle', () => {
+      const handleIdle = () => {
         if (!isZooming.current && !isDragging.current) {
-          // Re-enable transitions now that map has completely stopped
-          markers.current.forEach((marker) => {
-            const el = marker.getElement();
-            el.style.transition = 'background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease';
-          });
+          ensureAllMarkersVisible();
 
-          // Force marker update to ensure they're visible
-          updateMarkers(true);
-
-          // Call transition complete callback after map is idle and transitioning
-          if (isTransitioning.current && !hasCalledTransitionComplete.current && onTransitionComplete) {
+          if (isTransitioning.current && !hasCalledTransitionComplete.current && onTransitionCompleteRef.current) {
             hasCalledTransitionComplete.current = true;
             isTransitioning.current = false;
-            // Small delay to ensure everything is rendered
             setTimeout(() => {
-              onTransitionComplete();
-              // Force another marker update after transition completes
-              updateMarkers(false);
+              onTransitionCompleteRef.current?.();
             }, 100);
           }
         }
-      });
+      };
 
-      // Create all markers initially, then use updateMarkers to show/hide
+      // Add event listeners
+      m.on('dragstart', handleDragStart);
+      m.on('dragend', handleDragEnd);
+      m.on('zoomstart', handleZoomStart);
+      m.on('zoomend', handleZoomEnd);
+      m.on('sourcedata', handleSourceData);
+      m.on('idle', handleIdle);
+
+      // Create all markers and ensure they're visible
       createAllMarkers();
-      updateMarkers();
+      ensureAllMarkersVisible();
+
+      // Force map resize to ensure markers render correctly
+      m.resize();
+
+      // Also ensure markers are visible after a short delay (fixes timing issues)
+      const ensureMarkersTimeout = setTimeout(() => {
+        ensureAllMarkersVisible();
+        m.resize();
+      }, 100);
+
+      // Cleanup function - remove event listeners when effect re-runs
+      return () => {
+        clearTimeout(ensureMarkersTimeout);
+        m.off('dragstart', handleDragStart);
+        m.off('dragend', handleDragEnd);
+        m.off('zoomstart', handleZoomStart);
+        m.off('zoomend', handleZoomEnd);
+        m.off('sourcedata', handleSourceData);
+        m.off('idle', handleIdle);
+      };
     };
 
+    let cleanup: (() => void) | undefined;
+
     if (map.current.isStyleLoaded()) {
-      setupClustering();
+      cleanup = setupClustering();
     } else {
-      map.current.on('load', setupClustering);
+      const onLoad = () => {
+        cleanup = setupClustering();
+      };
+      map.current.on('load', onLoad);
+      return () => {
+        map.current?.off('load', onLoad);
+        cleanup?.();
+      };
     }
-  }, [displayedShops, getCoords, createMarkerElement, onShopSelect]);
+
+    return () => {
+      cleanup?.();
+    };
+  }, [displayedShops, getCoords, createMarkerElement]);
+
+  // Store callbacks in refs to avoid re-running setup when they change
+  const onShopSelectRef = useRef(onShopSelect);
+  const onTransitionCompleteRef = useRef(onTransitionComplete);
+
+  useEffect(() => {
+    onShopSelectRef.current = onShopSelect;
+    onTransitionCompleteRef.current = onTransitionComplete;
+  }, [onShopSelect, onTransitionComplete]);
 
   // Recreate markers when crossing zoom threshold (13) to transform simple <-> logo markers
   useEffect(() => {
@@ -967,9 +951,6 @@ export function MapContainer({
       markers.current.forEach((marker) => marker.remove());
       markers.current.clear();
 
-      // Track visible markers
-      const visibleMarkersSet = new Set<string>();
-
       displayedShops.forEach((shop) => {
         const id = shop.documentId;
         const coords = getCoords(shop);
@@ -988,27 +969,21 @@ export function MapContainer({
 
         el.addEventListener('click', (e) => {
           e.stopPropagation();
-          onShopSelect(shop);
+          onShopSelectRef.current(shop);
         });
 
         markers.current.set(id, marker);
       });
 
-      // Update visibility after recreating
-      const features = m.querySourceFeatures('shops');
-      const visibleIds = new Set<string>();
-      features.forEach((feature) => {
-        if (!feature.properties?.cluster && feature.properties?.id) {
-          visibleIds.add(feature.properties.id);
-        }
-      });
-
-      markers.current.forEach((marker, id) => {
+      // Make all markers visible - let the main effect's updateMarkers handle visibility
+      // Don't rely on querySourceFeatures here as it can return empty during transitions
+      markers.current.forEach((marker) => {
         const el = marker.getElement();
-        el.style.display = visibleIds.has(id) ? '' : 'none';
+        el.style.display = '';
+        el.style.opacity = '1';
       });
     }
-  }, [currentZoom, displayedShops, getCoords, createMarkerElement, calculateLocalDensity, onShopSelect]);
+  }, [currentZoom, displayedShops, getCoords, createMarkerElement, calculateLocalDensity]);
 
   // Update selected marker styling
   useEffect(() => {

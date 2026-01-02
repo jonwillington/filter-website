@@ -180,11 +180,18 @@ h1, h2 {
   width: 100%;
   max-width: 100%;
   scrollbar-gutter: stable;
+  min-height: 0; /* Allow flex item to shrink below content size */
 }
 
 .sidebar-content > * {
   max-width: 100%;
   overflow-x: hidden;
+}
+
+/* Promo banner at bottom of sidebar */
+.sidebar-promo {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
 }
 
 .sidebar-content::-webkit-scrollbar {

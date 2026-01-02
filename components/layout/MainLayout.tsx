@@ -17,7 +17,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, slugify, getShopSlug } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
-import { detectUserArea } from '@/lib/api/geolocation';
+import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, X, LogIn, Search } from 'lucide-react';
 
@@ -155,30 +155,15 @@ export function MainLayout({
           setIsNearbyMode(false); // Exit nearby mode
           setShowTopRecommendations(false);
 
-          // Calculate map center for this location
-          const locationShops = shops.filter(s =>
-            s.location?.documentId === matchedLocation.documentId ||
-            s.city_area?.location?.documentId === matchedLocation.documentId
-          );
-          const validShops = locationShops.filter((s) => getShopCoords(s));
-          if (validShops.length > 0) {
-            const avgLng =
-              validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) /
-              validShops.length;
-            const avgLat =
-              validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) /
-              validShops.length;
-            setMapCenter([avgLng, avgLat]);
-            setMapZoom(12);
-          }
+          // Set location first, then navigate after a brief delay to let state settle
+          setSelectedLocation(matchedLocation);
 
-          // Update location and route
+          // Navigate to the location page
           setTimeout(() => {
-            setSelectedLocation(matchedLocation);
             const countrySlug = slugify(matchedLocation.country?.name ?? '');
             const citySlug = slugify(matchedLocation.name);
             router.push(`/${countrySlug}/${citySlug}`);
-          }, 200);
+          }, 100);
         } else {
           // Area detected but location not in our list
           setIsNearbyMode(true);
@@ -187,15 +172,27 @@ export function MainLayout({
           // Center on user location
           setMapCenter([coordinates.lng, coordinates.lat]);
           setMapZoom(12);
+
+          // Detect country and show unsupported modal
+          const countryData = await reverseGeocode(coordinates.lat, coordinates.lng);
+          if (countryData) {
+            setUnsupportedCountry({ name: countryData.country, code: countryData.countryCode });
+          }
         }
       } else {
-        // No supported area detected - show nearby shops
+        // No supported area detected - show nearby shops and detect country
         setIsNearbyMode(true);
         setIsExploreMode(false);
         setIsAreaUnsupported(true);
         // Center on user location
         setMapCenter([coordinates.lng, coordinates.lat]);
         setMapZoom(12);
+
+        // Detect country and show unsupported modal
+        const countryData = await reverseGeocode(coordinates.lat, coordinates.lng);
+        if (countryData) {
+          setUnsupportedCountry({ name: countryData.country, code: countryData.countryCode });
+        }
       }
     };
 
@@ -235,7 +232,10 @@ export function MainLayout({
       setIsExploreMode(false);
       setShowTopRecommendations(false);
 
-      // Navigate to the location page - state and map position will be synced by useEffect
+      // Set location state first to ensure consistency
+      setSelectedLocation(location);
+
+      // Navigate to the location page
       setTimeout(() => {
         if (location) {
           const countrySlug = slugify(location.country?.name ?? '');
@@ -287,6 +287,17 @@ export function MainLayout({
 
   // Map always shows all shops
   const shopsForMap = shops;
+
+  // Debug: Log when shops or selectedLocation changes
+  useEffect(() => {
+    console.log('MainLayout: Map data update', {
+      totalShops: shops.length,
+      selectedLocation: selectedLocation?.name,
+      isLoading,
+      mapCenter,
+      mapZoom,
+    });
+  }, [shops, selectedLocation, isLoading, mapCenter, mapZoom]);
 
   const handleShopSelect = useCallback(
     (shop: Shop) => {
@@ -355,12 +366,25 @@ export function MainLayout({
   }, [requestLocation]);
 
   const handleWelcomeFindNearMe = useCallback(() => {
-    setIsNearbyMode(true);
-    setIsExploreMode(false);
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+
+    setIsLoading(true);
+    setIsNearbyMode(false);
+    setIsExploreMode(true);
     setSelectedLocation(null);
     setMapCenter([0, 20]);
     setMapZoom(2);
     requestLocation();
+
+    // Set a timeout fallback
+    loadingTimeoutRef.current = setTimeout(() => {
+      setIsLoading(false);
+      loadingTimeoutRef.current = null;
+    }, 5000);
   }, [requestLocation]);
 
   const handleWelcomeExplore = useCallback(() => {
@@ -474,6 +498,7 @@ export function MainLayout({
         />
 
         <MapContainer
+          key={`map-${selectedLocation?.documentId || 'explore'}`}
           shops={shopsForMap}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
@@ -503,8 +528,8 @@ export function MainLayout({
                 location={selectedLocation}
                 allShops={shops}
                 onClose={() => {
+                  // Just close the city guide sheet - don't navigate away or zoom out
                   setShowMobileCityGuide(false);
-                  handleCloseDrawer();
                 }}
                 onShopSelect={handleShopSelect}
                 useWrapper={false}

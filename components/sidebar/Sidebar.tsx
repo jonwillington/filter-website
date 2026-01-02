@@ -134,14 +134,29 @@ export function Sidebar({
             onShopSelect={onShopSelect}
           />
         ) : (
-          <ShopList
-            shops={shops}
-            selectedShop={selectedShop}
-            onShopSelect={onShopSelect}
-            isLoading={isLoading}
-            showTopRecommendations={showTopRecommendations}
-            locationName={selectedLocation?.name}
-          />
+          <>
+            {selectedLocation && allCount < 5 && (
+              <div className="mx-4 mt-4 mb-2 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                <p className="text-sm text-text leading-snug mb-2">
+                  We have been and investigated but <strong>{selectedLocation.name}</strong> is not a great city for coffee.
+                </p>
+                <p className="text-xs text-textSecondary">
+                  Believe we've missed somewhere?{' '}
+                  <a href="mailto:hello@filter.coffee" className="text-accent hover:underline font-medium">
+                    Get in touch
+                  </a>
+                </p>
+              </div>
+            )}
+            <ShopList
+              shops={shops}
+              selectedShop={selectedShop}
+              onShopSelect={onShopSelect}
+              isLoading={isLoading}
+              showTopRecommendations={showTopRecommendations}
+              locationName={selectedLocation?.name}
+            />
+          </>
         )}
       </div>
 

@@ -37,6 +37,7 @@ export interface Location {
   rating?: string | null;
   rating_stars?: number | null;
   inFocus?: boolean;
+  beta?: boolean;
   story?: string | null;
   headline?: string | null;
   primaryColor?: string;
@@ -95,10 +96,33 @@ export interface Brand {
   tiktok?: string | null;
   phone?: string | null;
 
+  // Metadata
+  founded?: string | null;
+  founder?: string | null;
+
   // Coffee sourcing
   roastOwnBeans?: boolean;
   suppliers?: CoffeePartner[];
   coffee_partner?: CoffeePartner | null;
+  ownRoastDesc?: string | null;
+  ownRoastCountry?: Country[];
+
+  // Equipment
+  equipment?: {
+    drippers?: string[];
+    espresso?: string[];
+    grinders?: string[];
+    roasters?: string[];
+  } | null;
+
+  // Awards
+  awards?: Array<{
+    year: string;
+    award: string;
+    winner: string;
+    sourceUrl: string;
+    organizingBody: string;
+  }> | null;
 
   // Amenities (defaults for shops)
   has_wifi?: boolean;

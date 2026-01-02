@@ -9,6 +9,7 @@ import { AboutSection } from './AboutSection';
 import { AmenityList } from './AmenityList';
 import { BrewMethods } from './BrewMethods';
 import { BeansSection } from './BeansSection';
+import { BrandInfoSection } from './BrandInfoSection';
 import { PhotoGallery } from './PhotoGallery';
 import { ShopMiniCard } from './ShopMiniCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
@@ -148,6 +149,9 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
         {/* Coffee Sourcing */}
         <BeansSection shop={currentShop} />
+
+        {/* Brand Info (Equipment & Awards) */}
+        <BrandInfoSection shop={currentShop} />
 
         <Divider className="my-4" />
 
