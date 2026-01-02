@@ -74,45 +74,47 @@ export function Sidebar({
     <aside className={cn('sidebar', isOpen && 'open')}>
       <AnimatedGradientHeader>
         <div className="sidebar-header-content">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">Filter</h1>
             {authComponent && <div className="auth-in-sidebar">{authComponent}</div>}
           </div>
-          <LocationSelector
-            locations={locations}
-            selectedLocation={selectedLocation}
-            onLocationChange={onLocationChange}
-            isNearbyMode={isNearbyMode}
-            onNearbyToggle={onNearbyToggle}
-          />
-          {shouldShowSegments && (
-            <div className="mt-4">
-              <SegmentedControl
-                segments={[
-                  { key: 'topPicks', label: `Top Picks (${topPicksCount})` },
-                  { key: 'all', label: `All (${allCount})` },
-                ]}
-                activeSegment={showTopRecommendations ? 'topPicks' : 'all'}
-                onSegmentChange={(key) => onTopRecommendationsChange(key === 'topPicks')}
-              />
-            </div>
-          )}
-          {selectedLocation && onOpenCityGuide && (
-            <div className="mt-4 lg:hidden">
-              <Button
-                onPress={onOpenCityGuide}
-                variant="flat"
-                color="primary"
-                fullWidth
-                startContent={<Map className="w-4 h-4" />}
-                size="sm"
-              >
-                See City Guide
-              </Button>
-            </div>
-          )}
         </div>
       </AnimatedGradientHeader>
+
+      {/* Controls section - outside gradient header */}
+      <div className="px-4 py-5 space-y-4 border-b border-border bg-white">
+        <LocationSelector
+          locations={locations}
+          selectedLocation={selectedLocation}
+          onLocationChange={onLocationChange}
+          isNearbyMode={isNearbyMode}
+          onNearbyToggle={onNearbyToggle}
+        />
+        {shouldShowSegments && (
+          <SegmentedControl
+            segments={[
+              { key: 'topPicks', label: `Top Picks (${topPicksCount})` },
+              { key: 'all', label: `All (${allCount})` },
+            ]}
+            activeSegment={showTopRecommendations ? 'topPicks' : 'all'}
+            onSegmentChange={(key) => onTopRecommendationsChange(key === 'topPicks')}
+          />
+        )}
+        {selectedLocation && onOpenCityGuide && (
+          <div className="lg:hidden">
+            <Button
+              onPress={onOpenCityGuide}
+              variant="flat"
+              color="primary"
+              fullWidth
+              startContent={<Map className="w-4 h-4" />}
+              size="sm"
+            >
+              See City Guide
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="sidebar-content">
         {isAreaUnsupported ? (

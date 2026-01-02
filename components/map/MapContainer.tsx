@@ -22,8 +22,10 @@ interface MapContainerProps {
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
 }
 
-const CLUSTER_RADIUS = 50; // Larger radius for better city grouping at world view
-const CLUSTER_MAX_ZOOM = 11; // Stop clustering at city view to show individual markers
+// Industry standard clustering parameters (Mapbox/Supercluster best practices)
+const CLUSTER_RADIUS = 50; // Optimal radius for urban density (40-60 recommended)
+const CLUSTER_MAX_ZOOM = 14; // Continue clustering until street level (14-16 recommended)
+const CLUSTER_MIN_ZOOM = 0; // Start clustering from world view
 
 export function MapContainer({
   shops,
@@ -51,7 +53,15 @@ export function MapContainer({
   const [isFading, setIsFading] = useState(false);
   const lastCenter = useRef<[number, number]>(center);
   const [currentZoom, setCurrentZoom] = useState(zoom);
-  const wasAboveZoomThreshold = useRef(zoom >= 13);
+  // Track zoom bracket for marker size updates (0-5 based on thresholds: 3, 5, 7, 10, 13)
+  const getInitialZoomBracket = (z: number) => {
+    const thresholds = [3, 5, 7, 10, 13];
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+      if (z >= thresholds[i]) return i + 1;
+    }
+    return 0;
+  };
+  const wasAboveZoomThreshold = useRef(getInitialZoomBracket(zoom));
 
   // Keep shopsRef in sync
   useEffect(() => {
@@ -152,12 +162,30 @@ export function MapContainer({
                             shop.city_area?.location?.country?.primaryColor ||
                             '#FF6B6B';
         const markerColor = isSelected ? '#8B6F47' : countryColor;
+
+        // Scale marker size based on zoom level
+        let markerSize = 22;
+        let borderWidth = 2;
+        if (zoomLevel < 3) {
+          markerSize = 8;
+          borderWidth = 1;
+        } else if (zoomLevel < 5) {
+          markerSize = 10;
+          borderWidth = 1.5;
+        } else if (zoomLevel < 7) {
+          markerSize = 14;
+          borderWidth = 1.5;
+        } else if (zoomLevel < 10) {
+          markerSize = 18;
+          borderWidth = 2;
+        }
+
         el.style.cssText = `
-          width: 22px;
-          height: 22px;
+          width: ${markerSize}px;
+          height: ${markerSize}px;
           border-radius: 50%;
           background: ${markerColor};
-          border: 2px solid white;
+          border: ${borderWidth}px solid white;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
           cursor: pointer;
           transition: background-color 0.2s ease, opacity 0.2s ease;
@@ -299,7 +327,8 @@ export function MapContainer({
   const updateMarkerStyle = useCallback((el: HTMLElement, isSelected: boolean, shop?: Shop) => {
     // Check if it's a container with children (logo + text label) or a simple marker
     const hasChildren = el.children.length > 0;
-    const isSimpleMarker = el.style.width === '22px';
+    // Simple markers have border-radius: 50% and no children
+    const isSimpleMarker = !hasChildren && el.style.borderRadius === '50%';
 
     if (isSimpleMarker) {
       // Simple circular marker
@@ -635,15 +664,16 @@ export function MapContainer({
         features,
       };
 
-      // Add clustered source with cluster properties for color aggregation
+      // Add clustered source with industry-standard configuration
       m.addSource('shops', {
         type: 'geojson',
         data: geojson,
         cluster: true,
-        clusterRadius: CLUSTER_RADIUS,
-        clusterMaxZoom: CLUSTER_MAX_ZOOM,
+        clusterRadius: CLUSTER_RADIUS, // 50px - optimal for dense urban areas
+        clusterMaxZoom: CLUSTER_MAX_ZOOM, // Cluster until zoom 14 (street level)
+        clusterMinZoom: CLUSTER_MIN_ZOOM, // Start clustering from world view
         clusterProperties: {
-          // Get the first shop's color for the cluster
+          // Aggregate the dominant country color for the cluster
           clusterColor: ['coalesce', ['get', 'countryColor'], '#8B6F47']
         }
       });
@@ -687,33 +717,50 @@ export function MapContainer({
               30, 30,
               50, 36,
             ],
-            // At neighborhood view (zoom 12+): detailed clusters
+            // Gradually shrink clusters as we approach marker handoff
             12, [
               'step',
               ['get', 'point_count'],
-              15,
-              5, 20,
-              10, 25,
-              20, 30,
+              14,
+              5, 18,
+              10, 22,
+              20, 26,
             ],
+            // Smooth transition to markers - clusters fade out
+            13, [
+              'step',
+              ['get', 'point_count'],
+              10,
+              3, 14,
+              5, 16,
+              10, 18,
+            ],
+            // Fully hand off to individual markers
+            14, 0,
           ],
           'circle-stroke-width': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            0, 1.5, // Very thin stroke at world view
-            4, 2,   // Thin stroke
-            5, 3,   // Normal stroke when zoomed in
+            0, 1.5,  // Very thin stroke at world view
+            4, 2,    // Thin stroke
+            5, 3,    // Normal stroke when zoomed in
+            12, 2.5, // Maintain stroke
+            13, 1.5, // Start reducing
+            14, 0,   // No stroke at handoff
           ],
           'circle-stroke-color': '#fff',
           'circle-opacity': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            0, 0.75,  // More subtle at world view
-            4, 0.85,  // Gradually increase
-            5, 0.9,   // More prominent when zoomed in
-            12, 0.8,
+            0, 0.75,   // More subtle at world view
+            4, 0.85,   // Gradually increase
+            5, 0.9,    // More prominent when zoomed in
+            11, 0.9,   // Maintain visibility
+            12, 0.85,  // Slight fade
+            13, 0.5,   // Start fading as markers appear
+            14, 0,     // Fully hidden - markers take over
           ],
           'circle-color-transition': { duration: 0 },
           'circle-radius-transition': { duration: 0 },
@@ -730,16 +777,19 @@ export function MapContainer({
         layout: {
           'text-field': '{point_count_abbreviated}',
           'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
-          // Hide text at world view, show when zoomed in
+          // Dynamic text sizing - hide at world view, show when zoomed in
           'text-size': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            0, 0,   // Hidden at world view - too cluttered
-            4, 0,   // Hidden until zoom 5
-            5, 12,  // Start showing text at country view
-            8, 14,
-            12, 12,
+            0, 0,    // Hidden at world view - too cluttered
+            4, 0,    // Hidden until zoom 5
+            5, 12,   // Start showing text at country view
+            8, 14,   // Peak size
+            11, 13,  // Maintain readability
+            12, 12,  // Still visible
+            13, 10,  // Shrink as markers appear
+            14, 0,   // Hidden - markers take over
           ],
         },
         paint: {
@@ -751,6 +801,10 @@ export function MapContainer({
             0, 0,    // Hidden at world view
             4, 0,    // Hidden until zoom 5
             5, 1,    // Fully visible at country view
+            11, 1,   // Maintain visibility
+            12, 0.9, // Slight fade
+            13, 0.5, // Fading as markers appear
+            14, 0,   // Hidden - markers take over
           ],
         },
       });
@@ -786,14 +840,25 @@ export function MapContainer({
         m.getCanvas().style.cursor = '';
       });
 
-      // Simple approach: always show all markers
-      // When zoomed out, clusters cover them visually
-      // When zoomed in, markers are visible
-      const ensureAllMarkersVisible = () => {
+      // Clean cutoff - no overlap between clusters and markers
+      // Show markers ONLY when clusters are completely hidden
+      const updateMarkerVisibility = () => {
+        const currentMapZoom = m.getZoom();
+        // Only show markers after clusters are fully gone
+        const showMarkers = currentMapZoom > CLUSTER_MAX_ZOOM;
+
         markers.current.forEach((marker) => {
           const el = marker.getElement();
-          el.style.display = '';
-          el.style.opacity = '1';
+          if (showMarkers) {
+            el.style.display = '';
+            el.style.opacity = '1';
+            el.style.pointerEvents = '';
+          } else {
+            // Completely hide when clusters are active
+            el.style.display = 'none';
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+          }
         });
       };
 
@@ -815,6 +880,10 @@ export function MapContainer({
           const isSelected = id === selectedMarkerRef.current;
           const density = calculateLocalDensity(shop, displayedShops);
           const el = createMarkerElement(shop, isSelected, false, density, mapZoom);
+
+          // Start markers hidden - updateMarkerVisibility will show them at the right time
+          el.style.display = 'none';
+          el.style.opacity = '0';
 
           const marker = new mapboxgl.Marker({
             element: el,
@@ -847,18 +916,18 @@ export function MapContainer({
 
       const handleZoomEnd = () => {
         isZooming.current = false;
-        ensureAllMarkersVisible();
+        updateMarkerVisibility();
       };
 
       const handleSourceData = (e: mapboxgl.MapSourceDataEvent) => {
         if (e.sourceId === 'shops' && e.isSourceLoaded) {
-          ensureAllMarkersVisible();
+          updateMarkerVisibility();
         }
       };
 
       const handleIdle = () => {
         if (!isZooming.current && !isDragging.current) {
-          ensureAllMarkersVisible();
+          updateMarkerVisibility();
 
           if (isTransitioning.current && !hasCalledTransitionComplete.current && onTransitionCompleteRef.current) {
             hasCalledTransitionComplete.current = true;
@@ -878,16 +947,16 @@ export function MapContainer({
       m.on('sourcedata', handleSourceData);
       m.on('idle', handleIdle);
 
-      // Create all markers and ensure they're visible
+      // Create all markers and update visibility based on zoom
       createAllMarkers();
-      ensureAllMarkersVisible();
+      updateMarkerVisibility();
 
       // Force map resize to ensure markers render correctly
       m.resize();
 
-      // Also ensure markers are visible after a short delay (fixes timing issues)
+      // Also update marker visibility after a short delay (fixes timing issues)
       const ensureMarkersTimeout = setTimeout(() => {
-        ensureAllMarkersVisible();
+        updateMarkerVisibility();
         m.resize();
       }, 100);
 
@@ -932,16 +1001,27 @@ export function MapContainer({
     onTransitionCompleteRef.current = onTransitionComplete;
   }, [onShopSelect, onTransitionComplete]);
 
-  // Recreate markers when crossing zoom threshold (13) to transform simple <-> logo markers
+  // Recreate markers when crossing zoom thresholds for size/style changes
   useEffect(() => {
     if (!map.current || displayedShops.length === 0 || markers.current.size === 0) return;
 
-    const ZOOM_THRESHOLD = 13;
-    const isAboveThreshold = currentZoom >= ZOOM_THRESHOLD;
+    // Define zoom thresholds that affect marker appearance
+    const ZOOM_THRESHOLDS = [3, 5, 7, 10, 13];
 
-    // Only recreate if we crossed the threshold
-    if (wasAboveZoomThreshold.current !== isAboveThreshold) {
-      wasAboveZoomThreshold.current = isAboveThreshold;
+    // Determine which threshold bracket the current zoom is in
+    const getZoomBracket = (zoom: number) => {
+      for (let i = ZOOM_THRESHOLDS.length - 1; i >= 0; i--) {
+        if (zoom >= ZOOM_THRESHOLDS[i]) return i + 1;
+      }
+      return 0;
+    };
+
+    const currentBracket = getZoomBracket(currentZoom);
+    const previousBracket = wasAboveZoomThreshold.current as unknown as number;
+
+    // Only recreate if we crossed a threshold bracket
+    if (previousBracket !== currentBracket) {
+      (wasAboveZoomThreshold as any).current = currentBracket;
 
       const m = map.current;
       const source = m.getSource('shops') as mapboxgl.GeoJSONSource;
@@ -960,6 +1040,10 @@ export function MapContainer({
         const density = calculateLocalDensity(shop, displayedShops);
         const el = createMarkerElement(shop, isSelected, false, density, currentZoom);
 
+        // Start markers hidden
+        el.style.display = 'none';
+        el.style.opacity = '0';
+
         const marker = new mapboxgl.Marker({
           element: el,
           anchor: 'center',
@@ -975,12 +1059,20 @@ export function MapContainer({
         markers.current.set(id, marker);
       });
 
-      // Make all markers visible - let the main effect's updateMarkers handle visibility
-      // Don't rely on querySourceFeatures here as it can return empty during transitions
+      // Clean cutoff - only show markers after clusters are gone
+      const showMarkers = currentZoom > CLUSTER_MAX_ZOOM;
+
       markers.current.forEach((marker) => {
         const el = marker.getElement();
-        el.style.display = '';
-        el.style.opacity = '1';
+        if (showMarkers) {
+          el.style.display = '';
+          el.style.opacity = '1';
+          el.style.pointerEvents = '';
+        } else {
+          el.style.display = 'none';
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+        }
       });
     }
   }, [currentZoom, displayedShops, getCoords, createMarkerElement, calculateLocalDensity]);

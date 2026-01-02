@@ -19,7 +19,8 @@ import { cn, slugify, getShopSlug } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
-import { Menu, X, LogIn, Search } from 'lucide-react';
+import { Menu, LogIn, Search } from 'lucide-react';
+import { CircularCloseButton } from '../ui/CircularCloseButton';
 
 interface MainLayoutProps {
   locations: Location[];
@@ -437,18 +438,18 @@ export function MainLayout({
 
       {/* Mobile menu toggle */}
       <div className="mobile-toggle lg:hidden">
-        <Button
-          isIconOnly
-          variant="flat"
-          onPress={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          className="bg-white"
-        >
-          {isMobileSidebarOpen ? (
-            <X className="w-5 h-5" />
-          ) : (
+        {isMobileSidebarOpen ? (
+          <CircularCloseButton onPress={() => setIsMobileSidebarOpen(false)} size="md" />
+        ) : (
+          <Button
+            isIconOnly
+            variant="flat"
+            onPress={() => setIsMobileSidebarOpen(true)}
+            className="bg-white"
+          >
             <Menu className="w-5 h-5" />
-          )}
-        </Button>
+          </Button>
+        )}
       </div>
 
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>

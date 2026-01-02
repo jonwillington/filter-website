@@ -1,7 +1,8 @@
 'use client';
 
-import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react';
+import { ModalHeader, ModalBody, Button } from '@heroui/react';
 import Image from 'next/image';
+import { ResponsiveModal } from '@/components/ui';
 
 interface UnsupportedCountryModalProps {
   isOpen: boolean;
@@ -16,17 +17,16 @@ export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onCl
     : null;
 
   return (
-    <Modal
+    <ResponsiveModal
       isOpen={isOpen}
       onClose={onClose}
       size="md"
       backdrop="opaque"
-      classNames={{
+      modalClassNames={{
         backdrop: 'bg-black/50',
       }}
     >
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 pt-6">
+      <ModalHeader className="flex flex-col gap-1 pt-6">
           <div className="flex items-center gap-3">
             {flagUrl ? (
               <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-md">
@@ -57,7 +57,6 @@ export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onCl
             Got it
           </Button>
         </ModalBody>
-      </ModalContent>
-    </Modal>
+    </ResponsiveModal>
   );
 }

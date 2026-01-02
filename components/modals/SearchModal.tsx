@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Modal, ModalContent, ModalHeader, ModalBody, Input } from '@heroui/react';
+import { ModalHeader, ModalBody, Input } from '@heroui/react';
 import { Search, MapPin, Coffee, X } from 'lucide-react';
 import { Location, Shop } from '@/lib/types';
 import { slugify, getShopSlug } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { ResponsiveModal } from '@/components/ui';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -122,18 +123,16 @@ export function SearchModal({ isOpen, onClose, locations, shops }: SearchModalPr
   };
 
   return (
-    <Modal
+    <ResponsiveModal
       isOpen={isOpen}
       onClose={onClose}
       size="2xl"
-      scrollBehavior="inside"
-      classNames={{
+      modalClassNames={{
         backdrop: 'bg-black/50',
         base: 'max-h-[600px]',
       }}
     >
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 pb-2">
+      <ModalHeader className="flex flex-col gap-1 pb-2">
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
             <Input
@@ -255,7 +254,6 @@ export function SearchModal({ isOpen, onClose, locations, shops }: SearchModalPr
             </div>
           )}
         </ModalBody>
-      </ModalContent>
-    </Modal>
+    </ResponsiveModal>
   );
 }

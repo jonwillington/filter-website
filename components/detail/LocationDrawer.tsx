@@ -205,9 +205,9 @@ export function LocationDrawer({
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (
             <div>
-              <h3 className="text-2xl font-bold mb-5 tracking-tight">Top Choices</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {topRecommendationShops.map((shop) => {
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Top Choices</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {topRecommendationShops.map((shop, index) => {
                   const imageUrl = getMediaUrl(shop.featured_image);
                   const logoUrl = getMediaUrl(shop.brand?.logo);
 
@@ -215,7 +215,7 @@ export function LocationDrawer({
                     <button
                       key={shop.documentId}
                       onClick={() => onShopSelect(shop)}
-                      className="group relative overflow-hidden rounded-xl bg-gray-100 aspect-[4/3] hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                      className="group relative overflow-hidden bg-gray-100 aspect-[4/3] hover:brightness-110 transition-all duration-300 rounded-xl border border-gray-200"
                     >
                       {imageUrl && (
                         <Image
@@ -226,26 +226,21 @@ export function LocationDrawer({
                         />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-left">
+                      <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
                         {logoUrl && (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-white mb-3 shadow-md">
+                          <div className="w-7 h-7 rounded-md overflow-hidden bg-white mb-2 shadow-sm">
                             <Image
                               src={logoUrl}
                               alt={shop.brand?.name || shop.name}
-                              width={48}
-                              height={48}
+                              width={28}
+                              height={28}
                               className="object-cover"
                             />
                           </div>
                         )}
-                        <h4 className="font-bold text-white text-base leading-tight line-clamp-2 mb-1">
+                        <h4 className="font-bold text-white text-sm leading-tight line-clamp-2">
                           {shop.name}
                         </h4>
-                        {shop.city_area?.name && (
-                          <p className="text-white/90 text-sm font-medium">
-                            {shop.city_area.name}
-                          </p>
-                        )}
                       </div>
                     </button>
                   );

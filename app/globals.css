@@ -130,7 +130,8 @@ h1, h2 {
 
 @media (max-width: 1024px) {
   .sidebar-header-content {
-    padding-top: max(20px, env(safe-area-inset-top));
+    /* Account for mobile toggle button by adding extra top padding */
+    padding-top: max(60px, calc(env(safe-area-inset-top) + 44px));
     padding-left: max(20px, env(safe-area-inset-left));
     padding-right: max(20px, env(safe-area-inset-right));
   }
@@ -159,13 +160,12 @@ h1, h2 {
 .animated-gradient-header button {
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   color: white;
 }
 
 .animated-gradient-header button:hover {
   background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Ensure auth buttons are visible */
@@ -461,13 +461,14 @@ h1, h2 {
     position: fixed;
     left: 0;
     top: 0;
-    bottom: 48px;
+    bottom: 0;
     width: 100%;
     max-width: 400px;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
     z-index: 100;
+    border-radius: 0;
   }
 
   .sidebar.open {

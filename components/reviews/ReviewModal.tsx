@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Modal,
-  ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
@@ -14,6 +12,7 @@ import {
 import { useAuth } from '@/lib/context/AuthContext';
 import { reviewsService } from '@/lib/services/reviewsService';
 import { StarRatingInput } from '@/components/ui/StarRatingInput';
+import { ResponsiveModal } from '@/components/ui';
 import { Check } from 'lucide-react';
 
 interface ReviewModalProps {
@@ -195,15 +194,12 @@ export function ReviewModal({
   };
 
   return (
-    <Modal
+    <ResponsiveModal
       isOpen={isOpen}
       onClose={onClose}
-      placement="center"
       size="lg"
-      scrollBehavior="inside"
     >
-      <ModalContent>
-        {showSuccess ? (
+      {showSuccess ? (
           <div className="flex flex-col items-center justify-center py-16 px-6">
             <div
               className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
@@ -347,7 +343,6 @@ export function ReviewModal({
             </ModalFooter>
           </>
         )}
-      </ModalContent>
-    </Modal>
+    </ResponsiveModal>
   );
 }

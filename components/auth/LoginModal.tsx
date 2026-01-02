@@ -1,9 +1,10 @@
 'use client';
 
-import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react';
+import { ModalHeader, ModalBody, Button } from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useState } from 'react';
 import { LegalModal } from '../modals/LegalModal';
+import { ResponsiveModal, CircularCloseButton } from '@/components/ui';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -43,15 +44,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement="center"
-      aria-labelledby="login-modal-title"
-      aria-describedby="login-modal-description"
-    >
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-2 pt-8">
+    <>
+      <ResponsiveModal
+        isOpen={isOpen}
+        onClose={onClose}
+        hideCloseButton
+      >
+        {/* Floating close button */}
+        <CircularCloseButton
+          onPress={onClose}
+          className="absolute top-3 right-3 z-20"
+        />
+
+        <ModalHeader className="flex flex-col gap-2 pt-8 px-6">
           <span id="login-modal-title" className="font-display text-3xl">
             Sign in to Filter
           </span>
@@ -59,8 +64,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             Choose your preferred sign-in method
           </span>
         </ModalHeader>
-        <ModalBody className="pb-8">
-          <div className="flex flex-col gap-4">
+        <ModalBody className="pb-8 px-6">
+          <div className="flex flex-col gap-6">
             <Button
               onPress={handleGoogleSignIn}
               isLoading={loading === 'google'}
@@ -143,13 +148,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </p>
           </div>
         </ModalBody>
-      </ModalContent>
+      </ResponsiveModal>
 
       <LegalModal
         isOpen={legalModal !== null}
         onClose={() => setLegalModal(null)}
         type={legalModal || 'privacy'}
       />
-    </Modal>
+    </>
   );
 }

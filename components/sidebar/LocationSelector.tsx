@@ -104,9 +104,9 @@ export function LocationSelector({
       startContent={<MapPin className="w-4 h-4 text-accent flex-shrink-0" />}
       classNames={{
         base: 'w-full max-w-full',
-        trigger: 'bg-surface border border-border hover:bg-gray-50 shadow-sm',
-        value: 'text-white truncate',
-        label: 'text-white',
+        trigger: 'bg-gray-50 border border-border hover:bg-gray-100 shadow-sm',
+        value: 'text-text truncate',
+        label: 'text-textSecondary',
         innerWrapper: 'max-w-full',
         listbox: 'p-0 bg-white',
         popoverContent: 'bg-white shadow-lg',
