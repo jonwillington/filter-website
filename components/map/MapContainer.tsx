@@ -25,7 +25,6 @@ interface MapContainerProps {
 // Industry standard clustering parameters (Mapbox/Supercluster best practices)
 const CLUSTER_RADIUS = 50; // Optimal radius for urban density (40-60 recommended)
 const CLUSTER_MAX_ZOOM = 14; // Continue clustering until street level (14-16 recommended)
-const CLUSTER_MIN_ZOOM = 0; // Start clustering from world view
 
 export function MapContainer({
   shops,
@@ -671,7 +670,6 @@ export function MapContainer({
         cluster: true,
         clusterRadius: CLUSTER_RADIUS, // 50px - optimal for dense urban areas
         clusterMaxZoom: CLUSTER_MAX_ZOOM, // Cluster until zoom 14 (street level)
-        clusterMinZoom: CLUSTER_MIN_ZOOM, // Start clustering from world view
         clusterProperties: {
           // Aggregate the dominant country color for the cluster
           clusterColor: ['coalesce', ['get', 'countryColor'], '#8B6F47']
