@@ -23,7 +23,7 @@ interface MapContainerProps {
 }
 
 const CLUSTER_RADIUS = 50; // Larger radius for better city grouping at world view
-const CLUSTER_MAX_ZOOM = 14; // Keep clustering until zoomed in closer
+const CLUSTER_MAX_ZOOM = 11; // Stop clustering at city view to show individual markers
 
 export function MapContainer({
   shops,
@@ -84,6 +84,7 @@ export function MapContainer({
   useEffect(() => {
     // Always update displayed shops to stay in sync, even during loading
     // This prevents markers from disappearing when switching locations
+    console.log('MapContainer: Updating displayedShops, count:', shops.length);
     setDisplayedShops(shops);
   }, [shops]);
 
@@ -623,6 +624,8 @@ export function MapContainer({
         features,
       };
 
+      console.log('MapContainer: Setting up clustering with features:', features.length, 'displayedShops:', displayedShops.length);
+
       // Add clustered source with cluster properties for color aggregation
       m.addSource('shops', {
         type: 'geojson',
@@ -829,6 +832,8 @@ export function MapContainer({
         if (!m) return;
 
         const mapZoom = m.getZoom();
+
+        console.log('MapContainer: Creating all markers, count:', displayedShops.length, 'zoom:', mapZoom);
 
         displayedShops.forEach((shop) => {
           const id = shop.documentId;

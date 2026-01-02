@@ -13,7 +13,7 @@ import { PhotoGallery } from './PhotoGallery';
 import { ShopMiniCard } from './ShopMiniCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
 import { Accordion, AccordionItem, Divider } from '@heroui/react';
-import { CircularCloseButton } from '@/components/ui';
+import { CircularCloseButton, AwardBox } from '@/components/ui';
 
 interface ShopDrawerProps {
   shop: Shop;
@@ -87,6 +87,21 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
   const areaName = currentShop.city_area?.name ?? currentShop.cityArea?.name;
 
+  // Check if shop has city area recommendation
+  const hasCityAreaRecommendation = useMemo(() => {
+    const anyShop = currentShop as any;
+    if (typeof anyShop.cityAreaRec === 'boolean') {
+      return anyShop.cityAreaRec;
+    }
+    if (typeof anyShop.city_area_rec === 'boolean') {
+      return anyShop.city_area_rec;
+    }
+    if (typeof anyShop.cityarearec === 'boolean') {
+      return anyShop.cityarearec;
+    }
+    return false;
+  }, [currentShop]);
+
   const content = (
     <>
       {/* Floating close button */}
@@ -107,6 +122,13 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         <div className="p-5 space-y-6">
           {/* Action bar */}
           <ActionBar shop={currentShop} />
+
+          {/* City Area Recommendation Award */}
+          {hasCityAreaRecommendation && (
+            <AwardBox
+              title={`Top Choice in ${areaName || currentShop.location?.name || 'this area'}`}
+            />
+          )}
 
         <Divider className="my-4" />
 

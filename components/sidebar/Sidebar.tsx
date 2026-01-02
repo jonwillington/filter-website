@@ -139,6 +139,8 @@ export function Sidebar({
             selectedShop={selectedShop}
             onShopSelect={onShopSelect}
             isLoading={isLoading}
+            showTopRecommendations={showTopRecommendations}
+            locationName={selectedLocation?.name}
           />
         )}
       </div>

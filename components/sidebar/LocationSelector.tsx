@@ -105,8 +105,8 @@ export function LocationSelector({
       classNames={{
         base: 'w-full max-w-full',
         trigger: 'bg-surface border border-border hover:bg-gray-50 shadow-sm',
-        value: 'text-text truncate',
-        label: 'text-textSecondary',
+        value: 'text-white truncate',
+        label: 'text-white',
         innerWrapper: 'max-w-full',
         listbox: 'p-0 bg-white',
         popoverContent: 'bg-white shadow-lg',
