@@ -78,3 +78,6 @@ After any changes to MapContainer.tsx:
 Reference Project: filter-expo
 Before proposing workarounds or alternative approaches, consult the filter-expo project in the same directory. This project contains established patterns for API routes, component structure, state management, authentication, and error handling.
 If you encounter a technical challenge, check filter-expo first. The solution likely already exists. Replicate proven patterns rather than inventing new ones. Only propose novel approaches when filter-expo genuinely lacks a relevant precedent.
+
+#### Preventing breaking production builds
+When we debug why something did not build properly in production lets learn from it, add here what went wrong and make sure this doenst happen in future - we waste time doing this every tikme

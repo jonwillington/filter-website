@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { Location, Country } from '@/lib/types';
 import { ExploreModal } from '../modals/ExploreModal';
+import { SegmentedControl } from '../ui/SegmentedControl';
 
 interface DestinationSelectorProps {
   locations: Location[];
@@ -34,83 +35,52 @@ export function DestinationSelector({
     setIsModalOpen(false);
   };
 
-  return (
-    <div className="space-y-2">
-      {/* Nearby Button */}
-      <button
-        onClick={onNearbyToggle}
-        className={`
-          w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all
-          ${isNearbyMode
-            ? 'border-accent bg-accent/5'
-            : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
-          }
-        `}
-      >
-        <div className={`
-          w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-          ${isNearbyMode ? 'bg-accent/10' : 'bg-gray-100'}
-        `}>
-          <MapPin
-            className="w-4 h-4"
-            style={{ color: isNearbyMode ? 'var(--accent)' : 'var(--text-secondary)' }}
-          />
-        </div>
-        <span
-          className="flex-1 text-left font-medium text-sm"
-          style={{ color: isNearbyMode ? 'var(--accent)' : 'var(--text)' }}
-        >
-          Nearby
-        </span>
-        {isNearbyMode && (
-          <div className="w-2 h-2 rounded-full bg-accent" />
-        )}
-      </button>
+  const handleSegmentChange = (key: string) => {
+    if (key === 'nearby') {
+      if (!isNearbyMode) {
+        onNearbyToggle();
+      }
+    } else if (key === 'explore') {
+      if (isNearbyMode) {
+        onNearbyToggle();
+      }
+      setIsModalOpen(true);
+    }
+  };
 
-      {/* Explore / Selected Location Button */}
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className={`
-          w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all
-          ${selectedLocation && !isNearbyMode
-            ? 'border-accent bg-accent/5'
-            : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
-          }
-        `}
-      >
-        {selectedLocation && !isNearbyMode ? (
-          <>
-            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-sm ring-1 ring-gray-100">
-              <Image
-                src={getFlagUrl(selectedLocation.country?.code || '')}
-                alt={selectedLocation.country?.name || ''}
-                width={32}
-                height={32}
-                className="object-cover w-full h-full"
-                unoptimized
-              />
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>
-                {selectedLocation.name}
-              </p>
-              <p className="text-xs truncate text-gray-400">
-                {selectedLocation.country?.name}
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-base">🌍</span>
-            </div>
-            <span className="flex-1 text-left font-medium text-sm" style={{ color: 'var(--text)' }}>
-              Explore destinations
-            </span>
-          </>
-        )}
-        <ChevronRight className="w-4 h-4 flex-shrink-0 text-gray-300" />
-      </button>
+  // Determine active segment
+  const activeSegment = isNearbyMode ? 'nearby' : 'explore';
+
+  // Build explore label with flag and chevron
+  const exploreLabel = (
+    <span className="flex items-center gap-1.5">
+      {selectedLocation?.country?.code && (
+        <span className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
+          <Image
+            src={getFlagUrl(selectedLocation.country.code)}
+            alt=""
+            width={16}
+            height={16}
+            className="object-cover w-full h-full"
+            unoptimized
+          />
+        </span>
+      )}
+      <span className="truncate">{selectedLocation ? selectedLocation.name : 'Explore'}</span>
+      <ChevronDown className="w-3 h-3 flex-shrink-0 opacity-50" />
+    </span>
+  );
+
+  return (
+    <>
+      <SegmentedControl
+        segments={[
+          { key: 'nearby', label: 'Nearby' },
+          { key: 'explore', label: exploreLabel },
+        ]}
+        activeSegment={activeSegment}
+        onSegmentChange={handleSegmentChange}
+      />
 
       <ExploreModal
         isOpen={isModalOpen}
@@ -119,6 +89,6 @@ export function DestinationSelector({
         countries={countries}
         onLocationSelect={handleLocationSelect}
       />
-    </div>
+    </>
   );
 }

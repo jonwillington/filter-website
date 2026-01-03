@@ -6,6 +6,7 @@ import { X, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { Location, Country } from '@/lib/types';
 import { ResponsiveModal } from '@/components/ui';
+import { StarRating } from '@/components/ui/StarRating';
 
 interface ExploreModalProps {
   isOpen: boolean;
@@ -195,35 +196,40 @@ function CountryGroupItem({
 }) {
   return (
     <div>
-      {/* Country - dominant with custom font */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm">
+      {/* Country - small label with flag */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
           <Image
             src={getFlagUrl(country.code)}
             alt={country.name}
-            width={24}
-            height={24}
+            width={16}
+            height={16}
             className="object-cover w-full h-full"
             unoptimized
           />
         </div>
-        <span className="text-lg font-display" style={{ color: 'var(--text)' }}>
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
           {country.name}
         </span>
       </div>
-      {/* Locations - clickable with chevrons */}
-      <div className="pl-9 space-y-0.5">
+      {/* Locations - dominant, clickable */}
+      <div className="space-y-1">
         {locations.map((location) => (
           <button
             key={location.documentId}
             onClick={() => onLocationClick(location)}
             className="group w-full flex items-center justify-between py-2 transition-colors hover:text-accent"
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'var(--text)' }}
           >
-            <span className="text-[15px]">
-              {location.name}
-            </span>
-            <ChevronRight className="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:text-accent transition-all" />
+            <div className="flex items-center gap-3">
+              <span className="text-base font-medium">
+                {location.name}
+              </span>
+              {location.rating_stars && (
+                <StarRating rating={location.rating_stars} size={12} />
+              )}
+            </div>
+            <ChevronRight className="w-4 h-4 opacity-30 group-hover:opacity-100 group-hover:text-accent transition-all" />
           </button>
         ))}
       </div>

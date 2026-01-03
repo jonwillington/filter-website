@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { Tabs, Tab } from '@heroui/react';
 
 /**
@@ -24,7 +25,7 @@ import { Tabs, Tab } from '@heroui/react';
 
 interface Segment {
   key: string;
-  label: string;
+  label: string | ReactNode;
 }
 
 interface SegmentedControlProps {

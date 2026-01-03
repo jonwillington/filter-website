@@ -6,11 +6,12 @@ import { WelcomeStats } from './WelcomeStats';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { SegmentedControl } from '../ui/SegmentedControl';
 import { useMemo, ReactNode, useState } from 'react';
 import { Button } from '@heroui/react';
 import { Map } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
+
+export type ShopFilterType = 'all' | 'topPicks' | 'working' | 'interior' | 'brewing';
 
 interface SidebarProps {
   locations: Location[];
@@ -25,12 +26,20 @@ interface SidebarProps {
   onNearbyToggle: () => void;
   isLoading?: boolean;
   isOpen?: boolean;
-  showTopRecommendations?: boolean;
-  onTopRecommendationsChange?: (value: boolean) => void;
+  shopFilter?: ShopFilterType;
+  onShopFilterChange?: (filter: ShopFilterType) => void;
   isAreaUnsupported?: boolean;
   authComponent?: ReactNode;
   onOpenCityGuide?: () => void;
 }
+
+const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
+  { key: 'all', label: 'All Shops' },
+  { key: 'topPicks', label: 'Top Picks' },
+  { key: 'working', label: 'Great for Working' },
+  { key: 'interior', label: 'Beautiful Interior' },
+  { key: 'brewing', label: 'Excellent Brewing' },
+];
 
 export function Sidebar({
   locations,
@@ -45,32 +54,49 @@ export function Sidebar({
   onNearbyToggle,
   isLoading,
   isOpen = true,
-  showTopRecommendations = false,
-  onTopRecommendationsChange,
+  shopFilter = 'all',
+  onShopFilterChange,
   isAreaUnsupported = false,
   authComponent,
   onOpenCityGuide,
 }: SidebarProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
 
-  // Count shops for segmented control labels
-  const { topPicksCount, allCount } = useMemo(() => {
+  // Count shops for each filter type
+  const filterCounts = useMemo(() => {
     const shopsToCount = allShops || shops;
-    const allCount = shopsToCount.length;
-    const topPicksCount = shopsToCount.filter((shop) => {
-      const anyShop = shop as any;
-      return (
-        anyShop.cityAreaRec === true ||
-        anyShop.city_area_rec === true ||
-        anyShop.cityarearec === true
-      );
-    }).length;
+    const counts: Record<ShopFilterType, number> = {
+      all: shopsToCount.length,
+      topPicks: 0,
+      working: 0,
+      interior: 0,
+      brewing: 0,
+    };
 
-    return { topPicksCount, allCount };
+    shopsToCount.forEach((shop) => {
+      const anyShop = shop as any;
+      if (anyShop.cityAreaRec === true || anyShop.city_area_rec === true || anyShop.cityarearec === true) {
+        counts.topPicks++;
+      }
+      if (anyShop.workingRec === true || anyShop.working_rec === true || anyShop.workingrec === true) {
+        counts.working++;
+      }
+      if (anyShop.interiorRec === true || anyShop.interior_rec === true || anyShop.interiorrec === true) {
+        counts.interior++;
+      }
+      if (anyShop.brewingRec === true || anyShop.brewing_rec === true || anyShop.brewingrec === true) {
+        counts.brewing++;
+      }
+    });
+
+    return counts;
   }, [allShops, shops]);
 
-  // Only show segmented control when there are enough shops and some are top picks
-  const shouldShowSegments = selectedLocation && onTopRecommendationsChange && allCount >= 5 && topPicksCount > 0;
+  // Check if there are any special filters available (not just "all")
+  const hasSpecialFilters = filterCounts.topPicks > 0 || filterCounts.working > 0 || filterCounts.interior > 0 || filterCounts.brewing > 0;
+
+  // Only show filter when a location is selected, at least 5 shops, and has special filters
+  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters;
 
   return (
     <aside className={cn('sidebar', isOpen && 'open')}>
@@ -93,15 +119,19 @@ export function Sidebar({
           isNearbyMode={isNearbyMode}
           onNearbyToggle={onNearbyToggle}
         />
-        {shouldShowSegments && (
-          <SegmentedControl
-            segments={[
-              { key: 'topPicks', label: `Top Picks (${topPicksCount})` },
-              { key: 'all', label: `All (${allCount})` },
-            ]}
-            activeSegment={showTopRecommendations ? 'topPicks' : 'all'}
-            onSegmentChange={(key) => onTopRecommendationsChange(key === 'topPicks')}
-          />
+        {shouldShowFilter && (
+          <select
+            value={shopFilter}
+            onChange={(e) => onShopFilterChange(e.target.value as ShopFilterType)}
+            className="w-full h-9 px-3 text-sm text-gray-700 bg-gray-100 border-0 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30"
+            aria-label="Filter shops"
+          >
+            {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label} ({filterCounts[option.key]})
+              </option>
+            ))}
+          </select>
         )}
         {selectedLocation && onOpenCityGuide && (
           <div className="lg:hidden">
@@ -140,8 +170,14 @@ export function Sidebar({
           />
         ) : (
           <>
-            {selectedLocation && allCount < 5 && (
-              <div className="mx-4 mt-4 mb-2 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+            <ShopList
+              shops={shops}
+              selectedShop={selectedShop}
+              onShopSelect={onShopSelect}
+              isLoading={isLoading}
+            />
+            {selectedLocation && filterCounts.all < 5 && (
+              <div className="mx-4 mt-2 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-text leading-snug mb-2">
                   We have been and investigated but <strong>{selectedLocation.name}</strong> is not a great city for coffee.
                 </p>
@@ -153,14 +189,6 @@ export function Sidebar({
                 </p>
               </div>
             )}
-            <ShopList
-              shops={shops}
-              selectedShop={selectedShop}
-              onShopSelect={onShopSelect}
-              isLoading={isLoading}
-              showTopRecommendations={showTopRecommendations}
-              locationName={selectedLocation?.name}
-            />
           </>
         )}
       </div>

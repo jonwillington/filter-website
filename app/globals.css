@@ -97,7 +97,7 @@ h1, h2 {
   left: 20px;
   top: 20px;
   bottom: 68px; /* 20px from bottom + 48px footer height */
-  width: 360px;
+  width: 320px;
   max-width: calc(100vw - 40px);
   background: rgba(255, 255, 255, 0.98);
   border-radius: 16px;
@@ -236,7 +236,6 @@ h1, h2 {
   width: 420px;
   max-width: calc(100vw - 420px - 60px); /* Account for sidebar + gaps */
   background: white;
-  border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow-y: auto;
@@ -283,7 +282,6 @@ h1, h2 {
   width: 420px;
   max-width: calc(100vw - 420px - 60px); /* Account for sidebar + gaps */
   background: white;
-  border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow-y: auto;

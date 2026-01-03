@@ -1,6 +1,5 @@
 import { Shop } from '@/lib/types';
 import { AmenityChip } from '@/components/ui';
-import { Wifi, UtensilsCrossed, Sun, Dog } from 'lucide-react';
 import { getMergedAmenities } from '@/lib/utils';
 
 interface AmenityListProps {
@@ -8,10 +7,10 @@ interface AmenityListProps {
 }
 
 const amenityConfig = [
-  { key: 'has_wifi', label: 'WiFi', icon: Wifi },
-  { key: 'has_food', label: 'Food', icon: UtensilsCrossed },
-  { key: 'has_outdoor_space', label: 'Outdoor', icon: Sun },
-  { key: 'is_pet_friendly', label: 'Pet Friendly', icon: Dog },
+  { key: 'has_wifi', label: 'WiFi' },
+  { key: 'has_food', label: 'Food' },
+  { key: 'has_outdoor_space', label: 'Outdoor' },
+  { key: 'is_pet_friendly', label: 'Pet Friendly' },
 ] as const;
 
 export function AmenityList({ shop }: AmenityListProps) {
@@ -29,11 +28,8 @@ export function AmenityList({ shop }: AmenityListProps) {
         Amenities
       </h3>
       <div className="flex flex-wrap gap-2">
-        {activeAmenities.map(({ key, label, icon: Icon }) => (
-          <AmenityChip
-            key={key}
-            icon={<Icon className="w-3.5 h-3.5" />}
-          >
+        {activeAmenities.map(({ key, label }) => (
+          <AmenityChip key={key}>
             {label}
           </AmenityChip>
         ))}

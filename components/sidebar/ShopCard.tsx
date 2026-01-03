@@ -65,13 +65,13 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
           }
         />
         {hasCityAreaRecommendation() && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm">
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-50 flex items-center justify-center shadow-md ring-2 ring-white">
             <Image
               src="/coffee-award.png"
               alt="Recommended"
-              width={16}
-              height={16}
-              className="w-4 h-4"
+              width={18}
+              height={18}
+              className="w-[18px] h-[18px]"
             />
           </div>
         )}

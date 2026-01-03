@@ -16,7 +16,7 @@ export async function getAllCountries(): Promise<Country[]> {
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/countries?pagination[pageSize]=500`,
+      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/countries?pagination[pageSize]=500&populate[region]=*`,
       {
         headers: {
           'Content-Type': 'application/json',

@@ -82,16 +82,11 @@ export function LocationDrawer({
     [allShops, currentLocation]
   );
 
-  // Get country info
-  const countryCode = currentLocation.country?.code?.toLowerCase();
   // Cascade color priority: location-level → country-level → default
   const primaryColor =
     currentLocation.primaryColor ||
     currentLocation.country?.primaryColor ||
     '#8B6F47';
-  const flagUrl = countryCode
-    ? `https://hatscripts.github.io/circle-flags/flags/${countryCode}.svg`
-    : null;
 
   const backgroundImage = getMediaUrl(currentLocation.background_image);
 
@@ -105,6 +100,20 @@ export function LocationDrawer({
       />
 
       <div className="drawer-content">
+        {/* Top header row with City Guide and close button */}
+        <div
+          className="flex items-center justify-between px-4 py-3 border-b border-border bg-transparent"
+          style={{
+            opacity: 1 - stickyHeaderOpacity,
+            pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
+          }}
+        >
+          <span className="text-xs text-textSecondary uppercase tracking-wide font-medium">
+            City Guide
+          </span>
+          <CircularCloseButton onPress={onClose} />
+        </div>
+
         {/* Header with background image */}
         <div
           className="relative h-48 location-drawer-header"
@@ -117,34 +126,33 @@ export function LocationDrawer({
             backgroundPosition: 'center',
           }}
         >
-          <div
-            className="absolute top-4 right-4 flex items-center gap-2"
-            style={{
-              opacity: 1 - stickyHeaderOpacity,
-              pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
-            }}
-          >
-            {flagUrl && (
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-md">
-                <Image
-                  src={flagUrl}
-                  alt={currentLocation.country?.name || 'Country flag'}
-                  width={40}
-                  height={40}
-                  className="object-cover"
-                />
-              </div>
-            )}
-            <CircularCloseButton onPress={onClose} />
-          </div>
-
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="text-xs text-white/80 uppercase tracking-wide mb-1">
-              City Guide
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-2">
+          <div className="absolute bottom-0 left-4 right-4" style={{ paddingBottom: '24px' }}>
+            <h2
+              className="text-white"
+              style={{
+                fontFamily: 'Refrankt, serif',
+                fontSize: '28px',
+                letterSpacing: '-0.5px',
+                opacity: 1,
+                lineHeight: 1.1,
+              }}
+            >
               {currentLocation.name}
             </h2>
+            {currentLocation.country?.name && (
+              <span
+                className="text-white block"
+                style={{
+                  fontFamily: 'Refrankt, serif',
+                  fontSize: '28px',
+                  letterSpacing: '-0.5px',
+                  opacity: 0.4,
+                  lineHeight: 1.1,
+                }}
+              >
+                {currentLocation.country.name}
+              </span>
+            )}
           </div>
         </div>
 

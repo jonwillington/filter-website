@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Sidebar } from '../sidebar/Sidebar';
+import { Sidebar, ShopFilterType } from '../sidebar/Sidebar';
 import { MapContainer } from '../map/MapContainer';
 import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
@@ -47,7 +47,7 @@ export function MainLayout({
   const [isLoading, setIsLoading] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [showTopRecommendations, setShowTopRecommendations] = useState(false);
+  const [shopFilter, setShopFilter] = useState<ShopFilterType>('all');
   const [isExploreMode, setIsExploreMode] = useState(!initialLocation);
   const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
@@ -150,7 +150,7 @@ export function MainLayout({
           setIsAreaUnsupported(false);
           setIsExploreMode(false);
           setIsNearbyMode(false); // Exit nearby mode
-          setShowTopRecommendations(false);
+          setShopFilter('all');
 
           // Set location first, then navigate after a brief delay to let state settle
           setSelectedLocation(matchedLocation);
@@ -227,7 +227,7 @@ export function MainLayout({
       setSelectedShop(null);
       setIsNearbyMode(false);
       setIsExploreMode(false);
-      setShowTopRecommendations(false);
+      setShopFilter('all');
 
       // Set location state first to ensure consistency
       setSelectedLocation(location);
@@ -261,10 +261,26 @@ export function MainLayout({
     [shops, selectedLocation]
   );
 
-  // Filter shops based on top recommendations toggle (for sidebar)
-  const sidebarShops = showTopRecommendations
-    ? locationFilteredShops.filter((shop) => hasCityAreaRecommendation(shop))
-    : locationFilteredShops;
+  // Filter shops based on selected filter (for sidebar)
+  const sidebarShops = useMemo(() => {
+    if (shopFilter === 'all') return locationFilteredShops;
+
+    return locationFilteredShops.filter((shop) => {
+      const anyShop = shop as any;
+      switch (shopFilter) {
+        case 'topPicks':
+          return hasCityAreaRecommendation(shop);
+        case 'working':
+          return anyShop.workingRec === true || anyShop.working_rec === true || anyShop.workingrec === true;
+        case 'interior':
+          return anyShop.interiorRec === true || anyShop.interior_rec === true || anyShop.interiorrec === true;
+        case 'brewing':
+          return anyShop.brewingRec === true || anyShop.brewing_rec === true || anyShop.brewingrec === true;
+        default:
+          return true;
+      }
+    });
+  }, [locationFilteredShops, shopFilter]);
 
   // Map always shows all shops
   const shopsForMap = shops;
@@ -446,8 +462,8 @@ export function MainLayout({
           onNearbyToggle={handleNearbyToggle}
           isLoading={isLoading}
           isOpen={isMobileSidebarOpen}
-          showTopRecommendations={showTopRecommendations}
-          onTopRecommendationsChange={setShowTopRecommendations}
+          shopFilter={shopFilter}
+          onShopFilterChange={setShopFilter}
           isAreaUnsupported={isAreaUnsupported}
           onOpenCityGuide={() => setShowMobileCityGuide(true)}
           authComponent={
