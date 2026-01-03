@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopHeader } from './ShopHeader';
 import { ActionBar } from './ActionBar';
@@ -14,7 +14,10 @@ import { PhotoGallery } from './PhotoGallery';
 import { ShopMiniCard } from './ShopMiniCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
 import { Accordion, AccordionItem, Divider } from '@heroui/react';
-import { CircularCloseButton, AwardBox } from '@/components/ui';
+import { CircularCloseButton, AwardBox, StickyDrawerHeader } from '@/components/ui';
+import { getShopDisplayName, hasCityAreaRecommendation } from '@/lib/utils';
+import { useStickyHeaderOpacity, useDrawerTransition } from '@/lib/hooks';
+import { getMoreFromBrand, getNearbyShops } from '@/lib/utils/shopFiltering';
 
 interface ShopDrawerProps {
   shop: Shop;
@@ -26,89 +29,79 @@ interface ShopDrawerProps {
 }
 
 export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal, useWrapper = true }: ShopDrawerProps) {
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [currentShop, setCurrentShop] = useState(shop);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
 
-  // Handle shop transitions with smoother animation
+  // Find scrollable parent when not using wrapper
   useEffect(() => {
-    if (shop.documentId !== currentShop.documentId) {
-      // Start transition
-      setIsTransitioning(true);
-
-      // Wait for fade out, then update shop
-      const timeout = setTimeout(() => {
-        setCurrentShop(shop);
-
-        // Scroll to top immediately
-        if (useWrapper && drawerRef.current) {
-          drawerRef.current.scrollTop = 0;
-        } else if (!useWrapper && contentRef.current) {
-          // Find the scrollable parent (UnifiedDrawer)
-          const scrollParent = contentRef.current.parentElement;
-          if (scrollParent) {
-            scrollParent.scrollTop = 0;
-          }
+    if (!useWrapper && contentRef.current) {
+      // Find nearest scrollable ancestor (the .shop-drawer from UnifiedDrawer)
+      let parent = contentRef.current.parentElement;
+      while (parent) {
+        const style = getComputedStyle(parent);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          setScrollParent(parent);
+          break;
         }
-
-        // Slight delay before fading in for smoother transition
-        requestAnimationFrame(() => {
-          setIsTransitioning(false);
-        });
-      }, 200);
-
-      return () => clearTimeout(timeout);
+        parent = parent.parentElement;
+      }
     }
-  }, [shop, currentShop.documentId, useWrapper]);
+  }, [useWrapper]);
 
-  // Get more shops from the same brand
-  const moreFromBrand = useMemo(() => {
-    if (!currentShop.brand?.documentId) return [];
-    return allShops.filter(
-      (s) =>
-        s.documentId !== currentShop.documentId &&
-        s.brand?.documentId === currentShop.brand?.documentId &&
-        s.location?.documentId === currentShop.location?.documentId
-    );
-  }, [currentShop, allShops]);
+  // Create a ref object that points to the scroll container
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get nearby shops from the same area
-  const nearbyShops = useMemo(() => {
-    const areaId = currentShop.city_area?.documentId ?? currentShop.cityArea?.documentId;
-    if (!areaId) return [];
-    return allShops.filter(
-      (s) =>
-        s.documentId !== currentShop.documentId &&
-        (s.city_area?.documentId === areaId || s.cityArea?.documentId === areaId) &&
-        // Exclude shops already shown in "more from brand"
-        !moreFromBrand.some((b) => b.documentId === s.documentId)
-    );
-  }, [currentShop, allShops, moreFromBrand]);
+  // Update scrollRef to point to the correct scroll container
+  useEffect(() => {
+    if (useWrapper) {
+      (scrollRef as any).current = drawerRef.current;
+    } else if (scrollParent) {
+      (scrollRef as any).current = scrollParent;
+    }
+  }, [useWrapper, scrollParent]);
+
+  // Use extracted hooks for cleaner code and better HMR
+  const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
+  const { displayedItem: currentShop, isTransitioning } = useDrawerTransition({
+    item: shop,
+    getKey: (s) => s.documentId,
+    scrollRef,
+  });
+
+  // Get related shops using extracted utility functions
+  const moreFromBrand = useMemo(
+    () => getMoreFromBrand(currentShop, allShops),
+    [currentShop, allShops]
+  );
+
+  const nearbyShops = useMemo(
+    () => getNearbyShops(currentShop, allShops, moreFromBrand.map(s => s.documentId)),
+    [currentShop, allShops, moreFromBrand]
+  );
 
   const areaName = currentShop.city_area?.name ?? currentShop.cityArea?.name;
+  const isTopChoice = hasCityAreaRecommendation(currentShop);
 
-  // Check if shop has city area recommendation
-  const hasCityAreaRecommendation = useMemo(() => {
-    const anyShop = currentShop as any;
-    if (typeof anyShop.cityAreaRec === 'boolean') {
-      return anyShop.cityAreaRec;
-    }
-    if (typeof anyShop.city_area_rec === 'boolean') {
-      return anyShop.city_area_rec;
-    }
-    if (typeof anyShop.cityarearec === 'boolean') {
-      return anyShop.cityarearec;
-    }
-    return false;
-  }, [currentShop]);
+  const displayName = getShopDisplayName(currentShop);
 
   const content = (
     <>
-      {/* Floating close button */}
+      {/* Sticky header that fades in on scroll */}
+      <StickyDrawerHeader
+        title={displayName}
+        opacity={stickyHeaderOpacity}
+        onClose={onClose}
+      />
+
+      {/* Floating close button (visible when sticky header is hidden) */}
       <CircularCloseButton
         onPress={onClose}
         className="absolute top-3 right-3 z-20"
+        style={{
+          opacity: 1 - stickyHeaderOpacity,
+          pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
+        }}
       />
 
       {/* Content */}
@@ -121,20 +114,15 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
         {/* Rest of content with padding */}
         <div className="p-5 space-y-6">
-          {/* Action bar */}
-          <ActionBar shop={currentShop} />
-
-          {/* City Area Recommendation Award */}
-          {hasCityAreaRecommendation && (
+          {/* City Area Recommendation Award - at top */}
+          {isTopChoice && (
             <AwardBox
               title={`Top Choice in ${areaName || currentShop.location?.name || 'this area'}`}
             />
           )}
 
-        <Divider className="my-4" />
-
-        {/* Basic info (address, hours, rating) */}
-        <ShopInfo shop={currentShop} />
+          {/* Action bar */}
+          <ActionBar shop={currentShop} />
 
         {/* About/Description */}
         <AboutSection shop={currentShop} />
@@ -207,6 +195,11 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
             </Accordion>
           </div>
         )}
+
+        <Divider className="my-4" />
+
+        {/* Address & Opening Hours */}
+        <ShopInfo shop={currentShop} />
         </div>
       </div>
     </>

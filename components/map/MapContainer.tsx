@@ -5,10 +5,14 @@ import mapboxgl from 'mapbox-gl';
 import { Spinner } from '@heroui/react';
 import { Shop, Country } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
+import {
+  calculateDistance,
+  getShopCoords,
+  calculateLocalDensity,
+  getZoomBracket,
+} from '@/lib/utils/mapGeometry';
 
-if (typeof window !== 'undefined') {
-  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
-}
+// Mapbox token is set lazily in useEffect to avoid module-level side effects
 
 interface MapContainerProps {
   shops: Shop[];
@@ -49,45 +53,17 @@ export function MapContainer({
   const [displayedShops, setDisplayedShops] = useState<Shop[]>(shops);
   const isTransitioning = useRef<boolean>(false);
   const hasCalledTransitionComplete = useRef<boolean>(false);
-  const [isFading, setIsFading] = useState(false);
   const lastCenter = useRef<[number, number]>(center);
   const [currentZoom, setCurrentZoom] = useState(zoom);
-  // Track zoom bracket for marker size updates (0-5 based on thresholds: 3, 5, 7, 10, 13)
-  const getInitialZoomBracket = (z: number) => {
-    const thresholds = [3, 5, 7, 10, 13];
-    for (let i = thresholds.length - 1; i >= 0; i--) {
-      if (z >= thresholds[i]) return i + 1;
-    }
-    return 0;
-  };
-  const wasAboveZoomThreshold = useRef(getInitialZoomBracket(zoom));
+  const [countryLayerReady, setCountryLayerReady] = useState(false);
+  const [mapReady, setMapReady] = useState(false); // Track when map is ready for clustering
+  // Track zoom bracket for marker size updates (uses imported getZoomBracket)
+  const wasAboveZoomThreshold = useRef(getZoomBracket(zoom));
 
   // Keep shopsRef in sync
   useEffect(() => {
     shopsRef.current = shops;
   }, [shops]);
-
-  // Calculate distance between two coordinates (in degrees, approximate)
-  const calculateDistance = useCallback((point1: [number, number], point2: [number, number]): number => {
-    const [lng1, lat1] = point1;
-    const [lng2, lat2] = point2;
-
-    // Haversine formula for great circle distance
-    const toRad = (deg: number) => deg * Math.PI / 180;
-    const R = 6371; // Earth's radius in km
-
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c; // Distance in km
-
-    return distance;
-  }, []);
 
   // Update displayed shops - always keep in sync
   useEffect(() => {
@@ -104,40 +80,7 @@ export function MapContainer({
     }
   }, [isLoading]);
 
-  // Helper to get coordinates
-  const getCoords = useCallback((shop: Shop): [number, number] | null => {
-    if (shop.coordinates?.lng && shop.coordinates?.lat) {
-      return [shop.coordinates.lng, shop.coordinates.lat];
-    }
-    if (shop.longitude && shop.latitude) {
-      return [shop.longitude, shop.latitude];
-    }
-    return null;
-  }, []);
-
-  // Calculate local density for a shop (how many shops are nearby)
-  const calculateLocalDensity = useCallback((shop: Shop, allShops: Shop[]): number => {
-    const coords = getCoords(shop);
-    if (!coords) return 0;
-
-    const [lng, lat] = coords;
-    const DENSITY_RADIUS_KM = 1.5; // Smaller radius (1.5km) for more localized density check
-
-    let nearbyCount = 0;
-    allShops.forEach((otherShop) => {
-      if (otherShop.documentId === shop.documentId) return;
-
-      const otherCoords = getCoords(otherShop);
-      if (!otherCoords) return;
-
-      const distance = calculateDistance(coords, otherCoords);
-      if (distance <= DENSITY_RADIUS_KM) {
-        nearbyCount++;
-      }
-    });
-
-    return nearbyCount;
-  }, [getCoords, calculateDistance]);
+  // Note: calculateDistance, getShopCoords, and calculateLocalDensity are now imported from mapGeometry
 
   // Create marker element
   const createMarkerElement = useCallback(
@@ -145,8 +88,8 @@ export function MapContainer({
       // Density threshold - use simple markers when there are many nearby shops
       // Higher threshold (30) means logos appear in moderately dense areas too
       const HIGH_DENSITY_THRESHOLD = 30;
-      const ZOOM_THRESHOLD = 13; // Below this zoom, always use simple markers
-      const LOGO_ZOOM_THRESHOLD = 15; // Above this zoom, show logos even in high density areas
+      const ZOOM_THRESHOLD = 15; // Below this zoom, always use simple markers (labels hidden)
+      const LOGO_ZOOM_THRESHOLD = 17; // Above this zoom, show logos even in high density areas
 
       // Use simple markers if: zoomed out OR (high density AND not super zoomed in)
       const useSimpleMarker = zoomLevel < ZOOM_THRESHOLD || (density > HIGH_DENSITY_THRESHOLD && zoomLevel < LOGO_ZOOM_THRESHOLD);
@@ -292,12 +235,11 @@ export function MapContainer({
           font-weight: 500;
           padding: 3px 8px;
           border-radius: 10px;
-          white-space: nowrap;
           box-shadow: 0 2px 4px rgba(0,0,0,0.15);
           margin-top: 4px;
-          max-width: 150px;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          max-width: 80px;
+          text-align: center;
+          line-height: 1.3;
         `;
 
         container.appendChild(logoEl);
@@ -357,6 +299,9 @@ export function MapContainer({
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
+    // Set token lazily to avoid module-level side effects (breaks HMR)
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
@@ -399,16 +344,39 @@ export function MapContainer({
       setCurrentZoom(newZoom);
     });
 
+    // When map loads, mark it ready for clustering and hide spinner
+    // Check if already loaded (in case we missed the event)
+    if (map.current.isStyleLoaded()) {
+      setMapReady(true);
+      setCountryLayerReady(true);
+    } else {
+      map.current.on('load', () => {
+        setMapReady(true);
+        // Give country layer setup a chance to run first, then ensure spinner hides
+        setTimeout(() => {
+          setCountryLayerReady(true);
+        }, 500);
+      });
+    }
+
     return () => {
       clearInterval(zoomCheckInterval);
+      setMapReady(false);
       map.current?.remove();
       map.current = null;
     };
   }, [zoom]);
 
   // Setup country boundaries highlighting
+  // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
   useEffect(() => {
-    if (!map.current || countries.length === 0) return;
+    if (!map.current || !mapReady) return;
+
+    // If no countries provided, still mark as ready so spinner hides
+    if (countries.length === 0) {
+      setCountryLayerReady(true);
+      return;
+    }
 
     const m = map.current;
     let isSetup = false;
@@ -433,8 +401,17 @@ export function MapContainer({
       cleanupCountryLayer();
 
       // Create a mapping of country codes to supported status
+      // A country is supported if:
+      // 1. It's explicitly marked as supported in the database, OR
+      // 2. It has shops (auto-detect based on shop data)
+      const countriesWithShops = new Set(
+        displayedShops
+          .map(shop => shop.location?.country?.code || shop.country?.code)
+          .filter(Boolean)
+      );
+
       const supportedCountries = countries
-        .filter(c => c.supported)
+        .filter(c => c.supported || countriesWithShops.has(c.code))
         .map(c => c.code);
 
       // Add source first
@@ -480,17 +457,8 @@ export function MapContainer({
         const countryName = feature.properties?.name_en;
 
         // Check if this is an unsupported country
-        // Don't show modal if:
-        // 1. Country is in supported list, OR
-        // 2. We have shops (using ref for current value), OR
-        // 3. There are shops in this country
-        const hasShops = shopsRef.current.length > 0;
-        const hasShopsInCountry = shopsRef.current.some(shop =>
-          shop.location?.country?.code === countryCode ||
-          shop.country?.code === countryCode
-        );
-
-        if (countryCode && !supportedCountries.includes(countryCode) && !hasShops && !hasShopsInCountry) {
+        // Show modal if country is not in supported list
+        if (countryCode && !supportedCountries.includes(countryCode)) {
           onUnsupportedCountryClick?.(countryName || countryCode, countryCode);
         }
       };
@@ -511,6 +479,9 @@ export function MapContainer({
       m.on('click', 'country-fills', handleClick);
       m.on('mouseenter', 'country-fills', handleMouseEnter);
       m.on('mouseleave', 'country-fills', handleMouseLeave);
+
+      // Mark country layer as ready
+      setCountryLayerReady(true);
     };
 
     if (m.isStyleLoaded()) {
@@ -526,7 +497,7 @@ export function MapContainer({
     return () => {
       cleanupCountryLayer();
     };
-  }, [countries, onUnsupportedCountryClick]);
+  }, [countries, onUnsupportedCountryClick, displayedShops, mapReady]);
 
   // Update center when it changes
   useEffect(() => {
@@ -537,97 +508,52 @@ export function MapContainer({
       pendingCenter.current = center;
       pendingZoom.current = zoom;
     } else {
-      // Calculate distance from last position
-      const distance = calculateDistance(lastCenter.current, center);
-      const DISTANCE_THRESHOLD = 300; // 300km threshold for fade transition
-
-      if (distance > DISTANCE_THRESHOLD) {
-        // Use elegant fade transition for far distances
-        setIsFading(true);
-
-        setTimeout(() => {
-          // Jump to new position while fully faded
-          map.current?.jumpTo({
-            center,
-            zoom,
-            padding: { left: 200, right: 0, top: 0, bottom: 0 }
-          });
-          lastCenter.current = center;
-
-          // Hold the fade for a moment before fading back in
-          setTimeout(() => {
-            setIsFading(false);
-          }, 100);
-        }, 250); // Quick fade out
-      } else {
-        // Use smooth flyTo for nearby locations
-        map.current.flyTo({
-          center,
-          zoom,
-          duration: 800,
-          padding: { left: 200, right: 0, top: 0, bottom: 0 }
-        });
-        lastCenter.current = center;
-      }
+      // Always use smooth flyTo - no jarring fade transitions
+      map.current.flyTo({
+        center,
+        zoom,
+        duration: 1000,
+        padding: { left: 200, right: 0, top: 0, bottom: 0 }
+      });
+      lastCenter.current = center;
 
       pendingCenter.current = null;
       pendingZoom.current = null;
     }
-  }, [center, zoom, isLoading, calculateDistance]);
+  }, [center, zoom, isLoading]);
 
   // Apply pending updates when loading completes
   useEffect(() => {
     if (!map.current || isLoading) return;
 
     if (pendingCenter.current && pendingZoom.current) {
-      const distance = calculateDistance(lastCenter.current, pendingCenter.current);
-      const DISTANCE_THRESHOLD = 300; // 300km threshold for fade transition
-
-      if (distance > DISTANCE_THRESHOLD) {
-        // Use elegant fade transition for far distances
-        setIsFading(true);
-
-        setTimeout(() => {
-          map.current?.jumpTo({
-            center: pendingCenter.current!,
-            zoom: pendingZoom.current!,
-            padding: { left: 200, right: 0, top: 0, bottom: 0 }
-          });
-          lastCenter.current = pendingCenter.current!;
-
-          // Hold the fade for a moment before fading back in
-          setTimeout(() => {
-            setIsFading(false);
-          }, 100);
-        }, 250);
-      } else {
-        // Use smooth flyTo for nearby locations
-        map.current.flyTo({
-          center: pendingCenter.current,
-          zoom: pendingZoom.current,
-          duration: 800,
-          padding: { left: 200, right: 0, top: 0, bottom: 0 }
-        });
-        lastCenter.current = pendingCenter.current;
-      }
+      // Always use smooth flyTo
+      map.current.flyTo({
+        center: pendingCenter.current,
+        zoom: pendingZoom.current,
+        duration: 1000,
+        padding: { left: 200, right: 0, top: 0, bottom: 0 }
+      });
+      lastCenter.current = pendingCenter.current;
 
       pendingCenter.current = null;
       pendingZoom.current = null;
     }
-  }, [isLoading, calculateDistance]);
+  }, [isLoading]);
 
   // Setup clustering source and layers
+  // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
+  // Do not remove mapReady from dependencies - it prevents a race condition where
+  // clustering setup runs before the map exists
   useEffect(() => {
-    if (!map.current) {
-      return;
-    }
+    if (!map.current || !mapReady) return;
 
     const setupClustering = () => {
       const m = map.current!;
-      const mapZoom = m.getZoom();
 
       // Remove existing source and layers if they exist
       if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
+      if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
       if (m.getLayer('clusters')) m.removeLayer('clusters');
       if (m.getSource('shops')) m.removeSource('shops');
 
@@ -638,7 +564,7 @@ export function MapContainer({
       // Create GeoJSON from displayed shops with country color
       const features: GeoJSON.Feature[] = [];
       displayedShops.forEach((shop) => {
-        const coords = getCoords(shop);
+        const coords = getShopCoords(shop);
         if (!coords) return;
 
         const countryColor = shop.location?.country?.primaryColor ||
@@ -724,7 +650,7 @@ export function MapContainer({
               10, 22,
               20, 26,
             ],
-            // Smooth transition to markers - clusters fade out
+            // Smooth transition to markers - clusters shrink
             13, [
               'step',
               ['get', 'point_count'],
@@ -733,8 +659,17 @@ export function MapContainer({
               5, 16,
               10, 18,
             ],
+            // Stay visible at transition point (overlap with markers)
+            14, [
+              'step',
+              ['get', 'point_count'],
+              8,
+              3, 10,
+              5, 12,
+              10, 14,
+            ],
             // Fully hand off to individual markers
-            14, 0,
+            15, 0,
           ],
           'circle-stroke-width': [
             'interpolate',
@@ -744,8 +679,8 @@ export function MapContainer({
             4, 2,    // Thin stroke
             5, 3,    // Normal stroke when zoomed in
             12, 2.5, // Maintain stroke
-            13, 1.5, // Start reducing
-            14, 0,   // No stroke at handoff
+            14, 1.5, // Stay visible
+            15, 0,   // No stroke at handoff
           ],
           'circle-stroke-color': '#fff',
           'circle-opacity': [
@@ -756,13 +691,64 @@ export function MapContainer({
             4, 0.85,   // Gradually increase
             5, 0.9,    // More prominent when zoomed in
             11, 0.9,   // Maintain visibility
-            12, 0.85,  // Slight fade
-            13, 0.5,   // Start fading as markers appear
-            14, 0,     // Fully hidden - markers take over
+            13, 0.85,  // Slight fade
+            14, 0.5,   // Overlap with markers
+            15, 0,     // Fully hidden - markers take over
           ],
           'circle-color-transition': { duration: 0 },
           'circle-radius-transition': { duration: 0 },
           'circle-stroke-width-transition': { duration: 0 },
+        },
+      });
+
+      // Add unclustered points (single shops) as simple circles
+      // These show at all zoom levels until custom markers take over at zoom 14+
+      m.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: 'shops',
+        filter: ['!', ['has', 'point_count']], // Only non-clustered points
+        paint: {
+          'circle-color': [
+            'coalesce',
+            ['get', 'countryColor'],
+            '#8B6F47'
+          ],
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 5,    // Same size as small clusters at world view
+            3, 7,
+            4, 9,
+            5, 11,   // Visible but modest
+            9, 14,
+            12, 16,  // Match cluster sizing
+            14, 16,  // Stay visible at transition point
+            15, 0,   // Hide after markers are fully visible
+          ],
+          'circle-stroke-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 1.5,
+            5, 2.5,
+            12, 2.5,
+            14, 2.5, // Stay visible
+            15, 0,
+          ],
+          'circle-stroke-color': '#fff',
+          'circle-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 0.75,
+            5, 0.9,
+            11, 0.9,
+            13, 0.9,
+            14, 0.7, // Still visible at transition - overlap with markers
+            15, 0,   // Fade out after markers are established
+          ],
         },
       });
 
@@ -787,7 +773,8 @@ export function MapContainer({
             11, 13,  // Maintain readability
             12, 12,  // Still visible
             13, 10,  // Shrink as markers appear
-            14, 0,   // Hidden - markers take over
+            14, 8,   // Smaller but visible
+            15, 0,   // Hidden - markers take over
           ],
         },
         paint: {
@@ -800,9 +787,9 @@ export function MapContainer({
             4, 0,    // Hidden until zoom 5
             5, 1,    // Fully visible at country view
             11, 1,   // Maintain visibility
-            12, 0.9, // Slight fade
-            13, 0.5, // Fading as markers appear
-            14, 0,   // Hidden - markers take over
+            13, 0.9, // Slight fade
+            14, 0.5, // Fading as markers appear
+            15, 0,   // Hidden - markers take over
           ],
         },
       });
@@ -838,12 +825,40 @@ export function MapContainer({
         m.getCanvas().style.cursor = '';
       });
 
-      // Clean cutoff - no overlap between clusters and markers
-      // Show markers ONLY when clusters are completely hidden
+      // Click on unclustered point to select the shop
+      m.on('click', 'unclustered-point', (e) => {
+        const features = m.queryRenderedFeatures(e.point, { layers: ['unclustered-point'] });
+        if (!features.length) return;
+
+        const shopId = features[0].properties?.id;
+        const shop = displayedShops.find(s => s.documentId === shopId);
+        if (shop) {
+          onShopSelectRef.current(shop);
+          // Zoom in to show the detailed marker
+          const geometry = features[0].geometry as GeoJSON.Point;
+          m.flyTo({
+            center: geometry.coordinates as [number, number],
+            zoom: 15, // Zoom past threshold to show detailed marker
+            duration: 800,
+            padding: { left: 200, right: 0, top: 0, bottom: 0 }
+          });
+        }
+      });
+
+      // Change cursor on unclustered point hover
+      m.on('mouseenter', 'unclustered-point', () => {
+        m.getCanvas().style.cursor = 'pointer';
+      });
+      m.on('mouseleave', 'unclustered-point', () => {
+        m.getCanvas().style.cursor = '';
+      });
+
+      // Show markers when zoomed past cluster threshold
+      // Use >= to ensure no gap between clusters disappearing and markers appearing
       const updateMarkerVisibility = () => {
         const currentMapZoom = m.getZoom();
-        // Only show markers after clusters are fully gone
-        const showMarkers = currentMapZoom > CLUSTER_MAX_ZOOM;
+        // Show markers at or above the cluster max zoom (clusters stop at 14, so show markers at 14+)
+        const showMarkers = currentMapZoom >= CLUSTER_MAX_ZOOM;
 
         markers.current.forEach((marker) => {
           const el = marker.getElement();
@@ -852,7 +867,7 @@ export function MapContainer({
             el.style.opacity = '1';
             el.style.pointerEvents = '';
           } else {
-            // Completely hide when clusters are active
+            // Hide when clusters are active (below zoom 14)
             el.style.display = 'none';
             el.style.opacity = '0';
             el.style.pointerEvents = 'none';
@@ -869,7 +884,7 @@ export function MapContainer({
 
         displayedShops.forEach((shop) => {
           const id = shop.documentId;
-          const coords = getCoords(shop);
+          const coords = getShopCoords(shop);
           if (!coords) return;
 
           // Skip if marker already exists
@@ -970,25 +985,14 @@ export function MapContainer({
       };
     };
 
-    let cleanup: (() => void) | undefined;
-
-    if (map.current.isStyleLoaded()) {
-      cleanup = setupClustering();
-    } else {
-      const onLoad = () => {
-        cleanup = setupClustering();
-      };
-      map.current.on('load', onLoad);
-      return () => {
-        map.current?.off('load', onLoad);
-        cleanup?.();
-      };
-    }
+    // Since we wait for mapReady (which is set when map loads), style should be loaded
+    // Run setupClustering directly
+    const cleanup = setupClustering();
 
     return () => {
       cleanup?.();
     };
-  }, [displayedShops, getCoords, createMarkerElement]);
+  }, [displayedShops, createMarkerElement, mapReady]);
 
   // Store callbacks in refs to avoid re-running setup when they change
   const onShopSelectRef = useRef(onShopSelect);
@@ -1003,17 +1007,7 @@ export function MapContainer({
   useEffect(() => {
     if (!map.current || displayedShops.length === 0 || markers.current.size === 0) return;
 
-    // Define zoom thresholds that affect marker appearance
-    const ZOOM_THRESHOLDS = [3, 5, 7, 10, 13];
-
-    // Determine which threshold bracket the current zoom is in
-    const getZoomBracket = (zoom: number) => {
-      for (let i = ZOOM_THRESHOLDS.length - 1; i >= 0; i--) {
-        if (zoom >= ZOOM_THRESHOLDS[i]) return i + 1;
-      }
-      return 0;
-    };
-
+    // Use imported getZoomBracket from mapGeometry
     const currentBracket = getZoomBracket(currentZoom);
     const previousBracket = wasAboveZoomThreshold.current as unknown as number;
 
@@ -1031,7 +1025,7 @@ export function MapContainer({
 
       displayedShops.forEach((shop) => {
         const id = shop.documentId;
-        const coords = getCoords(shop);
+        const coords = getShopCoords(shop);
         if (!coords) return;
 
         const isSelected = id === selectedMarkerRef.current;
@@ -1073,7 +1067,7 @@ export function MapContainer({
         }
       });
     }
-  }, [currentZoom, displayedShops, getCoords, createMarkerElement, calculateLocalDensity]);
+  }, [currentZoom, displayedShops, createMarkerElement]);
 
   // Update selected marker styling
   useEffect(() => {
@@ -1095,7 +1089,7 @@ export function MapContainer({
         updateMarkerStyle(marker.getElement(), true, selectedShop);
 
         // Fly to selected shop
-        const coords = getCoords(selectedShop);
+        const coords = getShopCoords(selectedShop);
         if (coords) {
           map.current?.flyTo({
             center: coords,
@@ -1108,11 +1102,21 @@ export function MapContainer({
     }
 
     selectedMarkerRef.current = selectedShop?.documentId || null;
-  }, [selectedShop, updateMarkerStyle, getCoords]);
+  }, [selectedShop, updateMarkerStyle, displayedShops]);
 
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="map-container" />
+
+      {/* Country layer loading overlay - prevents flash of unstyled map */}
+      <div
+        className={`absolute inset-0 bg-white flex items-center justify-center pointer-events-none z-[5] transition-opacity duration-300 ${
+          countryLayerReady ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        <Spinner size="lg" color="primary" />
+      </div>
+
       {/* Loading spinner overlay */}
       <div
         className={`absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center pointer-events-none z-10 transition-opacity duration-500 ease-in-out ${
@@ -1121,12 +1125,6 @@ export function MapContainer({
       >
         <Spinner size="lg" color="primary" />
       </div>
-      {/* Fade transition overlay for distant locations */}
-      <div
-        className={`absolute inset-0 bg-white pointer-events-none z-20 transition-opacity duration-300 ease-in-out ${
-          isFading ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
     </div>
   );
 }

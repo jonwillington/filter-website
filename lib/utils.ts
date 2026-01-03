@@ -208,3 +208,24 @@ export function countBrewMethods(shop: ShopForBrewMethods): number {
   const methods = getMergedBrewMethods(shop);
   return Object.values(methods).filter(Boolean).length;
 }
+
+/**
+ * Check if a shop has a city area recommendation.
+ * Handles multiple field name formats from the API.
+ */
+export function hasCityAreaRecommendation(shop: { cityAreaRec?: boolean; city_area_rec?: boolean; cityarearec?: boolean }): boolean {
+  return shop.cityAreaRec === true || shop.city_area_rec === true || shop.cityarearec === true;
+}
+
+/**
+ * Get shop coordinates from either coordinates object or lat/lng fields.
+ */
+export function getShopCoordinates(shop: { coordinates?: { lat: number; lng: number } | null; latitude?: number | null; longitude?: number | null }): [number, number] | null {
+  if (shop.coordinates?.lng && shop.coordinates?.lat) {
+    return [shop.coordinates.lng, shop.coordinates.lat];
+  }
+  if (shop.longitude && shop.latitude) {
+    return [shop.longitude, shop.latitude];
+  }
+  return null;
+}

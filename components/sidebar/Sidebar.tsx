@@ -1,10 +1,10 @@
 'use client';
 
-import { LocationSelector } from './LocationSelector';
+import { DestinationSelector } from './DestinationSelector';
 import { ShopList } from './ShopList';
 import { WelcomeStats } from './WelcomeStats';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
-import { Location, Shop } from '@/lib/types';
+import { Location, Shop, Country } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { useMemo, ReactNode, useState } from 'react';
@@ -14,6 +14,7 @@ import { LegalModal } from '../modals/LegalModal';
 
 interface SidebarProps {
   locations: Location[];
+  countries?: Country[];
   selectedLocation: Location | null;
   onLocationChange: (location: Location | null) => void;
   shops: Shop[];
@@ -33,6 +34,7 @@ interface SidebarProps {
 
 export function Sidebar({
   locations,
+  countries = [],
   selectedLocation,
   onLocationChange,
   shops,
@@ -83,8 +85,9 @@ export function Sidebar({
 
       {/* Controls section - outside gradient header */}
       <div className="px-4 py-5 space-y-4 border-b border-border bg-white">
-        <LocationSelector
+        <DestinationSelector
           locations={locations}
+          countries={countries}
           selectedLocation={selectedLocation}
           onLocationChange={onLocationChange}
           isNearbyMode={isNearbyMode}

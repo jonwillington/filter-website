@@ -15,8 +15,9 @@ import { LoginModal } from '../auth/LoginModal';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Location, Shop, Country } from '@/lib/types';
-import { cn, slugify, getShopSlug } from '@/lib/utils';
+import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
+import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, LogIn, Search } from 'lucide-react';
@@ -79,15 +80,10 @@ export function MainLayout({
   // Track previous initialLocation to prevent duplicate map animations
   const prevInitialLocationRef = useRef<Location | null>(null);
 
-  // Helper to get shop coordinates
+  // Helper to get shop coordinates (uses imported utility)
   const getShopCoords = (shop: Shop): { lng: number; lat: number } | null => {
-    if (shop.coordinates?.lng && shop.coordinates?.lat) {
-      return shop.coordinates;
-    }
-    if (shop.longitude && shop.latitude) {
-      return { lng: shop.longitude, lat: shop.latitude };
-    }
-    return null;
+    const coords = getShopCoordinates(shop);
+    return coords ? { lng: coords[0], lat: coords[1] } : null;
   };
 
   // Initialize/update map position based on initial state
@@ -257,29 +253,13 @@ export function MainLayout({
     [router]
   );
 
-  // Helper to check if shop has city area recommendation
-  const hasCityAreaRecommendation = (shop: Shop): boolean => {
-    const anyShop = shop as any;
-    if (typeof anyShop.cityAreaRec === 'boolean') {
-      return anyShop.cityAreaRec;
-    }
-    if (typeof anyShop.city_area_rec === 'boolean') {
-      return anyShop.city_area_rec;
-    }
-    if (typeof anyShop.cityarearec === 'boolean') {
-      return anyShop.cityarearec;
-    }
-    return false;
-  };
+  // Note: hasCityAreaRecommendation is imported from @/lib/utils
 
-  // Filter shops for sidebar based on selected location
-  const locationFilteredShops = useMemo(() => {
-    if (!selectedLocation) return shops;
-    return shops.filter((shop) =>
-      shop.location?.documentId === selectedLocation.documentId ||
-      shop.city_area?.location?.documentId === selectedLocation.documentId
-    );
-  }, [shops, selectedLocation]);
+  // Filter shops for sidebar based on selected location (uses imported utility)
+  const locationFilteredShops = useMemo(
+    () => filterShopsByLocation(shops, selectedLocation),
+    [shops, selectedLocation]
+  );
 
   // Filter shops based on top recommendations toggle (for sidebar)
   const sidebarShops = showTopRecommendations
@@ -455,6 +435,7 @@ export function MainLayout({
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>
         <Sidebar
           locations={locations}
+          countries={countries}
           selectedLocation={selectedLocation}
           onLocationChange={handleLocationChange}
           shops={sidebarShops}

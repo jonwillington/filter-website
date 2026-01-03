@@ -67,12 +67,11 @@ export const ComingSoonChip = ({ children = 'Coming Soon', ...props }: Omit<Stat
 /**
  * AmenityChip - Chip for displaying shop amenities
  */
-export const AmenityChip = ({ children, icon, ...props }: Omit<StatusChipProps, 'status'>) => (
+export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
     variant="flat"
-    size="sm"
-    color="default"
-    startContent={icon}
+    size="lg"
+    radius="full"
     classNames={{
       base: 'bg-surface border border-border',
       content: 'text-text text-xs',
@@ -84,20 +83,52 @@ export const AmenityChip = ({ children, icon, ...props }: Omit<StatusChipProps, 
 );
 
 /**
- * BrewMethodChip - Chip for displaying brew methods with coffee accent
+ * BrewMethodChip - Chip for displaying brew methods
  */
-export const BrewMethodChip = ({ children, icon, ...props }: Omit<StatusChipProps, 'status'>) => (
+export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
     variant="flat"
-    size="sm"
-    color="primary"
-    startContent={icon}
+    size="lg"
+    radius="full"
     classNames={{
-      base: 'bg-accent/10 border border-accent/20',
-      content: 'text-accent text-xs font-medium',
+      base: 'bg-surface border border-border',
+      content: 'text-text text-xs font-medium',
     }}
     {...props}
   >
     {children}
+  </Chip>
+);
+
+/**
+ * CountryChip - Chip for displaying country with flag
+ */
+interface CountryChipProps {
+  code: string;
+  name: string;
+}
+
+const getFlagUrl = (code: string) =>
+  `https://hatscripts.github.io/circle-flags/flags/${code.toLowerCase()}.svg`;
+
+export const CountryChip = ({ code, name }: CountryChipProps) => (
+  <Chip
+    variant="flat"
+    size="lg"
+    radius="full"
+    startContent={
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={getFlagUrl(code)}
+        alt={name}
+        className="w-4 h-4 rounded-full"
+      />
+    }
+    classNames={{
+      base: 'bg-surface border border-border',
+      content: 'text-text text-xs font-medium',
+    }}
+  >
+    {name}
   </Chip>
 );

@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Location, Shop } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
-import { CircularCloseButton } from '@/components/ui';
+import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
+import { useStickyHeaderOpacity } from '@/lib/hooks';
+import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 
 interface LocationDrawerProps {
   location: Location;
@@ -24,38 +26,61 @@ export function LocationDrawer({
 }: LocationDrawerProps) {
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [storyTruncated, setStoryTruncated] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
+
+  // Find scrollable parent when not using wrapper
+  useEffect(() => {
+    if (!useWrapper && contentRef.current) {
+      let parent = contentRef.current.parentElement;
+      while (parent) {
+        const style = getComputedStyle(parent);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          setScrollParent(parent);
+          break;
+        }
+        parent = parent.parentElement;
+      }
+    }
+  }, [useWrapper]);
+
+  // Create a ref object that points to the scroll container
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Update scrollRef to point to the correct scroll container
+  useEffect(() => {
+    if (useWrapper) {
+      (scrollRef as any).current = drawerRef.current;
+    } else if (scrollParent) {
+      (scrollRef as any).current = scrollParent;
+    }
+  }, [useWrapper, scrollParent]);
+
+  // Use extracted hook for sticky header opacity
+  const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
 
   // Reset story state when location changes
   useEffect(() => {
     setStoryExpanded(false);
     setStoryTruncated(false);
-  }, [location.documentId]);
+    resetOpacity();
+  }, [location.documentId, resetOpacity]);
 
   // Use location directly - no internal state needed
   const currentLocation = location;
 
+  // Get top recommendation shops using extracted utility
+  const topRecommendationShops = useMemo(
+    () => getTopRecommendationsForLocation(allShops, currentLocation.documentId, 6),
+    [allShops, currentLocation.documentId]
+  );
 
-  // Get top recommendation shops for this location
-  const topRecommendationShops = useMemo(() => {
-    return allShops
-      .filter((shop) => {
-        // Match shops in this location
-        const isInLocation =
-          shop.location?.documentId === currentLocation.documentId ||
-          shop.city_area?.location?.documentId === currentLocation.documentId;
-
-        if (!isInLocation) return false;
-
-        // Check if shop is a top recommendation
-        const anyShop = shop as any;
-        return (
-          anyShop.cityAreaRec === true ||
-          anyShop.city_area_rec === true ||
-          anyShop.cityarearec === true
-        );
-      })
-      .slice(0, 6);
-  }, [allShops, currentLocation.documentId]);
+  // Calculate total shops in location using extracted utility
+  const totalShops = useMemo(
+    () => filterShopsByLocation(allShops, currentLocation).length,
+    [allShops, currentLocation]
+  );
 
   // Get country info
   const countryCode = currentLocation.country?.code?.toLowerCase();
@@ -68,17 +93,17 @@ export function LocationDrawer({
     ? `https://hatscripts.github.io/circle-flags/flags/${countryCode}.svg`
     : null;
 
-  // Calculate total shops in location
-  const totalShops = allShops.filter(
-    (shop) =>
-      shop.location?.documentId === currentLocation.documentId ||
-      shop.city_area?.location?.documentId === currentLocation.documentId
-  ).length;
-
   const backgroundImage = getMediaUrl(currentLocation.background_image);
 
   const content = (
     <>
+      {/* Sticky header that fades in on scroll */}
+      <StickyDrawerHeader
+        title={currentLocation.name}
+        opacity={stickyHeaderOpacity}
+        onClose={onClose}
+      />
+
       <div className="drawer-content">
         {/* Header with background image */}
         <div
@@ -92,7 +117,13 @@ export function LocationDrawer({
             backgroundPosition: 'center',
           }}
         >
-          <div className="absolute top-4 right-4 flex items-center gap-2">
+          <div
+            className="absolute top-4 right-4 flex items-center gap-2"
+            style={{
+              opacity: 1 - stickyHeaderOpacity,
+              pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
+            }}
+          >
             {flagUrl && (
               <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-md">
                 <Image
@@ -254,8 +285,8 @@ export function LocationDrawer({
   );
 
   if (useWrapper) {
-    return <div className="drawer">{content}</div>;
+    return <div ref={drawerRef} className="drawer">{content}</div>;
   }
 
-  return content;
+  return <div ref={contentRef}>{content}</div>;
 }

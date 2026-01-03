@@ -22,14 +22,6 @@ function getStrapiConfig() {
 
 const { url: API_BASE_URL, token: API_TOKEN } = getStrapiConfig();
 
-// Debug: Log which Strapi instance is being used
-if (typeof window !== 'undefined') {
-  console.log('[Strapi] Using:', {
-    environment: process.env.NEXT_PUBLIC_ENV || 'development',
-    url: API_BASE_URL,
-  });
-}
-
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);

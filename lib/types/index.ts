@@ -13,12 +13,20 @@ export interface MediaAsset {
   formats?: Record<string, MediaFormat>;
 }
 
+export interface Region {
+  id: number;
+  documentId: string;
+  Name: string;
+  comingSoon?: boolean;
+}
+
 export interface Country {
   id: number;
   documentId: string;
   name: string;
   code: string;
   slug?: string;
+  region?: Region;
   primaryColor?: string;
   primaryColorDark?: string;
   secondaryColor?: string;

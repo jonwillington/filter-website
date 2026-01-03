@@ -21,6 +21,7 @@ export {
   ComingSoonChip,
   AmenityChip,
   BrewMethodChip,
+  CountryChip,
 } from './StatusChip';
 
 export type { StatusType } from './StatusChip';
@@ -30,3 +31,5 @@ export { CircularCloseButton } from './CircularCloseButton';
 export { AwardBox } from './AwardBox';
 
 export { ResponsiveModal } from './ResponsiveModal';
+
+export { StickyDrawerHeader } from './StickyDrawerHeader';

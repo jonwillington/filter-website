@@ -9,6 +9,7 @@ interface CircularCloseButtonProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   'aria-label'?: string;
+  style?: React.CSSProperties;
 }
 
 export function CircularCloseButton({
@@ -16,6 +17,7 @@ export function CircularCloseButton({
   className,
   size = 'md',
   'aria-label': ariaLabel = 'Close',
+  style,
 }: CircularCloseButtonProps) {
   const sizeClasses = {
     sm: 'w-8 h-8',
@@ -35,6 +37,7 @@ export function CircularCloseButton({
       variant="flat"
       onPress={onPress}
       aria-label={ariaLabel}
+      style={style}
       className={cn(
         'rounded-full bg-white/90 backdrop-blur-sm hover:bg-white',
         'shadow-md transition-all duration-200',

@@ -8,16 +8,17 @@
  * doesn't change during a single build run.
  */
 
-// Use globalThis to ensure cache survives module reloads during build
-const globalCache = globalThis as typeof globalThis & {
-  __apiCache?: Map<string, { data: unknown; timestamp: number }>;
-};
+type CacheEntry = { data: unknown; timestamp: number };
+type CacheMap = Map<string, CacheEntry>;
 
-if (!globalCache.__apiCache) {
-  globalCache.__apiCache = new Map();
+// Lazy initialization to avoid module-level side effects (breaks HMR)
+function getCache(): CacheMap {
+  const g = globalThis as typeof globalThis & { __apiCache?: CacheMap };
+  if (!g.__apiCache) {
+    g.__apiCache = new Map();
+  }
+  return g.__apiCache;
 }
-
-const cache = globalCache.__apiCache;
 
 // 30 minutes for build, 5 minutes for runtime
 const BUILD_CACHE_TTL = 30 * 60 * 1000;
@@ -32,6 +33,7 @@ function getCacheTTL(): number {
 }
 
 export function getCached<T>(key: string): T | null {
+  const cache = getCache();
   const entry = cache.get(key);
   if (!entry) return null;
 
@@ -45,14 +47,15 @@ export function getCached<T>(key: string): T | null {
 }
 
 export function setCache<T>(key: string, data: T): void {
-  cache.set(key, { data, timestamp: Date.now() });
+  getCache().set(key, { data, timestamp: Date.now() });
 }
 
 export function clearCache(): void {
-  cache.clear();
+  getCache().clear();
 }
 
 export function getCacheStats(): { size: number; keys: string[] } {
+  const cache = getCache();
   return {
     size: cache.size,
     keys: Array.from(cache.keys()),

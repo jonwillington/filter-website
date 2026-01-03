@@ -29,77 +29,76 @@ export function ActionBar({ shop }: ActionBarProps) {
 
   if (!hasAnyAction) return null;
 
+  const hasPhone = Boolean(contact.phone);
+  const hasLinks = Boolean(mapsUrl || contact.website || contact.instagram);
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {contact.phone && (
-        <Button
-          as="a"
-          href={`tel:${contact.phone}`}
-          variant="flat"
-          size="sm"
-          startContent={<Phone className="w-4 h-4" />}
-          className="bg-surface"
-        >
-          Call
-        </Button>
+    <div className="space-y-3">
+      {/* Phone actions - horizontal row */}
+      {hasPhone && (
+        <div className="flex gap-2">
+          <Button
+            as="a"
+            href={`tel:${contact.phone}`}
+            variant="flat"
+            size="sm"
+            startContent={<Phone className="w-4 h-4" />}
+            className="bg-surface flex-1"
+          >
+            Call
+          </Button>
+          <Button
+            as="a"
+            href={`sms:${contact.phone}`}
+            variant="flat"
+            size="sm"
+            startContent={<MessageCircle className="w-4 h-4" />}
+            className="bg-surface flex-1"
+          >
+            Message
+          </Button>
+        </div>
       )}
 
-      {contact.phone && (
-        <Button
-          as="a"
-          href={`sms:${contact.phone}`}
-          variant="flat"
-          size="sm"
-          startContent={<MessageCircle className="w-4 h-4" />}
-          className="bg-surface"
-        >
-          Message
-        </Button>
-      )}
+      {/* Links - horizontal row with stacked icon/label */}
+      {hasLinks && (
+        <div className="flex gap-2">
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 bg-surface rounded-lg hover:bg-surfaceHover transition-colors"
+            >
+              <Navigation className="w-5 h-5 text-textSecondary" />
+              <span className="text-xs text-text">Directions</span>
+            </a>
+          )}
 
-      {mapsUrl && (
-        <Button
-          as="a"
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="flat"
-          size="sm"
-          startContent={<Navigation className="w-4 h-4" />}
-          className="bg-accent text-white"
-        >
-          Directions
-        </Button>
-      )}
+          {contact.website && (
+            <a
+              href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 bg-surface rounded-lg hover:bg-surfaceHover transition-colors"
+            >
+              <Globe className="w-5 h-5 text-textSecondary" />
+              <span className="text-xs text-text">Website</span>
+            </a>
+          )}
 
-      {contact.website && (
-        <Button
-          as="a"
-          href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="flat"
-          size="sm"
-          startContent={<Globe className="w-4 h-4" />}
-          className="bg-surface"
-        >
-          Website
-        </Button>
-      )}
-
-      {contact.instagram && (
-        <Button
-          as="a"
-          href={`https://instagram.com/${contact.instagram.replace('@', '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="flat"
-          size="sm"
-          startContent={<Instagram className="w-4 h-4" />}
-          className="bg-surface"
-        >
-          Instagram
-        </Button>
+          {contact.instagram && (
+            <a
+              href={`https://instagram.com/${contact.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 bg-surface rounded-lg hover:bg-surfaceHover transition-colors"
+            >
+              <Instagram className="w-5 h-5 text-textSecondary" />
+              <span className="text-xs text-text">Instagram</span>
+            </a>
+          )}
+        </div>
       )}
     </div>
   );

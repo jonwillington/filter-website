@@ -28,19 +28,19 @@ export function BrewMethods({ shop }: BrewMethodsProps) {
   if (activeMethodKeys.length === 0) return null;
 
   return (
-    <div>
-      <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
-        Brew Methods
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {activeMethodKeys.map((key) => (
-          <BrewMethodChip
-            key={key}
-            icon={<Coffee className="w-3.5 h-3.5" />}
-          >
-            {brewMethodLabels[key] || key}
-          </BrewMethodChip>
-        ))}
+    <div className="bg-surface rounded-xl p-4 flex gap-3">
+      <div className="w-10 h-10 bg-chipBackground rounded-lg flex items-center justify-center flex-shrink-0">
+        <Coffee className="w-5 h-5 text-text" />
+      </div>
+      <div className="flex-1">
+        <h4 className="text-sm font-semibold text-text mb-2">Brew Methods</h4>
+        <div className="flex flex-wrap gap-2">
+          {activeMethodKeys.map((key) => (
+            <BrewMethodChip key={key}>
+              {brewMethodLabels[key] || key}
+            </BrewMethodChip>
+          ))}
+        </div>
       </div>
     </div>
   );
