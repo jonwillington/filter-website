@@ -47,12 +47,16 @@ export function cleanupCountryLayer(map: mapboxgl.Map): void {
 /**
  * Set up country boundaries highlighting layer.
  * Shows transparent clickable layer for unsupported countries.
+ * Returns a cleanup function to remove event handlers.
  */
 export function setupCountryLayer(
   map: mapboxgl.Map,
   config: CountryLayerConfig
-): void {
+): () => void {
   const { countries, displayedShops, onUnsupportedCountryClick } = config;
+
+  console.log('[Country Layer] Setting up with', countries.length, 'countries and', displayedShops.length, 'shops');
+  console.log('[Country Layer] Callback provided:', !!onUnsupportedCountryClick);
 
   // Remove existing layer and source if they exist
   cleanupCountryLayer(map);
@@ -77,46 +81,42 @@ export function setupCountryLayer(
     url: 'mapbox://mapbox.country-boundaries-v1',
   });
 
-  // Add country boundary fill layer - darken unsupported countries
-  const layers = map.getStyle().layers;
-
-  // Find a good insertion point - after background/water but before roads
-  const insertBefore = layers?.find(
-    (layer: mapboxgl.AnyLayer) =>
-      layer.id.includes('landuse') ||
-      layer.id.includes('landcover') ||
-      layer.id.includes('land-structure') ||
-      layer.type === 'line'
-  );
-
   // Transparent layer just for click detection on unsupported countries
-  // (Visual overlay is now handled by world-overlay with city boundary holes)
-  map.addLayer(
-    {
-      id: 'country-fills',
-      type: 'fill',
-      source: 'country-fills',
-      'source-layer': 'country_boundaries',
-      paint: {
-        'fill-color': 'transparent',
-        'fill-opacity': 0,
-      },
+  // Layer is added on top (no insertBefore) so it can receive clicks
+  // Note: Using a small opacity so the layer is interactive
+  map.addLayer({
+    id: 'country-fills',
+    type: 'fill',
+    source: 'country-fills',
+    'source-layer': 'country_boundaries',
+    paint: {
+      'fill-color': '#000000',
+      'fill-opacity': 0.01,
     },
-    insertBefore?.id
-  );
+  });
 
   // Add click handler for unsupported countries
   const handleClick = (e: mapboxgl.MapLayerMouseEvent) => {
-    if (!e.features || e.features.length === 0) return;
+    console.log('[Country Layer] Click detected', e.features);
+    if (!e.features || e.features.length === 0) {
+      console.log('[Country Layer] No features in click');
+      return;
+    }
 
     const feature = e.features[0];
     const countryCode = feature.properties?.iso_3166_1;
     const countryName = feature.properties?.name_en;
 
+    console.log('[Country Layer] Clicked country:', countryName, countryCode);
+    console.log('[Country Layer] Supported countries:', supportedCountries);
+
     // Check if this is an unsupported country
     // Show modal if country is not in supported list
     if (countryCode && !supportedCountries.includes(countryCode)) {
+      console.log('[Country Layer] Country is unsupported, calling handler');
       onUnsupportedCountryClick?.(countryName || countryCode, countryCode);
+    } else {
+      console.log('[Country Layer] Country is supported, not showing modal');
     }
   };
 
@@ -136,142 +136,32 @@ export function setupCountryLayer(
   map.on('click', 'country-fills', handleClick);
   map.on('mouseenter', 'country-fills', handleMouseEnter);
   map.on('mouseleave', 'country-fills', handleMouseLeave);
+
+  console.log('[Country Layer] Event handlers registered');
+  console.log('[Country Layer] Layer exists:', !!map.getLayer('country-fills'));
+
+  // Return cleanup function for event handlers
+  return () => {
+    map.off('click', 'country-fills', handleClick);
+    map.off('mouseenter', 'country-fills', handleMouseEnter);
+    map.off('mouseleave', 'country-fills', handleMouseLeave);
+  };
 }
 
 /**
- * Clean up the world overlay from the map
+ * Clean up the world overlay from the map (no longer used)
  */
 export function cleanupWorldOverlay(map: mapboxgl.Map): void {
-  if (!isStyleAvailable(map)) return;
-
-  if (map.getLayer('world-overlay')) map.removeLayer('world-overlay');
-  if (map.getLayer('city-boundaries-line')) map.removeLayer('city-boundaries-line');
-  if (map.getSource('world-overlay')) map.removeSource('world-overlay');
-  if (map.getSource('city-boundaries-outline')) map.removeSource('city-boundaries-outline');
+  // No-op - world overlay removed, country highlighting handled in useMapInstance
 }
 
 /**
- * Set up world overlay with city boundary holes.
- * Creates a brown overlay covering everywhere EXCEPT supported city boundaries.
+ * Set up world overlay (no longer used - country highlighting handled in useMapInstance)
  */
 export function setupWorldOverlay(
   map: mapboxgl.Map,
   config: WorldOverlayConfig
 ): void {
-  const { locations, effectiveTheme } = config;
-
-  cleanupWorldOverlay(map);
-
-  // Filter locations that have boundary coordinates (array of points)
-  const locationsWithBoundaries = locations.filter(
-    (loc) => Array.isArray(loc.coordinates) && loc.coordinates.length >= 3
-  );
-
-  console.log('World overlay setup:', {
-    totalLocations: locations.length,
-    locationsWithBoundaries: locationsWithBoundaries.length,
-    boundaryNames: locationsWithBoundaries.map((l) => l.name),
-    sampleCoords: locationsWithBoundaries[0]?.coordinates,
-  });
-
-  // Create a world polygon with city boundaries as holes
-  // World polygon covers the entire globe
-  const worldPolygon: number[][] = [
-    [-180, -90],
-    [180, -90],
-    [180, 90],
-    [-180, 90],
-    [-180, -90],
-  ];
-
-  // City boundaries become holes in the world polygon
-  const holes: number[][][] = locationsWithBoundaries.map((loc) => {
-    const coords = loc.coordinates as Array<{ lat: number; lng: number }>;
-    // GeoJSON uses [lng, lat] order, holes must be counter-clockwise (reversed)
-    return coords.map((c) => [c.lng, c.lat]).reverse();
-  });
-
-  // GeoJSON polygon with holes: first ring is outer, subsequent rings are holes
-  const polygonCoordinates = [worldPolygon, ...holes];
-
-  const geojson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: polygonCoordinates,
-        },
-      },
-    ],
-  };
-
-  map.addSource('world-overlay', {
-    type: 'geojson',
-    data: geojson,
-  });
-
-  const isDark = effectiveTheme === 'dark';
-
-  // Find a good insertion point - below roads and labels
-  const layers = map.getStyle().layers;
-  const insertBefore = layers?.find(
-    (layer: mapboxgl.AnyLayer) =>
-      layer.id.includes('road') ||
-      layer.id.includes('bridge') ||
-      layer.type === 'line' ||
-      layer.type === 'symbol'
-  );
-
-  // Add the brown overlay (covers world except city holes)
-  map.addLayer(
-    {
-      id: 'world-overlay',
-      type: 'fill',
-      source: 'world-overlay',
-      paint: {
-        'fill-color': isDark ? '#3D2E24' : '#F5EDE5',
-        'fill-opacity': isDark ? 0.85 : 0.8,
-      },
-    },
-    insertBefore?.id
-  );
-
-  // Add city boundary outlines for visual clarity
-  if (locationsWithBoundaries.length > 0) {
-    const cityBoundariesGeojson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: locationsWithBoundaries.map((loc) => {
-        const coords = loc.coordinates as Array<{ lat: number; lng: number }>;
-        return {
-          type: 'Feature' as const,
-          properties: { name: loc.name },
-          geometry: {
-            type: 'Polygon' as const,
-            coordinates: [coords.map((c) => [c.lng, c.lat])],
-          },
-        };
-      }),
-    };
-
-    if (!map.getSource('city-boundaries-outline')) {
-      map.addSource('city-boundaries-outline', {
-        type: 'geojson',
-        data: cityBoundariesGeojson,
-      });
-    }
-
-    map.addLayer({
-      id: 'city-boundaries-line',
-      type: 'line',
-      source: 'city-boundaries-outline',
-      paint: {
-        'line-color': isDark ? '#6B5548' : '#B8A898',
-        'line-width': 1.5,
-        'line-opacity': 0.5,
-      },
-    });
-  }
+  // No-op - country highlighting is now handled entirely in useMapInstance
+  // via the country-fill-supported and country-fill-unsupported layers
 }

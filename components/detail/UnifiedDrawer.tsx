@@ -6,15 +6,35 @@ interface UnifiedDrawerProps {
   children: ReactNode;
   className?: string;
   contentType?: 'shop' | 'location';
+  isVisible?: boolean;
 }
 
 export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
-  function UnifiedDrawer({ children, className = 'shop-drawer', contentType }, ref) {
+  function UnifiedDrawer({ children, className = 'shop-drawer', contentType, isVisible = true }, ref) {
     const [frozenContent, setFrozenContent] = useState<ReactNode | null>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [isEntering, setIsEntering] = useState(true);
+    const [isExiting, setIsExiting] = useState(false);
     const previousContentTypeRef = useRef(contentType);
     const currentChildrenRef = useRef(children);
     const oldChildrenRef = useRef(children);
+
+    // Remove entering class after animation completes
+    useEffect(() => {
+      if (isEntering) {
+        const timeout = setTimeout(() => setIsEntering(false), 300);
+        return () => clearTimeout(timeout);
+      }
+    }, [isEntering]);
+
+    // Handle exit animation
+    useEffect(() => {
+      if (!isVisible && !isExiting) {
+        setIsExiting(true);
+      } else if (isVisible && isExiting) {
+        setIsExiting(false);
+      }
+    }, [isVisible, isExiting]);
 
     useEffect(() => {
       // Only transition when switching between different content types
@@ -42,8 +62,14 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
     // Update current children ref
     currentChildrenRef.current = children;
 
+    const classNames = [
+      className,
+      isEntering ? 'entering' : '',
+      isExiting ? 'exiting' : '',
+    ].filter(Boolean).join(' ');
+
     return (
-      <div ref={ref} className={className}>
+      <div ref={ref} className={classNames}>
         <div
           className="transition-opacity duration-150"
           style={{ opacity: isTransitioning ? 0 : 1 }}

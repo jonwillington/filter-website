@@ -6,6 +6,7 @@ interface GeolocationState {
   coordinates: { lat: number; lng: number } | null;
   error: string | null;
   isLoading: boolean;
+  isPermissionBlocked: boolean;
 }
 
 export function useGeolocation() {
@@ -13,6 +14,7 @@ export function useGeolocation() {
     coordinates: null,
     error: null,
     isLoading: false,
+    isPermissionBlocked: false,
   });
 
   const requestLocation = useCallback(() => {
@@ -21,7 +23,7 @@ export function useGeolocation() {
       return;
     }
 
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null, isPermissionBlocked: false }));
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -32,13 +34,17 @@ export function useGeolocation() {
           },
           error: null,
           isLoading: false,
+          isPermissionBlocked: false,
         });
       },
       (error) => {
+        // Error code 1 = PERMISSION_DENIED
+        const isBlocked = error.code === 1;
         setState({
           coordinates: null,
           error: error.message,
           isLoading: false,
+          isPermissionBlocked: isBlocked,
         });
       },
       {
@@ -49,5 +55,9 @@ export function useGeolocation() {
     );
   }, []);
 
-  return { ...state, requestLocation };
+  const clearPermissionBlocked = useCallback(() => {
+    setState((prev) => ({ ...prev, isPermissionBlocked: false }));
+  }, []);
+
+  return { ...state, requestLocation, clearPermissionBlocked };
 }

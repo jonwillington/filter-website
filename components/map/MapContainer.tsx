@@ -8,6 +8,7 @@ import { useMapInstance } from '@/lib/hooks/useMapInstance';
 import { useMapLayers } from '@/lib/hooks/useMapLayers';
 import { useMapPosition } from '@/lib/hooks/useMapPosition';
 import { useMapClustering } from '@/lib/hooks/useMapClustering';
+import { useUserLocationMarker } from '@/lib/hooks/useUserLocationMarker';
 
 interface MapContainerProps {
   shops: Shop[];
@@ -20,6 +21,7 @@ interface MapContainerProps {
   countries?: Country[];
   locations?: Location[];
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
+  userCoordinates?: { lat: number; lng: number } | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export function MapContainer({
   countries = [],
   locations = [],
   onUnsupportedCountryClick,
+  userCoordinates = null,
 }: MapContainerProps) {
   const { effectiveTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -76,9 +79,10 @@ export function MapContainer({
     center,
     zoom,
     effectiveTheme,
+    countries,
   });
 
-  // Setup map overlay layers (country boundaries and world overlay)
+  // Setup map overlay layers (country click detection)
   useMapLayers({
     map,
     mapReady,
@@ -109,6 +113,13 @@ export function MapContainer({
     onShopSelect,
     onTransitionComplete,
     isLoading,
+  });
+
+  // Show user's GPS location on the map
+  useUserLocationMarker({
+    map,
+    mapReady,
+    coordinates: userCoordinates,
   });
 
   return (

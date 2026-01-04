@@ -21,6 +21,7 @@ export function useMapPosition({
   const pendingCenter = useRef<[number, number] | null>(null);
   const pendingZoom = useRef<number | null>(null);
   const lastCenter = useRef<[number, number]>(center);
+  const lastZoom = useRef<number>(zoom);
 
   // Update center when it changes
   useEffect(() => {
@@ -31,14 +32,29 @@ export function useMapPosition({
       pendingCenter.current = center;
       pendingZoom.current = zoom;
     } else {
-      // Always use smooth flyTo - no jarring fade transitions
-      map.flyTo({
-        center,
-        zoom,
-        duration: 1000,
-        padding: { left: 200, right: 0, top: 0, bottom: 0 },
-      });
+      // Use easeTo for same-zoom transitions (shop-to-shop), flyTo for zoom changes (city changes)
+      const isZoomChange = Math.abs(zoom - lastZoom.current) > 0.5;
+
+      if (isZoomChange) {
+        // Full flyTo for location/zoom changes
+        map.flyTo({
+          center,
+          zoom,
+          duration: 1000,
+          padding: { left: 200, right: 0, top: 0, bottom: 0 },
+        });
+      } else {
+        // Quick easeTo for shop-to-shop (same zoom)
+        map.easeTo({
+          center,
+          zoom,
+          duration: 400,
+          padding: { left: 200, right: 0, top: 0, bottom: 0 },
+        });
+      }
+
       lastCenter.current = center;
+      lastZoom.current = zoom;
 
       pendingCenter.current = null;
       pendingZoom.current = null;
@@ -49,14 +65,27 @@ export function useMapPosition({
   useEffect(() => {
     if (!map || isLoading) return;
 
-    if (pendingCenter.current && pendingZoom.current) {
-      map.flyTo({
-        center: pendingCenter.current,
-        zoom: pendingZoom.current,
-        duration: 1000,
-        padding: { left: 200, right: 0, top: 0, bottom: 0 },
-      });
+    if (pendingCenter.current && pendingZoom.current !== null) {
+      const isZoomChange = Math.abs(pendingZoom.current - lastZoom.current) > 0.5;
+
+      if (isZoomChange) {
+        map.flyTo({
+          center: pendingCenter.current,
+          zoom: pendingZoom.current,
+          duration: 1000,
+          padding: { left: 200, right: 0, top: 0, bottom: 0 },
+        });
+      } else {
+        map.easeTo({
+          center: pendingCenter.current,
+          zoom: pendingZoom.current,
+          duration: 400,
+          padding: { left: 200, right: 0, top: 0, bottom: 0 },
+        });
+      }
+
       lastCenter.current = pendingCenter.current;
+      lastZoom.current = pendingZoom.current;
 
       pendingCenter.current = null;
       pendingZoom.current = null;

@@ -21,6 +21,8 @@ import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, LogIn, Search, MapPin } from 'lucide-react';
 import { ExploreModal } from '../modals/ExploreModal';
+import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
+import { LocationBlockedModal } from '../modals/LocationBlockedModal';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
 
 interface MainLayoutProps {
@@ -58,8 +60,9 @@ export function MainLayout({
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showExploreModal, setShowExploreModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isLocationDrawerClosing, setIsLocationDrawerClosing] = useState(false);
 
-  const { coordinates, requestLocation } = useGeolocation();
+  const { coordinates, requestLocation, isPermissionBlocked, clearPermissionBlocked } = useGeolocation();
   const { user, loading: authLoading } = useAuth();
 
   // Track desktop/mobile viewport
@@ -130,6 +133,16 @@ export function MainLayout({
       prevInitialLocationRef.current = null;
     }
   }, [initialShop, initialLocation, shops]); // Update when initialShop changes
+
+  // Update map center when selectedShop changes (for same-location navigation via pushState)
+  useEffect(() => {
+    if (selectedShop && selectedShop.documentId !== initialShop?.documentId) {
+      const coords = getShopCoords(selectedShop);
+      if (coords) {
+        setMapCenter([coords.lng, coords.lat]);
+      }
+    }
+  }, [selectedShop, initialShop]);
 
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
@@ -224,6 +237,17 @@ export function MainLayout({
       }
     };
   }, []);
+
+  // Clear loading state when location permission is blocked
+  useEffect(() => {
+    if (isPermissionBlocked && isLoading) {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      setIsLoading(false);
+    }
+  }, [isPermissionBlocked, isLoading]);
 
   // Sync state with props - only update if the ID actually changed
   // This prevents double-renders when navigating between shops
@@ -329,11 +353,13 @@ export function MainLayout({
 
   const handleShopSelect = useCallback(
     (shop: Shop) => {
+      const isSameLocation = shop.location?.documentId === selectedLocation?.documentId;
+
       setSelectedShop(shop);
       setIsMobileSidebarOpen(false);
 
       // Update selected location to match the shop's location
-      if (shop.location && shop.location.documentId !== selectedLocation?.documentId) {
+      if (shop.location && !isSameLocation) {
         setSelectedLocation(shop.location);
         setIsNearbyMode(false);
         setIsExploreMode(false);
@@ -346,10 +372,18 @@ export function MainLayout({
       const shopSlug = getShopSlug(shop);
 
       if (countrySlug && citySlug && areaSlug && shopSlug) {
-        router.push(`/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`, { scroll: false });
+        const newUrl = `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`;
+
+        // Use history.pushState for same-location navigation to avoid remounting
+        // This updates the URL without triggering Next.js page navigation
+        if (isSameLocation && selectedShop) {
+          window.history.pushState({}, '', newUrl);
+        } else {
+          router.push(newUrl, { scroll: false });
+        }
       }
     },
-    [router, selectedLocation]
+    [router, selectedLocation, selectedShop]
   );
 
   const handleCloseDrawer = useCallback(() => {
@@ -431,6 +465,7 @@ export function MainLayout({
   }, []);
 
   const handleUnsupportedCountryClick = useCallback((countryName: string, countryCode: string) => {
+    console.log('[MainLayout] handleUnsupportedCountryClick called:', countryName, countryCode);
     setUnsupportedCountry({ name: countryName, code: countryCode });
   }, []);
 
@@ -459,6 +494,18 @@ export function MainLayout({
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
+      />
+
+      <UnsupportedCountryModal
+        isOpen={!!unsupportedCountry}
+        countryName={unsupportedCountry?.name || ''}
+        countryCode={unsupportedCountry?.code || ''}
+        onClose={() => setUnsupportedCountry(null)}
+      />
+
+      <LocationBlockedModal
+        isOpen={isPermissionBlocked}
+        onClose={clearPermissionBlocked}
       />
 
       <SearchModal
@@ -545,7 +592,7 @@ export function MainLayout({
         />
 
         <MapContainer
-          key={`map-${selectedLocation?.documentId || 'explore'}`}
+          key="map-container"
           shops={shopsForMap}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
@@ -556,10 +603,15 @@ export function MainLayout({
           countries={countries}
           locations={locations}
           onUnsupportedCountryClick={handleUnsupportedCountryClick}
+          userCoordinates={coordinates}
         />
 
-        {(selectedShop || (selectedLocation && !isNearbyMode && (showMobileCityGuide || isDesktop))) && (
-          <UnifiedDrawer key="unified-drawer" contentType={selectedShop ? 'shop' : 'location'}>
+        {(selectedShop || (selectedLocation && !isNearbyMode && (showMobileCityGuide || isDesktop)) || isLocationDrawerClosing) && (
+          <UnifiedDrawer
+            key="unified-drawer"
+            contentType={selectedShop ? 'shop' : 'location'}
+            isVisible={!isLocationDrawerClosing}
+          >
             {selectedShop ? (
               <ShopDrawer
                 key="shop-drawer"
@@ -577,8 +629,14 @@ export function MainLayout({
                 location={selectedLocation}
                 allShops={shops}
                 onClose={() => {
-                  // Just close the city guide sheet - don't navigate away or zoom out
+                  // Start exit animation
+                  setIsLocationDrawerClosing(true);
                   setShowMobileCityGuide(false);
+                  // After animation, clear location and reset closing state
+                  setTimeout(() => {
+                    setSelectedLocation(null);
+                    setIsLocationDrawerClosing(false);
+                  }, 300);
                 }}
                 onShopSelect={handleShopSelect}
                 useWrapper={false}

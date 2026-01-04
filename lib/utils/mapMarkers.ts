@@ -138,10 +138,12 @@ function createDetailedMarkerElement(
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     cursor: pointer;
     position: absolute;
     opacity: ${fadeIn ? '0' : '1'};
     transition: opacity 0.2s ease;
+    width: max-content;
   `;
   container.style.zIndex = isSelected ? '10' : '1';
 
@@ -207,7 +209,8 @@ function createDetailedMarkerElement(
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     margin-top: 4px;
-    max-width: 80px;
+    max-width: 100px;
+    width: max-content;
     text-align: center;
     line-height: 1.3;
   `;

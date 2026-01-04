@@ -20,6 +20,7 @@ import { ChevronLeft } from 'lucide-react';
 import { getShopDisplayName, hasCityAreaRecommendation, getMediaUrl } from '@/lib/utils';
 import { useStickyHeaderOpacity, useDrawerTransition } from '@/lib/hooks';
 import { getMoreFromBrand } from '@/lib/utils/shopFiltering';
+import { ShopDrawerFooter } from './ShopDrawerFooter';
 
 interface ShopDrawerProps {
   shop: Shop;
@@ -125,7 +126,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         <ShopHeader shop={currentShop} />
 
         {/* Rest of content with padding */}
-        <div className="p-5 space-y-6">
+        <div className="p-5 pb-20 space-y-6">
           {/* City Area Recommendation Award - at top */}
           {isTopChoice && (
             <AwardBox
@@ -199,6 +200,9 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         <ShopInfo shop={currentShop} />
         </div>
       </div>
+
+      {/* Fixed footer with social links and directions */}
+      <ShopDrawerFooter shop={currentShop} />
     </>
   );
 

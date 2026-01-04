@@ -109,7 +109,7 @@ export function LocationDrawer({
         >
           {/* Top header row with City Guide and close button */}
           <div
-            className="relative flex items-center justify-between p-5"
+            className="relative flex items-center justify-between px-6 py-4"
             style={{
               opacity: 1 - stickyHeaderOpacity,
               pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
@@ -122,8 +122,8 @@ export function LocationDrawer({
           </div>
 
           {/* Contained feature image with curved edges */}
-          <div className="px-4 pt-4 pb-5">
-            <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg mb-5">
+          <div className="px-6 pb-6">
+            <div className="relative w-full h-[160px] rounded-xl overflow-hidden shadow-lg mb-5">
               {backgroundImage ? (
                 <Image
                   src={backgroundImage}

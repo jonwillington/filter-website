@@ -118,9 +118,22 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
     let pageCount = 1;
 
     while (page <= pageCount) {
-      // Use deep populate to get all location fields including coordinates
+      // Populate location with coordinates and country
+      // Note: Using simpler populate syntax that Strapi accepts reliably
+      const populateParams = [
+        'populate[location][populate][country]=*',
+        'populate[location][populate][background_image]=*',
+        'populate[location][fields][0]=id',
+        'populate[location][fields][1]=documentId',
+        'populate[location][fields][2]=name',
+        'populate[location][fields][3]=coordinates',
+        'populate[location][fields][4]=rating_stars',
+        'populate[location][fields][5]=headline',
+        'populate[location][fields][6]=story',
+      ].join('&');
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location][populate]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             'Content-Type': 'application/json',

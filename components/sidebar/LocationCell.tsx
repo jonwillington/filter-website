@@ -33,7 +33,7 @@ export function LocationCell({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 bg-surface hover:bg-border-default rounded-lg px-4 py-3 cursor-pointer transition-colors min-h-[48px] text-left"
+      className="w-full flex items-center gap-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg px-4 py-3 cursor-pointer transition-colors min-h-[48px] text-left"
       aria-label={locationName ? `Exploring in ${locationName}. Click to change location.` : 'Select location'}
     >
       {/* Flag */}

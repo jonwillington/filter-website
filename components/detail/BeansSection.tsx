@@ -2,7 +2,7 @@ import { Shop, CoffeePartner } from '@/lib/types';
 import { Avatar } from '@heroui/react';
 import { getMediaUrl } from '@/lib/utils';
 import { CountryChip } from '@/components/ui';
-import { Flame, Bean } from 'lucide-react';
+import { Bean } from 'lucide-react';
 
 interface BeansSectionProps {
   shop: Shop;
@@ -12,7 +12,7 @@ function PartnerCard({ partner }: { partner: CoffeePartner }) {
   const logoUrl = getMediaUrl(partner.logo);
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-surface rounded-lg">
+    <div className="flex items-center gap-3">
       <Avatar
         src={logoUrl || undefined}
         name={partner.name}
@@ -48,30 +48,27 @@ export function BeansSection({ shop }: BeansSectionProps) {
   if (!hasInHouseRoast && !hasSuppliers && !hasCoffeePartner) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* In-house roast */}
       {hasInHouseRoast && (
-        <div className="bg-surface rounded-xl p-4 flex gap-3">
-          <div className="w-10 h-10 bg-chipBackground rounded-lg flex items-center justify-center flex-shrink-0">
-            <Flame className="w-5 h-5 text-text" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-text mb-1">In-house Roast</h4>
-            <p className="text-xs text-textSecondary leading-relaxed">
-              {ownRoastDesc || `Roasted by ${brand.name}`}
-            </p>
-            {ownRoastCountries.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {ownRoastCountries.map((country) => (
-                  <CountryChip
-                    key={country.documentId}
-                    code={country.code}
-                    name={country.name}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+        <div>
+          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
+            Coffee Roasting
+          </h3>
+          <p className="text-sm text-text">
+            {ownRoastDesc || `Roasted in-house by ${brand.name}`}
+          </p>
+          {ownRoastCountries.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {ownRoastCountries.map((country) => (
+                <CountryChip
+                  key={country.documentId}
+                  code={country.code}
+                  name={country.name}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -69,11 +69,11 @@ export const ComingSoonChip = ({ children = 'Coming Soon', ...props }: Omit<Stat
  */
 export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
-    variant="flat"
-    size="lg"
+    variant="solid"
+    size="md"
     radius="full"
     classNames={{
-      base: 'bg-surface border border-border',
+      base: 'bg-gray-100 dark:bg-white/15 border-none',
       content: 'text-text text-xs',
     }}
     {...props}
@@ -87,11 +87,11 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
  */
 export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
-    variant="flat"
-    size="lg"
+    variant="solid"
+    size="md"
     radius="full"
     classNames={{
-      base: 'bg-surface border border-border',
+      base: 'bg-gray-100 dark:bg-white/15 border-none',
       content: 'text-text text-xs font-medium',
     }}
     {...props}
@@ -113,8 +113,8 @@ const getFlagUrl = (code: string) =>
 
 export const CountryChip = ({ code, name }: CountryChipProps) => (
   <Chip
-    variant="flat"
-    size="lg"
+    variant="solid"
+    size="md"
     radius="full"
     startContent={
       // eslint-disable-next-line @next/next/no-img-element
@@ -125,7 +125,7 @@ export const CountryChip = ({ code, name }: CountryChipProps) => (
       />
     }
     classNames={{
-      base: 'bg-surface border border-border',
+      base: 'bg-gray-100 dark:bg-white/15 border-none',
       content: 'text-text text-xs font-medium',
     }}
   >

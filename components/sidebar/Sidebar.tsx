@@ -2,6 +2,7 @@
 
 import { LocationCell } from './LocationCell';
 import { ShopList } from './ShopList';
+import { ShortOnShopsAlert } from './ShortOnShopsAlert';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
 import { WelcomeStats } from './WelcomeStats';
 import { Location, Shop, Country } from '@/lib/types';
@@ -147,7 +148,7 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="sidebar-content">
+      <div className="sidebar-content transition-opacity duration-300">
         {isLoading && !selectedLocation && !isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="flex flex-col items-center gap-3">
@@ -184,17 +185,7 @@ export function Sidebar({
               isLoading={isLoading}
             />
             {selectedLocation && filterCounts.all < 5 && (
-              <div className="mx-4 mt-2 mb-4 p-4 bg-surface border border-border-default rounded-lg">
-                <p className="text-sm text-text leading-snug mb-2">
-                  We have been and investigated but <strong>{selectedLocation.name}</strong> is not a great city for coffee.
-                </p>
-                <p className="text-xs text-textSecondary">
-                  Believe we've missed somewhere?{' '}
-                  <a href="mailto:hello@filter.coffee" className="text-accent hover:underline font-medium">
-                    Get in touch
-                  </a>
-                </p>
-              </div>
+              <ShortOnShopsAlert locationName={selectedLocation.name} />
             )}
           </>
         )}

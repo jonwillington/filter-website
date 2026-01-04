@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopCard } from './ShopCard';
 import { ChevronDown } from 'lucide-react';
@@ -161,12 +161,25 @@ function AreaSection({
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const hasSelectedShop = selectedShop && shops.some(s => s.documentId === selectedShop.documentId);
+  const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
+
+  // Reset manual state when selected shop changes, so auto-expand takes over
+  useEffect(() => {
+    setIsManuallyToggled(null);
+  }, [selectedShop?.documentId]);
+
+  // Auto-expand if this area contains the selected shop, otherwise use manual state
+  const isExpanded = isManuallyToggled !== null ? isManuallyToggled : !!hasSelectedShop;
+
+  const toggleExpanded = () => {
+    setIsManuallyToggled(prev => prev !== null ? !prev : !hasSelectedShop);
+  };
 
   return (
     <div className="border-b border-gray-200 dark:border-white/5 last:border-b-0">
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpanded}
         className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
       >

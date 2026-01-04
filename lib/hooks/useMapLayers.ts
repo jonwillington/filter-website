@@ -1,11 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Country, Location, Shop } from '../types';
 import {
   setupCountryLayer,
   cleanupCountryLayer,
-  setupWorldOverlay,
-  cleanupWorldOverlay,
 } from '../utils/mapLayers';
 
 export interface UseMapLayersOptions {
@@ -20,7 +18,8 @@ export interface UseMapLayersOptions {
 }
 
 /**
- * Hook to manage map overlay layers (country boundaries and world overlay).
+ * Hook to manage map overlay layers (country click detection).
+ * Country visual highlighting is handled in useMapInstance.
  *
  * IMPORTANT: This hook depends on mapReady to ensure it runs AFTER the map is initialized.
  * Do not remove mapReady from dependencies - it prevents race conditions.
@@ -29,13 +28,18 @@ export function useMapLayers({
   map,
   mapReady,
   countries,
-  locations,
   displayedShops,
-  effectiveTheme,
   onUnsupportedCountryClick,
   setCountryLayerReady,
 }: UseMapLayersOptions): void {
-  // Setup country boundaries highlighting
+  // Store callback in ref to avoid effect re-runs when callback changes
+  const onUnsupportedCountryClickRef = useRef(onUnsupportedCountryClick);
+  useEffect(() => {
+    onUnsupportedCountryClickRef.current = onUnsupportedCountryClick;
+  }, [onUnsupportedCountryClick]);
+
+  // Setup country boundaries click detection
+  // Only re-run when map, mapReady, or countries change (not displayedShops)
   useEffect(() => {
     if (!map || !mapReady) return;
 
@@ -46,20 +50,24 @@ export function useMapLayers({
     }
 
     let isSetup = false;
+    let cleanupEventHandlers: (() => void) | null = null;
 
     const trySetup = () => {
       if (isSetup) return;
       isSetup = true;
 
       try {
-        setupCountryLayer(map, {
+        // Use ref for callback so it always has latest value
+        cleanupEventHandlers = setupCountryLayer(map, {
           countries,
           displayedShops,
-          onUnsupportedCountryClick,
+          onUnsupportedCountryClick: (name, code) => {
+            onUnsupportedCountryClickRef.current?.(name, code);
+          },
         });
         setCountryLayerReady(true);
       } catch (err) {
-        console.error('Error setting up country highlighting:', err);
+        console.error('Error setting up country click detection:', err);
         setCountryLayerReady(true); // Still mark ready so spinner hides
       }
     };
@@ -71,33 +79,8 @@ export function useMapLayers({
     }
 
     return () => {
+      cleanupEventHandlers?.();
       cleanupCountryLayer(map);
     };
-  }, [countries, onUnsupportedCountryClick, displayedShops, mapReady, effectiveTheme, map, setCountryLayerReady]);
-
-  // Setup world overlay with city boundary holes
-  useEffect(() => {
-    if (!map || !mapReady) return;
-
-    const trySetup = () => {
-      try {
-        setupWorldOverlay(map, {
-          locations,
-          effectiveTheme,
-        });
-      } catch (err) {
-        console.error('Error setting up world overlay:', err);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      trySetup();
-    } else {
-      map.once('style.load', trySetup);
-    }
-
-    return () => {
-      cleanupWorldOverlay(map);
-    };
-  }, [locations, mapReady, effectiveTheme, map]);
+  }, [countries, displayedShops, mapReady, map, setCountryLayerReady]);
 }
