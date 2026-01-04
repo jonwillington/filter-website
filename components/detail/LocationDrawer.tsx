@@ -100,34 +100,13 @@ export function LocationDrawer({
       />
 
       <div className="drawer-content">
-        {/* Header with background image */}
+        {/* Header with contained image */}
         <div
-          className="relative location-drawer-header overflow-hidden"
+          className="relative location-drawer-header"
           style={{
             backgroundColor: primaryColor,
           }}
         >
-          {/* Background image with color overlay */}
-          {backgroundImage && (
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url(${backgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              {/* Primary color overlay */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundColor: primaryColor,
-                  opacity: 0.7,
-                }}
-              />
-            </div>
-          )}
-
           {/* Top header row with City Guide and close button */}
           <div
             className="relative flex items-center justify-between px-4 py-3 border-b border-white/10"
@@ -142,14 +121,28 @@ export function LocationDrawer({
             <CircularCloseButton onPress={onClose} size="sm" />
           </div>
 
-          <div className="relative px-4 pb-6 pt-16">
+          {/* Contained feature image with curved edges */}
+          <div className="px-4 pt-4 pb-5">
+            <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg mb-5">
+              {backgroundImage ? (
+                <Image
+                  src={backgroundImage}
+                  alt={currentLocation.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-white/10" />
+              )}
+            </div>
+
+            {/* Location name and country below image */}
             <h2
               className="text-white"
               style={{
                 fontFamily: 'Refrankt, serif',
                 fontSize: '28px',
                 letterSpacing: '-0.5px',
-                opacity: 1,
                 lineHeight: 1.1,
               }}
             >
@@ -157,12 +150,11 @@ export function LocationDrawer({
             </h2>
             {currentLocation.country?.name && (
               <span
-                className="text-white block"
+                className="text-white/50 block"
                 style={{
                   fontFamily: 'Refrankt, serif',
                   fontSize: '28px',
                   letterSpacing: '-0.5px',
-                  opacity: 0.4,
                   lineHeight: 1.1,
                 }}
               >
