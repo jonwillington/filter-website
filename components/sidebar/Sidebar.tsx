@@ -2,8 +2,8 @@
 
 import { DestinationSelector } from './DestinationSelector';
 import { ShopList } from './ShopList';
-import { WelcomeStats } from './WelcomeStats';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
+import { WelcomeStats } from './WelcomeStats';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useMemo, ReactNode, useState } from 'react';

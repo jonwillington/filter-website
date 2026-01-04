@@ -15,10 +15,12 @@ import { useTheme } from '@/lib/context/ThemeContext';
 
 // Mapbox token is set lazily in useEffect to avoid module-level side effects
 
-// Map styles for light/dark modes
+// Map styles for light/dark modes - both use dark backgrounds
+// TODO: Fix custom styles in Mapbox Studio - they reference "landcover" source layer that doesn't exist
+// Custom styles (broken): dark: cmjzctugx00sj01qqgix5axt3, light: cmjzcz3j7002q01sg0bqsf9q6
 const MAP_STYLES = {
-  dark: 'mapbox://styles/jonwillington-deel/cmjzctugx00sj01qqgix5axt3',
-  light: 'mapbox://styles/jonwillington-deel/cmjzcz3j7002q01sg0bqsf9q6',
+  dark: 'mapbox://styles/mapbox/dark-v11',
+  light: 'mapbox://styles/mapbox/dark-v11',
 };
 
 interface MapContainerProps {
@@ -313,16 +315,22 @@ export function MapContainer({
     el.className = `shop-marker${isSelected ? ' selected' : ''}`;
   }, []);
 
-  // Initialize map
+  // Track the current theme for style changes
+  const currentThemeRef = useRef(effectiveTheme);
+
+  // Initialize map (only once)
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
     // Set token lazily to avoid module-level side effects (breaks HMR)
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+    const styleUrl = MAP_STYLES[effectiveTheme] || MAP_STYLES.dark;
+    currentThemeRef.current = effectiveTheme;
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: MAP_STYLES[effectiveTheme],
+      style: styleUrl,
       center,
       zoom,
       attributionControl: false,
@@ -362,20 +370,16 @@ export function MapContainer({
       setCurrentZoom(newZoom);
     });
 
-    // When map loads, mark it ready for clustering and hide spinner
-    // Check if already loaded (in case we missed the event)
-    if (map.current.isStyleLoaded()) {
+    // When map loads or style changes, mark it ready
+    const markReady = () => {
       setMapReady(true);
-      setCountryLayerReady(true);
-    } else {
-      map.current.on('load', () => {
-        setMapReady(true);
-        // Give country layer setup a chance to run first, then ensure spinner hides
-        setTimeout(() => {
-          setCountryLayerReady(true);
-        }, 500);
-      });
-    }
+      setTimeout(() => {
+        setCountryLayerReady(true);
+      }, 500);
+    };
+
+    map.current.on('load', markReady);
+    map.current.on('style.load', markReady);
 
     return () => {
       clearInterval(zoomCheckInterval);
@@ -383,7 +387,22 @@ export function MapContainer({
       map.current?.remove();
       map.current = null;
     };
-  }, [zoom, effectiveTheme]);
+  }, [zoom]); // Only recreate map if zoom changes, not theme
+
+  // Handle theme changes by updating the map style
+  useEffect(() => {
+    if (!map.current) return;
+    if (currentThemeRef.current === effectiveTheme) return;
+
+    currentThemeRef.current = effectiveTheme;
+    const styleUrl = MAP_STYLES[effectiveTheme] || MAP_STYLES.dark;
+
+    // Temporarily mark as not ready while style loads
+    setMapReady(false);
+
+    // Change the style - this triggers 'style.load' event which will re-setup layers
+    map.current.setStyle(styleUrl);
+  }, [effectiveTheme]);
 
   // Setup country boundaries highlighting
   // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
@@ -400,8 +419,13 @@ export function MapContainer({
     let isSetup = false;
 
     const cleanupCountryLayer = () => {
-      // Check if map still exists before trying to clean up
-      if (!m || !m.getStyle()) return;
+      // Check if map still exists and style is loaded before trying to clean up
+      if (!m || !m.isStyleLoaded()) return;
+      try {
+        if (!m.getStyle()) return;
+      } catch {
+        return; // Style not available
+      }
 
       if (m.getLayer('country-fills')) {
         m.removeLayer('country-fills');
@@ -449,11 +473,8 @@ export function MapContainer({
         (layer.type === 'line')
       );
 
-      // Use different overlay colors for light/dark modes
-      const isDark = effectiveTheme === 'dark';
-      const unsupportedColor = isDark ? '#000000' : '#FFFFFF';
-      const unsupportedOpacity = isDark ? 0.6 : 0.5;
-
+      // Transparent layer just for click detection on unsupported countries
+      // (Visual overlay is now handled by world-overlay with city boundary holes)
       m.addLayer(
         {
           id: 'country-fills',
@@ -461,20 +482,8 @@ export function MapContainer({
           source: 'country-fills',
           'source-layer': 'country_boundaries',
           paint: {
-            'fill-color': [
-              'match',
-              ['get', 'iso_3166_1'],
-              supportedCountries,
-              'transparent', // Supported countries - show original style
-              unsupportedColor, // Unsupported countries - darken/lighten based on theme
-            ],
-            'fill-opacity': [
-              'match',
-              ['get', 'iso_3166_1'],
-              supportedCountries,
-              0, // Supported countries - no overlay
-              unsupportedOpacity, // Unsupported countries - fade out
-            ],
+            'fill-color': 'transparent',
+            'fill-opacity': 0,
           },
         },
         insertBefore?.id
@@ -537,93 +546,149 @@ export function MapContainer({
     };
   }, [countries, onUnsupportedCountryClick, displayedShops, mapReady, effectiveTheme]);
 
-  // Setup city boundary highlighting
-  // Shows supported city boundaries and reveals natural map features within them
+  // Setup world overlay with city boundary holes
+  // Creates a brown overlay covering everywhere EXCEPT supported city boundaries
   useEffect(() => {
-    if (!map.current || !mapReady || locations.length === 0) return;
+    if (!map.current || !mapReady) return;
 
     const m = map.current;
 
-    const cleanupCityBoundaries = () => {
-      if (!m || !m.getStyle()) return;
-      if (m.getLayer('city-boundaries-fill')) m.removeLayer('city-boundaries-fill');
+    const cleanupWorldOverlay = () => {
+      if (!m || !m.isStyleLoaded()) return;
+      try {
+        if (!m.getStyle()) return;
+      } catch {
+        return; // Style not available
+      }
+      if (m.getLayer('world-overlay')) m.removeLayer('world-overlay');
       if (m.getLayer('city-boundaries-line')) m.removeLayer('city-boundaries-line');
-      if (m.getSource('city-boundaries')) m.removeSource('city-boundaries');
+      if (m.getSource('world-overlay')) m.removeSource('world-overlay');
     };
 
-    const setupCityBoundaries = () => {
-      cleanupCityBoundaries();
+    const setupWorldOverlay = () => {
+      cleanupWorldOverlay();
 
       // Filter locations that have boundary coordinates (array of points)
       const locationsWithBoundaries = locations.filter(
         loc => Array.isArray(loc.coordinates) && loc.coordinates.length >= 3
       );
 
-      if (locationsWithBoundaries.length === 0) return;
-
-      // Convert to GeoJSON polygons
-      const features: GeoJSON.Feature[] = locationsWithBoundaries.map(loc => {
-        const coords = loc.coordinates as Array<{ lat: number; lng: number }>;
-        // GeoJSON uses [lng, lat] order
-        const polygon = coords.map(c => [c.lng, c.lat]);
-
-        return {
-          type: 'Feature',
-          properties: {
-            name: loc.name,
-            documentId: loc.documentId,
-          },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [polygon],
-          },
-        };
+      console.log('World overlay setup:', {
+        totalLocations: locations.length,
+        locationsWithBoundaries: locationsWithBoundaries.length,
+        boundaryNames: locationsWithBoundaries.map(l => l.name),
+        sampleCoords: locationsWithBoundaries[0]?.coordinates,
       });
+
+      // Create a world polygon with city boundaries as holes
+      // World polygon covers the entire globe
+      const worldPolygon: number[][] = [
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90],
+      ];
+
+      // City boundaries become holes in the world polygon
+      const holes: number[][][] = locationsWithBoundaries.map(loc => {
+        const coords = loc.coordinates as Array<{ lat: number; lng: number }>;
+        // GeoJSON uses [lng, lat] order, holes must be counter-clockwise (reversed)
+        return coords.map(c => [c.lng, c.lat]).reverse();
+      });
+
+      // GeoJSON polygon with holes: first ring is outer, subsequent rings are holes
+      const polygonCoordinates = [worldPolygon, ...holes];
 
       const geojson: GeoJSON.FeatureCollection = {
         type: 'FeatureCollection',
-        features,
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: polygonCoordinates,
+            },
+          },
+        ],
       };
 
-      m.addSource('city-boundaries', {
+      m.addSource('world-overlay', {
         type: 'geojson',
         data: geojson,
       });
 
-      // Add subtle fill to show city areas
       const isDark = effectiveTheme === 'dark';
 
-      m.addLayer({
-        id: 'city-boundaries-fill',
-        type: 'fill',
-        source: 'city-boundaries',
-        paint: {
-          'fill-color': isDark ? '#3D2E24' : '#F5EDE5',
-          'fill-opacity': 0.3,
-        },
-      });
+      // Find a good insertion point - below roads and labels
+      const layers = m.getStyle().layers;
+      const insertBefore = layers.find(layer =>
+        layer.id.includes('road') ||
+        layer.id.includes('bridge') ||
+        layer.type === 'line' ||
+        layer.type === 'symbol'
+      );
 
-      // Add border line
-      m.addLayer({
-        id: 'city-boundaries-line',
-        type: 'line',
-        source: 'city-boundaries',
-        paint: {
-          'line-color': isDark ? '#6B5548' : '#B8A898',
-          'line-width': 2,
-          'line-opacity': 0.6,
+      // Add the brown overlay (covers world except city holes)
+      m.addLayer(
+        {
+          id: 'world-overlay',
+          type: 'fill',
+          source: 'world-overlay',
+          paint: {
+            'fill-color': isDark ? '#3D2E24' : '#F5EDE5',
+            'fill-opacity': isDark ? 0.85 : 0.8,
+          },
         },
-      });
+        insertBefore?.id
+      );
+
+      // Add city boundary outlines for visual clarity
+      if (locationsWithBoundaries.length > 0) {
+        const cityBoundariesGeojson: GeoJSON.FeatureCollection = {
+          type: 'FeatureCollection',
+          features: locationsWithBoundaries.map(loc => {
+            const coords = loc.coordinates as Array<{ lat: number; lng: number }>;
+            return {
+              type: 'Feature' as const,
+              properties: { name: loc.name },
+              geometry: {
+                type: 'Polygon' as const,
+                coordinates: [coords.map(c => [c.lng, c.lat])],
+              },
+            };
+          }),
+        };
+
+        if (!m.getSource('city-boundaries-outline')) {
+          m.addSource('city-boundaries-outline', {
+            type: 'geojson',
+            data: cityBoundariesGeojson,
+          });
+        }
+
+        m.addLayer({
+          id: 'city-boundaries-line',
+          type: 'line',
+          source: 'city-boundaries-outline',
+          paint: {
+            'line-color': isDark ? '#6B5548' : '#B8A898',
+            'line-width': 1.5,
+            'line-opacity': 0.5,
+          },
+        });
+      }
     };
 
     if (m.isStyleLoaded()) {
-      setupCityBoundaries();
+      setupWorldOverlay();
     } else {
-      m.once('style.load', setupCityBoundaries);
+      m.once('style.load', setupWorldOverlay);
     }
 
     return () => {
-      cleanupCityBoundaries();
+      cleanupWorldOverlay();
     };
   }, [locations, mapReady, effectiveTheme]);
 
@@ -676,9 +741,9 @@ export function MapContainer({
   useEffect(() => {
     if (!map.current || !mapReady) return;
 
-    const setupClustering = () => {
-      const m = map.current!;
+    const m = map.current;
 
+    const setupClustering = () => {
       // Remove existing source and layers if they exist
       if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
       if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
@@ -1113,9 +1178,30 @@ export function MapContainer({
       };
     };
 
-    // Since we wait for mapReady (which is set when map loads), style should be loaded
-    // Run setupClustering directly
-    const cleanup = setupClustering();
+    // Wait for style to be fully loaded before setting up clustering
+    let cleanup: (() => void) | undefined;
+
+    if (m.isStyleLoaded()) {
+      cleanup = setupClustering();
+    } else {
+      // Style not loaded yet - wait for it
+      const onStyleLoad = () => {
+        cleanup = setupClustering();
+      };
+      m.once('style.load', onStyleLoad);
+
+      // Also try idle as fallback
+      m.once('idle', () => {
+        if (!cleanup && m.isStyleLoaded()) {
+          cleanup = setupClustering();
+        }
+      });
+
+      return () => {
+        m.off('style.load', onStyleLoad);
+        cleanup?.();
+      };
+    }
 
     return () => {
       cleanup?.();

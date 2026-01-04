@@ -1,5 +1,11 @@
 # Claude Code Project Rules
 
+## CRITICAL: Environment Files
+
+**NEVER modify `.env.local`, `.env`, `.env.production`, or any environment configuration files without explicit user confirmation.** These files contain sensitive credentials and environment-specific settings. Always ask before making changes.
+
+---
+
 ## UI Design Principles (Airbnb-Inspired)
 
 When making UI changes, follow these content-first design principles. Design should feel effortless — the interface disappears, and content becomes the experience.

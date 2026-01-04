@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Location, Shop } from '@/lib/types';
-import { Coffee, MapPin, Globe, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { cn, getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -14,21 +14,6 @@ interface WelcomeStatsProps {
 }
 
 export function WelcomeStats({ locations, shops, onShopSelect, compact = false }: WelcomeStatsProps) {
-  // Calculate stats
-  const stats = useMemo(() => {
-    const uniqueCountries = new Set(
-      locations
-        .map((loc) => loc.country?.name)
-        .filter(Boolean)
-    );
-
-    return {
-      shopCount: shops.length,
-      cityCount: locations.length,
-      countryCount: uniqueCountries.size,
-    };
-  }, [locations, shops]);
-
   // Get featured shops - prioritize highly rated, then recommended, then any with ratings
   const topShops = useMemo(() => {
     // First try: shops with high Google ratings (4.5+)
@@ -65,37 +50,10 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
 
   return (
     <div className="flex-1 p-4 overflow-y-auto">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-text mb-2">Welcome to Filter</h2>
-        <p className="text-sm text-textSecondary">
-          Discover the best specialty coffee shops around the world
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard
-          icon={<Coffee className="w-5 h-5" />}
-          value={stats.shopCount}
-          label="Shops"
-        />
-        <StatCard
-          icon={<MapPin className="w-5 h-5" />}
-          value={stats.cityCount}
-          label="Cities"
-        />
-        <StatCard
-          icon={<Globe className="w-5 h-5" />}
-          value={stats.countryCount}
-          label="Countries"
-        />
-      </div>
-
-      {/* Top Rated Shops */}
+      {/* Featured Shops - curved container with light contrast */}
       {topShops.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
-            <Star className="w-4 h-4 text-amber-500" />
+        <div className="bg-gray-100 dark:bg-gray-800/50 rounded-2xl p-4">
+          <h3 className="text-xs font-medium text-text-secondary mb-3">
             Featured Shops
           </h3>
           <div className="grid grid-cols-2 gap-3">
@@ -127,17 +85,14 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-                  {/* Flag in top right */}
+                  {/* Flag in top right - smaller */}
                   {flagUrl && (
-                    <div className={cn(
-                      "absolute top-2 right-2 rounded-full overflow-hidden bg-background shadow-md",
-                      compact ? "w-5 h-5" : "w-7 h-7"
-                    )}>
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full overflow-hidden bg-background shadow-sm">
                       <Image
                         src={flagUrl}
                         alt={shop.location?.country?.name || 'Country'}
-                        width={compact ? 20 : 28}
-                        height={compact ? 20 : 28}
+                        width={16}
+                        height={16}
                         className="object-cover"
                       />
                     </div>
@@ -146,17 +101,10 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
                   {/* Rating badge */}
                   {shop.google_rating && (
                     <div className={cn(
-                      "absolute top-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full",
-                      compact ? "px-1.5 py-0.5" : "px-2 py-1"
+                      "absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5"
                     )}>
-                      <Star className={cn(
-                        "fill-amber-400 text-amber-400",
-                        compact ? "w-2.5 h-2.5" : "w-3.5 h-3.5"
-                      )} />
-                      <span className={cn(
-                        "font-medium text-white",
-                        compact ? "text-[10px]" : "text-xs"
-                      )}>
+                      <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                      <span className="text-[10px] font-medium text-white">
                         {shop.google_rating.toFixed(1)}
                       </span>
                     </div>
@@ -188,29 +136,11 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
       )}
 
       {/* Getting Started */}
-      <div className="mt-6 pt-4 border-t border-border">
-        <p className="text-xs text-textSecondary text-center">
+      <div className="mt-6 pt-4 border-t border-border-default">
+        <p className="text-xs text-text-secondary text-center">
           Select a city above or click "Nearby" to get started
         </p>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-}) {
-  return (
-    <div className="bg-surface border border-border rounded-lg p-3 text-center">
-      <div className="flex justify-center mb-1 text-accent">{icon}</div>
-      <p className="text-lg font-bold text-text">{value}</p>
-      <p className="text-xs text-textSecondary">{label}</p>
     </div>
   );
 }
