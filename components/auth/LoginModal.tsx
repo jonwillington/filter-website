@@ -4,7 +4,7 @@ import { ModalHeader, ModalBody, Button } from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useState } from 'react';
 import { LegalModal } from '../modals/LegalModal';
-import { ResponsiveModal, CircularCloseButton } from '@/components/ui';
+import { ResponsiveModal } from '@/components/ui';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -48,14 +48,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       <ResponsiveModal
         isOpen={isOpen}
         onClose={onClose}
-        hideCloseButton
       >
-        {/* Floating close button */}
-        <CircularCloseButton
-          onPress={onClose}
-          className="absolute top-3 right-3 z-20"
-        />
-
         <ModalHeader className="flex flex-col gap-2 pt-8 px-6">
           <span id="login-modal-title" className="font-display text-3xl">
             Sign in to Filter

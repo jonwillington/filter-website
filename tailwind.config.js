@@ -11,15 +11,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // App-specific custom colors (not HeroUI semantic colors)
-        // Light mode defaults
-        surface: '#FAFAFA',
-        contrastBlock: '#2E1F17',
-        contrastText: '#FFFDFB',
-        accent: '#8B6F47',
-        text: '#1A1A1A',
-        textSecondary: '#9A9A9A',
-        border: '#E5DDD5',
+        // Semantic color tokens - use CSS variables for dark mode support
+        // Usage: bg-surface, text-primary, border-default etc.
+        background: 'var(--background)',
+        surface: 'var(--surface)',
+        'surface-elevated': 'var(--surface-elevated)',
+        contrastBlock: 'var(--contrast-block)',
+        contrastText: 'var(--contrast-text)',
+        accent: 'var(--accent)',
+        secondary: 'var(--secondary)',
+        primary: 'var(--text)',
+        'text-secondary': 'var(--text-secondary)',
+        'border-default': 'var(--border)',
+        error: 'var(--error)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        // Legacy static colors (avoid using - prefer semantic tokens above)
         buttonPrimary: '#3D2A1F',
         buttonText: '#FFFFFF',
       },

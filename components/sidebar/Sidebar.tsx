@@ -110,10 +110,11 @@ export function Sidebar({
       </AnimatedGradientHeader>
 
       {/* Controls section - outside gradient header */}
-      <div className="px-4 py-5 space-y-4 border-b border-border bg-white">
+      <div className="px-4 py-5 space-y-4 border-b border-border-default bg-background">
         <DestinationSelector
           locations={locations}
           countries={countries}
+          allShops={allShops}
           selectedLocation={selectedLocation}
           onLocationChange={onLocationChange}
           isNearbyMode={isNearbyMode}
@@ -123,7 +124,7 @@ export function Sidebar({
           <select
             value={shopFilter}
             onChange={(e) => onShopFilterChange(e.target.value as ShopFilterType)}
-            className="w-full h-9 px-3 text-sm text-gray-700 bg-gray-100 border-0 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="w-full h-9 px-3 text-sm text-primary bg-surface border-0 rounded-lg cursor-pointer hover:bg-border-default transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30"
             aria-label="Filter shops"
           >
             {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
@@ -150,7 +151,14 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-content">
-        {isAreaUnsupported ? (
+        {isLoading && !selectedLocation && !isNearbyMode ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-textSecondary">Finding your location...</p>
+            </div>
+          </div>
+        ) : isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8 text-center">
             <div>
               <p className="text-lg font-medium text-text mb-3">Not Available Yet</p>
@@ -177,7 +185,7 @@ export function Sidebar({
               isLoading={isLoading}
             />
             {selectedLocation && filterCounts.all < 5 && (
-              <div className="mx-4 mt-2 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mx-4 mt-2 mb-4 p-4 bg-surface border border-border-default rounded-lg">
                 <p className="text-sm text-text leading-snug mb-2">
                   We have been and investigated but <strong>{selectedLocation.name}</strong> is not a great city for coffee.
                 </p>

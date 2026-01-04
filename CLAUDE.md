@@ -79,5 +79,108 @@ Reference Project: filter-expo
 Before proposing workarounds or alternative approaches, consult the filter-expo project in the same directory. This project contains established patterns for API routes, component structure, state management, authentication, and error handling.
 If you encounter a technical challenge, check filter-expo first. The solution likely already exists. Replicate proven patterns rather than inventing new ones. Only propose novel approaches when filter-expo genuinely lacks a relevant precedent.
 
+---
+
+## Strapi API Population
+
+When adding new fields to types or using new data from Strapi:
+
+1. **Always check `lib/api/shops.ts`** - The `SHOP_POPULATE` array explicitly lists which fields are fetched from the API
+2. **Strapi doesn't return all fields by default** - When using `populate[relation][fields]`, you must explicitly list every field you need (including `id` and `documentId`)
+3. **New fields require API changes** - Adding a field to a TypeScript interface does NOT make it appear in the data. You must also add it to the populate params.
+4. **Clear cache after API changes** - Delete `.next` folder and restart dev server to see changes
+
+Example: To add a `group` field to `city_area`:
+```
+'populate[city_area][fields][0]=id',
+'populate[city_area][fields][1]=documentId',
+'populate[city_area][fields][2]=name',
+'populate[city_area][fields][3]=group',  // <-- Add the new field
+```
+
 #### Preventing breaking production builds
 When we debug why something did not build properly in production lets learn from it, add here what went wrong and make sure this doenst happen in future - we waste time doing this every tikme
+
+---
+
+## Dark Mode & Color Tokens
+
+This project uses a **semantic color token system** that automatically handles light/dark mode. **Never use hardcoded colors**.
+
+### Color Token System
+
+CSS variables are defined in `app/globals.css` and exposed via Tailwind in `tailwind.config.js`.
+
+**Available Tailwind classes (auto-switch between light/dark):**
+- `bg-background` - Main page background
+- `bg-surface` - Cards, panels, elevated surfaces
+- `bg-surface-elevated` - Modals, popovers (higher elevation)
+- `text-primary` - Primary text color
+- `text-text-secondary` - Secondary/muted text
+- `text-contrastText` - Text on contrast blocks
+- `bg-contrastBlock` - High-contrast background (inverts in dark mode)
+- `border-border-default` - Default border color
+- `text-accent` / `bg-accent` - Brand accent color
+- `text-error` / `text-success` / `text-warning` - Semantic colors
+
+### Dark Mode Design
+
+Dark mode uses **warm brown tones** (like the gradient header), NOT cold blacks/grays:
+- Background: `#1A1410` (very dark brown)
+- Surface: `#251C16` (dark brown)
+- Surface elevated: `#2E2219` (medium brown)
+- Text: `#FAF7F5` (warm off-white)
+- Text secondary: `#A89B8C` (warm gray-brown)
+- Border: `#3D2E25` (brown border)
+
+### Rules for Color Usage
+
+**DO:**
+```tsx
+// Use semantic Tailwind classes
+<div className="bg-background text-primary border-border-default">
+<button className="bg-surface hover:bg-border-default text-text-secondary">
+<div className="bg-contrastBlock text-contrastText">
+```
+
+**DON'T:**
+```tsx
+// Never use hardcoded colors
+<div className="bg-white">  // ❌
+<div className="bg-gray-100">  // ❌
+<div className="text-gray-700">  // ❌
+<div style={{ backgroundColor: '#ffffff' }}>  // ❌
+```
+
+### Common Migrations
+
+| Hardcoded | Replace With |
+|-----------|--------------|
+| `bg-white` | `bg-background` |
+| `bg-gray-50`, `bg-gray-100` | `bg-surface` |
+| `bg-gray-200` | `bg-border-default` |
+| `text-gray-900`, `text-black` | `text-primary` |
+| `text-gray-500`, `text-gray-600` | `text-text-secondary` |
+| `border-gray-100`, `border-gray-200` | `border-border-default` |
+
+### For Inline Styles (JavaScript)
+
+When you must use inline styles (e.g., in map markers), access the theme:
+```tsx
+import { useTheme } from '@/lib/context/ThemeContext';
+
+const { effectiveTheme } = useTheme();
+const isDark = effectiveTheme === 'dark';
+
+// Then use conditional values
+const bgColor = isDark ? '#251C16' : 'white';
+const textColor = isDark ? '#FAF7F5' : '#1a1a1a';
+```
+
+### Testing Dark Mode
+
+After any UI changes:
+1. Toggle dark mode using the footer sun/moon icon
+2. Verify all backgrounds use warm brown tones (not gray/black)
+3. Check text is readable with sufficient contrast
+4. Verify borders and dividers are visible

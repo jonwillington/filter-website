@@ -54,7 +54,7 @@ export interface Location {
   shops?: Shop[];
   city_areas?: CityArea[];
   country?: Country;
-  coordinates?: { lat: number; lng: number };
+  coordinates?: Array<{ lat: number; lng: number }> | { lat: number; lng: number };
 }
 
 export interface CityArea {
@@ -62,6 +62,7 @@ export interface CityArea {
   documentId: string;
   name: string;
   slug?: string;
+  group?: string | null;
   description?: string | null;
   summary?: string | null;
   featuredImage?: MediaAsset | null;

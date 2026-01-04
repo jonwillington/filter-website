@@ -29,7 +29,7 @@ export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onCl
       <ModalHeader className="flex flex-col gap-1 pt-6">
           <div className="flex items-center gap-3">
             {flagUrl ? (
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-md">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-background shadow-md">
                 <Image
                   src={flagUrl}
                   alt={countryName}
@@ -39,14 +39,14 @@ export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onCl
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-200" />
+              <div className="w-12 h-12 rounded-full bg-surface" />
             )}
             <h2 className="text-xl font-bold">Coming Soon</h2>
           </div>
         </ModalHeader>
         <ModalBody className="pb-6 pt-2">
-          <p className="text-gray-600 mb-4">
-            Filter is not yet in <span className="font-semibold text-gray-900">{countryName}</span> but it is coming soon!
+          <p className="text-text-secondary mb-4">
+            Filter is not yet in <span className="font-semibold text-primary">{countryName}</span> but it is coming soon!
           </p>
           <Button
             fullWidth

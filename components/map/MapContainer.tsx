@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Spinner } from '@heroui/react';
-import { Shop, Country } from '@/lib/types';
+import { Shop, Country, Location } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 import {
   calculateDistance,
@@ -11,8 +11,15 @@ import {
   calculateLocalDensity,
   getZoomBracket,
 } from '@/lib/utils/mapGeometry';
+import { useTheme } from '@/lib/context/ThemeContext';
 
 // Mapbox token is set lazily in useEffect to avoid module-level side effects
+
+// Map styles for light/dark modes
+const MAP_STYLES = {
+  dark: 'mapbox://styles/jonwillington-deel/cmjzctugx00sj01qqgix5axt3',
+  light: 'mapbox://styles/jonwillington-deel/cmjzcz3j7002q01sg0bqsf9q6',
+};
 
 interface MapContainerProps {
   shops: Shop[];
@@ -23,6 +30,7 @@ interface MapContainerProps {
   isLoading?: boolean;
   onTransitionComplete?: () => void;
   countries?: Country[];
+  locations?: Location[];
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
 }
 
@@ -39,8 +47,10 @@ export function MapContainer({
   isLoading = false,
   onTransitionComplete,
   countries = [],
+  locations = [],
   onUnsupportedCountryClick,
 }: MapContainerProps) {
+  const { effectiveTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
@@ -85,6 +95,14 @@ export function MapContainer({
   // Create marker element
   const createMarkerElement = useCallback(
     (shop: Shop, isSelected: boolean, fadeIn: boolean = false, density: number = 0, zoomLevel: number = 12) => {
+      // Theme-aware colors for markers
+      const isDark = effectiveTheme === 'dark';
+      const labelBg = isDark ? '#251C16' : 'white';
+      const labelText = isDark ? '#FAF7F5' : '#1a1a1a';
+      const shimmerGradient = isDark
+        ? 'linear-gradient(135deg, #2E2219 0%, #3D2E25 50%, #2E2219 100%)'
+        : 'linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)';
+
       // Density threshold - use simple markers when there are many nearby shops
       // Higher threshold (30) means logos appear in moderately dense areas too
       const HIGH_DENSITY_THRESHOLD = 30;
@@ -182,7 +200,7 @@ export function MapContainer({
           // Start with loading state
           logoEl.style.cssText = `
             ${baseStyles}
-            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+            background: ${shimmerGradient};
             background-size: 200% 200%;
             animation: shimmer 1.5s ease-in-out infinite;
           `;
@@ -206,8 +224,8 @@ export function MapContainer({
             logoEl.style.backgroundImage = `url(${logoUrl})`;
             logoEl.style.backgroundSize = 'cover';
             logoEl.style.backgroundPosition = 'center';
-            logoEl.style.backgroundColor = 'white';
-            logoEl.style.background = `url(${logoUrl}) center/cover white`;
+            logoEl.style.backgroundColor = labelBg;
+            logoEl.style.background = `url(${logoUrl}) center/cover ${labelBg}`;
             logoEl.style.animation = 'none';
           };
           img.src = logoUrl;
@@ -215,7 +233,7 @@ export function MapContainer({
           logoEl.innerHTML = '☕';
           logoEl.style.cssText = `
             ${baseStyles}
-            background: white;
+            background: ${labelBg};
             display: flex;
             align-items: center;
             justify-content: center;
@@ -229,8 +247,8 @@ export function MapContainer({
         const locationName = shop.location?.name || '';
         textLabel.textContent = `${brandName} · ${locationName}`;
         textLabel.style.cssText = `
-          background: white;
-          color: #1a1a1a;
+          background: ${labelBg};
+          color: ${labelText};
           font-size: 11px;
           font-weight: 500;
           padding: 3px 8px;
@@ -261,7 +279,7 @@ export function MapContainer({
         return container;
       }
     },
-    []
+    [effectiveTheme]
   );
 
   // Update marker element styling without replacing it
@@ -304,7 +322,7 @@ export function MapContainer({
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: MAP_STYLES[effectiveTheme],
       center,
       zoom,
       attributionControl: false,
@@ -365,7 +383,7 @@ export function MapContainer({
       map.current?.remove();
       map.current = null;
     };
-  }, [zoom]);
+  }, [zoom, effectiveTheme]);
 
   // Setup country boundaries highlighting
   // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
@@ -421,6 +439,21 @@ export function MapContainer({
       });
 
       // Add country boundary fill layer - darken unsupported countries
+      const layers = m.getStyle().layers;
+
+      // Find a good insertion point - after background/water but before roads
+      const insertBefore = layers.find(layer =>
+        layer.id.includes('landuse') ||
+        layer.id.includes('landcover') ||
+        layer.id.includes('land-structure') ||
+        (layer.type === 'line')
+      );
+
+      // Use different overlay colors for light/dark modes
+      const isDark = effectiveTheme === 'dark';
+      const unsupportedColor = isDark ? '#000000' : '#FFFFFF';
+      const unsupportedOpacity = isDark ? 0.6 : 0.5;
+
       m.addLayer(
         {
           id: 'country-fills',
@@ -432,20 +465,19 @@ export function MapContainer({
               'match',
               ['get', 'iso_3166_1'],
               supportedCountries,
-              'transparent', // Supported countries - no overlay
-              '#1a1a1a', // Unsupported countries - dark overlay
+              'transparent', // Supported countries - show original style
+              unsupportedColor, // Unsupported countries - darken/lighten based on theme
             ],
             'fill-opacity': [
               'match',
               ['get', 'iso_3166_1'],
               supportedCountries,
-              0, // Supported countries - no opacity
-              0.5, // Unsupported countries - strong dark overlay
+              0, // Supported countries - no overlay
+              unsupportedOpacity, // Unsupported countries - fade out
             ],
           },
         },
-        // Insert below the first symbol layer to keep country names visible
-        m.getStyle().layers.find(layer => layer.type === 'symbol')?.id
+        insertBefore?.id
       );
 
       // Add click handler for unsupported countries
@@ -484,20 +516,116 @@ export function MapContainer({
       setCountryLayerReady(true);
     };
 
-    if (m.isStyleLoaded()) {
-      setupCountryHighlighting();
-    } else {
-      const onLoad = () => {
+    // Wait for style to be fully loaded before adding layers
+    const trySetup = () => {
+      try {
         setupCountryHighlighting();
-        m.off('load', onLoad);
-      };
-      m.on('load', onLoad);
+      } catch (err) {
+        console.error('Error setting up country highlighting:', err);
+        setCountryLayerReady(true); // Still mark ready so spinner hides
+      }
+    };
+
+    if (m.isStyleLoaded()) {
+      trySetup();
+    } else {
+      m.once('style.load', trySetup);
     }
 
     return () => {
       cleanupCountryLayer();
     };
-  }, [countries, onUnsupportedCountryClick, displayedShops, mapReady]);
+  }, [countries, onUnsupportedCountryClick, displayedShops, mapReady, effectiveTheme]);
+
+  // Setup city boundary highlighting
+  // Shows supported city boundaries and reveals natural map features within them
+  useEffect(() => {
+    if (!map.current || !mapReady || locations.length === 0) return;
+
+    const m = map.current;
+
+    const cleanupCityBoundaries = () => {
+      if (!m || !m.getStyle()) return;
+      if (m.getLayer('city-boundaries-fill')) m.removeLayer('city-boundaries-fill');
+      if (m.getLayer('city-boundaries-line')) m.removeLayer('city-boundaries-line');
+      if (m.getSource('city-boundaries')) m.removeSource('city-boundaries');
+    };
+
+    const setupCityBoundaries = () => {
+      cleanupCityBoundaries();
+
+      // Filter locations that have boundary coordinates (array of points)
+      const locationsWithBoundaries = locations.filter(
+        loc => Array.isArray(loc.coordinates) && loc.coordinates.length >= 3
+      );
+
+      if (locationsWithBoundaries.length === 0) return;
+
+      // Convert to GeoJSON polygons
+      const features: GeoJSON.Feature[] = locationsWithBoundaries.map(loc => {
+        const coords = loc.coordinates as Array<{ lat: number; lng: number }>;
+        // GeoJSON uses [lng, lat] order
+        const polygon = coords.map(c => [c.lng, c.lat]);
+
+        return {
+          type: 'Feature',
+          properties: {
+            name: loc.name,
+            documentId: loc.documentId,
+          },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [polygon],
+          },
+        };
+      });
+
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features,
+      };
+
+      m.addSource('city-boundaries', {
+        type: 'geojson',
+        data: geojson,
+      });
+
+      // Add subtle fill to show city areas
+      const isDark = effectiveTheme === 'dark';
+
+      m.addLayer({
+        id: 'city-boundaries-fill',
+        type: 'fill',
+        source: 'city-boundaries',
+        paint: {
+          'fill-color': isDark ? '#3D2E24' : '#F5EDE5',
+          'fill-opacity': 0.3,
+        },
+      });
+
+      // Add border line
+      m.addLayer({
+        id: 'city-boundaries-line',
+        type: 'line',
+        source: 'city-boundaries',
+        paint: {
+          'line-color': isDark ? '#6B5548' : '#B8A898',
+          'line-width': 2,
+          'line-opacity': 0.6,
+        },
+      });
+    };
+
+    if (m.isStyleLoaded()) {
+      setupCityBoundaries();
+    } else {
+      m.once('style.load', setupCityBoundaries);
+    }
+
+    return () => {
+      cleanupCityBoundaries();
+    };
+  }, [locations, mapReady, effectiveTheme]);
 
   // Update center when it changes
   useEffect(() => {
@@ -1110,7 +1238,7 @@ export function MapContainer({
 
       {/* Country layer loading overlay - prevents flash of unstyled map */}
       <div
-        className={`absolute inset-0 bg-white flex items-center justify-center pointer-events-none z-[5] transition-opacity duration-300 ${
+        className={`absolute inset-0 bg-background flex items-center justify-center pointer-events-none z-[5] transition-opacity duration-300 ${
           countryLayerReady ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -1119,7 +1247,7 @@ export function MapContainer({
 
       {/* Loading spinner overlay */}
       <div
-        className={`absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center pointer-events-none z-10 transition-opacity duration-500 ease-in-out ${
+        className={`absolute inset-0 bg-white/60 dark:bg-[rgba(26,20,16,0.6)] backdrop-blur-sm flex items-center justify-center pointer-events-none z-10 transition-opacity duration-500 ease-in-out ${
           isLoading ? 'opacity-100' : 'opacity-0'
         }`}
       >

@@ -15,23 +15,11 @@ export async function getAllCountries(): Promise<Country[]> {
   }
 
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/countries?pagination[pageSize]=500&populate[region]=*`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-        },
-        next: { revalidate: 300 },
-      }
+    // Use explicit field population instead of populate=* to avoid circular reference errors
+    const countries = await apiClient<Country[]>(
+      '/countries?pagination[pageSize]=500&populate[region][fields][0]=Name&populate[region][fields][1]=comingSoon',
+      { revalidate: 300 }
     );
-
-    if (!response.ok) {
-      throw new Error(`Countries API Error: ${response.statusText}`);
-    }
-
-    const json = await response.json();
-    const countries = (json.data || []) as Country[];
 
     countriesCache = countries;
     cacheTimestamp = now;

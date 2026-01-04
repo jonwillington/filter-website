@@ -22,6 +22,7 @@
 :root {
   --background: #FFFFFF;
   --surface: #FAFAFA;
+  --surface-elevated: #FFFFFF;
   --contrast-block: #2E1F17;
   --contrast-text: #FFFDFB;
   --accent: #8B6F47;
@@ -35,15 +36,16 @@
 }
 
 .dark {
-  --background: #1A1A1A;
-  --surface: #262626;
+  --background: #1A1410;
+  --surface: #251C16;
+  --surface-elevated: #2E2219;
   --contrast-block: #FFFDFB;
   --contrast-text: #2E1F17;
   --accent: #B8956A;
   --secondary: #D4C4B0;
-  --text: #FAFAFA;
-  --text-secondary: #9A9A9A;
-  --border: #404040;
+  --text: #FAF7F5;
+  --text-secondary: #A89B8C;
+  --border: #3D2E25;
   --error: #EF4444;
   --success: #22C55E;
   --warning: #F59E0B;
@@ -110,7 +112,7 @@ h1, h2 {
 }
 
 .dark .sidebar {
-  background: rgba(26, 26, 26, 0.98);
+  background: rgba(26, 20, 16, 0.98);
 }
 
 /* Animated gradient header wrapper */
@@ -245,7 +247,7 @@ h1, h2 {
 }
 
 .dark .drawer {
-  background: rgba(26, 26, 26, 0.98);
+  background: rgba(37, 28, 22, 0.98);
   backdrop-filter: blur(20px);
 }
 
@@ -291,7 +293,7 @@ h1, h2 {
 }
 
 .dark .shop-drawer {
-  background: rgba(26, 26, 26, 0.98);
+  background: rgba(37, 28, 22, 0.98);
   backdrop-filter: blur(20px);
 }
 
@@ -352,7 +354,7 @@ h1, h2 {
 }
 
 .dark .footer {
-  background: rgba(26, 26, 26, 0.98);
+  background: rgba(26, 20, 16, 0.98);
 }
 
 @media (max-width: 1024px) {
@@ -408,7 +410,7 @@ h1, h2 {
 }
 
 .dark .area-header {
-  background: rgba(38, 38, 38, 0.95);
+  background: rgba(37, 28, 22, 0.95);
 }
 
 /* Shop Card */

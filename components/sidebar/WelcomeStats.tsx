@@ -111,7 +111,7 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
                   key={shop.documentId}
                   onClick={() => onShopSelect(shop)}
                   className={cn(
-                    "group relative overflow-hidden rounded-xl bg-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
+                    "group relative overflow-hidden rounded-xl bg-surface hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
                     compact ? "aspect-[4/3]" : "aspect-square"
                   )}
                 >
@@ -130,7 +130,7 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
                   {/* Flag in top right */}
                   {flagUrl && (
                     <div className={cn(
-                      "absolute top-2 right-2 rounded-full overflow-hidden bg-white shadow-md",
+                      "absolute top-2 right-2 rounded-full overflow-hidden bg-background shadow-md",
                       compact ? "w-5 h-5" : "w-7 h-7"
                     )}>
                       <Image

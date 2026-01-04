@@ -11,13 +11,15 @@ import { BrewMethods } from './BrewMethods';
 import { BeansSection } from './BeansSection';
 import { BrandInfoSection } from './BrandInfoSection';
 import { PhotoGallery } from './PhotoGallery';
-import { ShopMiniCard } from './ShopMiniCard';
+import { BrandShopCard } from './BrandShopCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
-import { Accordion, AccordionItem, Divider } from '@heroui/react';
+import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
+import { Divider } from '@heroui/react';
 import { CircularCloseButton, AwardBox, StickyDrawerHeader } from '@/components/ui';
-import { getShopDisplayName, hasCityAreaRecommendation } from '@/lib/utils';
+import { ChevronLeft } from 'lucide-react';
+import { getShopDisplayName, hasCityAreaRecommendation, getMediaUrl } from '@/lib/utils';
 import { useStickyHeaderOpacity, useDrawerTransition } from '@/lib/hooks';
-import { getMoreFromBrand, getNearbyShops } from '@/lib/utils/shopFiltering';
+import { getMoreFromBrand } from '@/lib/utils/shopFiltering';
 
 interface ShopDrawerProps {
   shop: Shop;
@@ -25,13 +27,15 @@ interface ShopDrawerProps {
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
   onOpenLoginModal?: () => void;
+  onBack?: () => void;
   useWrapper?: boolean;
 }
 
-export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal, useWrapper = true }: ShopDrawerProps) {
+export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal, onBack, useWrapper = true }: ShopDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
 
   // Find scrollable parent when not using wrapper
   useEffect(() => {
@@ -69,15 +73,10 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
     scrollRef,
   });
 
-  // Get related shops using extracted utility functions
+  // Get related shops from the same brand
   const moreFromBrand = useMemo(
     () => getMoreFromBrand(currentShop, allShops),
     [currentShop, allShops]
-  );
-
-  const nearbyShops = useMemo(
-    () => getNearbyShops(currentShop, allShops, moreFromBrand.map(s => s.documentId)),
-    [currentShop, allShops, moreFromBrand]
   );
 
   const areaName = currentShop.city_area?.name ?? currentShop.cityArea?.name;
@@ -94,15 +93,28 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         onClose={onClose}
       />
 
-      {/* Floating close button (visible when sticky header is hidden) */}
-      <CircularCloseButton
-        onPress={onClose}
-        className="absolute top-3 right-3 z-20"
+      {/* Floating buttons (visible when sticky header is hidden) */}
+      <div
+        className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between"
         style={{
           opacity: 1 - stickyHeaderOpacity,
           pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
         }}
-      />
+      >
+        {/* Back button - only shown if came from city guide */}
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-md transition-all duration-200 flex items-center justify-center"
+            aria-label="Back to city guide"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        ) : (
+          <div />
+        )}
+        <CircularCloseButton onPress={onClose} size="sm" />
+      </div>
 
       {/* Content */}
       <div
@@ -151,48 +163,33 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         {/* Reviews */}
         <ShopReviewsSection shop={currentShop} onOpenLoginModal={onOpenLoginModal} />
 
-        {/* Related Shops Accordion */}
-        {(moreFromBrand.length > 0 || nearbyShops.length > 0) && (
+        {/* More from Brand */}
+        {moreFromBrand.length > 0 && currentShop.brand && (
           <div>
-            <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
-              More Shops
+            <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-4">
+              More from {currentShop.brand.name}
             </h3>
-            <Accordion variant="splitted">
-              {moreFromBrand.length > 0 ? (
-                <AccordionItem
-                  key="brand"
-                  aria-label={`More from ${currentShop.brand?.name || 'this brand'}`}
-                  title={`By ${currentShop.brand?.name || 'this brand'} (${moreFromBrand.length})`}
-                >
-                  <div className="space-y-2 pb-2">
-                    {moreFromBrand.slice(0, 5).map((relatedShop) => (
-                      <ShopMiniCard
-                        key={relatedShop.documentId}
-                        shop={relatedShop}
-                        onClick={() => onShopSelect(relatedShop)}
-                      />
-                    ))}
-                  </div>
-                </AccordionItem>
-              ) : null}
-              {nearbyShops.length > 0 ? (
-                <AccordionItem
-                  key="nearby"
-                  aria-label={areaName ? `More in ${areaName}` : 'Nearby'}
-                  title={`In ${areaName || 'this area'} (${nearbyShops.length})`}
-                >
-                  <div className="space-y-2 pb-2">
-                    {nearbyShops.slice(0, 5).map((relatedShop) => (
-                      <ShopMiniCard
-                        key={relatedShop.documentId}
-                        shop={relatedShop}
-                        onClick={() => onShopSelect(relatedShop)}
-                      />
-                    ))}
-                  </div>
-                </AccordionItem>
-              ) : null}
-            </Accordion>
+
+            {/* Horizontal scroll of brand shop cards */}
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+              {moreFromBrand.slice(0, 2).map((relatedShop) => (
+                <BrandShopCard
+                  key={relatedShop.documentId}
+                  shop={relatedShop}
+                  onClick={() => onShopSelect(relatedShop)}
+                />
+              ))}
+            </div>
+
+            {/* View More button */}
+            {moreFromBrand.length > 2 && (
+              <button
+                onClick={() => setIsBrandModalOpen(true)}
+                className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border rounded-xl hover:bg-surface"
+              >
+                View all {moreFromBrand.length} locations
+              </button>
+            )}
           </div>
         )}
 
@@ -205,10 +202,22 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
     </>
   );
 
+  const modal = currentShop.brand && (
+    <BrandShopsModal
+      isOpen={isBrandModalOpen}
+      onClose={() => setIsBrandModalOpen(false)}
+      brandName={currentShop.brand.name}
+      brandLogo={getMediaUrl(currentShop.brand.logo)}
+      shops={moreFromBrand}
+      onShopSelect={onShopSelect}
+    />
+  );
+
   if (useWrapper) {
     return (
       <div ref={drawerRef} className="shop-drawer relative">
         {content}
+        {modal}
       </div>
     );
   }
@@ -216,6 +225,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
   return (
     <div ref={contentRef} className="relative">
       {content}
+      {modal}
     </div>
   );
 }

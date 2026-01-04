@@ -51,14 +51,16 @@ export function AnimatedGradientHeader({ children, className = '' }: AnimatedGra
   }, []);
 
   return (
-    <div
-      ref={gradientRef}
-      className={`animated-gradient-header ${className}`}
-      style={{
-        background: 'linear-gradient(135deg, #2E1F1788, #2E1F17bb, #2E1F17dd, #2E1F17f5)',
-      }}
-    >
-      {children}
+    <div style={{ backgroundColor: '#2E1F17' }}>
+      <div
+        ref={gradientRef}
+        className={`animated-gradient-header ${className}`}
+        style={{
+          background: 'linear-gradient(135deg, #2E1F1788, #2E1F17bb, #2E1F17dd, #2E1F17f5)',
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }

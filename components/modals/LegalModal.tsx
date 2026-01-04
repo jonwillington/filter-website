@@ -1,7 +1,7 @@
 'use client';
 
 import { ModalHeader, ModalBody } from '@heroui/react';
-import { CircularCloseButton, ResponsiveModal } from '@/components/ui';
+import { ResponsiveModal } from '@/components/ui';
 
 interface LegalModalProps {
   isOpen: boolean;
@@ -17,14 +17,7 @@ export function LegalModal({ isOpen, onClose, type }: LegalModalProps) {
       isOpen={isOpen}
       onClose={onClose}
       size="3xl"
-      hideCloseButton
     >
-      {/* Floating close button */}
-      <CircularCloseButton
-        onPress={onClose}
-        className="absolute top-3 right-3 z-20"
-      />
-
         <ModalHeader className="flex flex-col gap-1 pt-6">
           <h2 className="font-display text-2xl">
             {isPrivacy ? 'Privacy Policy' : 'Terms and Conditions'}

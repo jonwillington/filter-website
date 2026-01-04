@@ -1,10 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
+import { useTheme } from '@/lib/context/ThemeContext';
 
 export function Footer() {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
+  const { effectiveTheme, setThemeMode } = useTheme();
+
+  const toggleTheme = () => {
+    setThemeMode(effectiveTheme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <>
@@ -25,6 +32,18 @@ export function Footer() {
           </button>
           <span className="text-border">•</span>
           <span>© {new Date().getFullYear()} Filter</span>
+          <span className="text-border">•</span>
+          <button
+            onClick={toggleTheme}
+            className="hover:text-accent transition-colors cursor-pointer p-1"
+            aria-label={effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {effectiveTheme === 'dark' ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </button>
         </div>
 
         <a

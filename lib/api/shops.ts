@@ -38,8 +38,14 @@ const SHOP_POPULATE = [
   // Other shop fields
   'populate[featured_image]=*',
   'populate[gallery]=*',
-  // Populate city_area with full location data
-  // Use populate[location]=* to get base fields, then explicitly populate relations
+  // Populate city_area with all fields including group
+  'populate[city_area][fields][0]=id',
+  'populate[city_area][fields][1]=documentId',
+  'populate[city_area][fields][2]=name',
+  'populate[city_area][fields][3]=slug',
+  'populate[city_area][fields][4]=group',
+  'populate[city_area][fields][5]=description',
+  'populate[city_area][fields][6]=summary',
   'populate[city_area][populate][location]=*',
   'populate[city_area][populate][location][populate][country]=*',
   'populate[city_area][populate][location][populate][background_image]=*',
@@ -86,6 +92,55 @@ async function getAllCountries(): Promise<Map<string, Country>> {
     return countryMap;
   } catch (error) {
     console.error('Failed to fetch countries:', error);
+    return new Map();
+  }
+}
+
+// Fetch all city areas with group field
+// (Strapi doesn't return group field when populating through shops relation)
+async function getAllCityAreasMap(): Promise<Map<string, { group: string | null }>> {
+  const cacheKey = 'cityareas:map';
+  const cached = getCached<Map<string, { group: string | null }>>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const cityAreaMap = new Map<string, { group: string | null }>();
+    let page = 1;
+    let pageCount = 1;
+
+    while (page <= pageCount) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?fields[0]=documentId&fields[1]=group&pagination[pageSize]=100&pagination[page]=${page}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+          },
+          next: { revalidate: 300 },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`City Areas API Error: ${response.statusText}`);
+      }
+
+      const json = await response.json();
+      const cityAreas = json.data || [];
+
+      for (const cityArea of cityAreas) {
+        if (cityArea.documentId) {
+          cityAreaMap.set(cityArea.documentId, { group: cityArea.group || null });
+        }
+      }
+
+      pageCount = json.meta?.pagination?.pageCount || 1;
+      page++;
+    }
+
+    setCache(cacheKey, cityAreaMap);
+    return cityAreaMap;
+  } catch (error) {
+    console.error('Failed to fetch city areas:', error);
     return new Map();
   }
 }
@@ -208,13 +263,14 @@ export async function getAllShops(): Promise<Shop[]> {
       page++;
     }
 
-    // Fetch countries and brands in parallel (batch fetch, not N+1)
-    const [countryMap, brandMap] = await Promise.all([
+    // Fetch countries, brands, and city areas in parallel (batch fetch, not N+1)
+    const [countryMap, brandMap, cityAreaMap] = await Promise.all([
       getAllCountries(),
       getAllBrands(),
+      getAllCityAreasMap(),
     ]);
 
-    // Enrich all shops with country and brand data
+    // Enrich all shops with country, brand, and city area group data
     for (const shop of allShops) {
       enrichShopData(shop, countryMap);
 
@@ -224,6 +280,15 @@ export async function getAllShops(): Promise<Shop[]> {
         const fullBrand = brandMap.get(brandDocumentId);
         if (fullBrand) {
           shop.brand = { ...shop.brand, ...fullBrand };
+        }
+      }
+
+      // Enrich city_area with group field (Strapi doesn't return it via nested populate)
+      const cityArea = shop.city_area ?? shop.cityArea;
+      if (cityArea?.documentId) {
+        const cityAreaData = cityAreaMap.get(cityArea.documentId);
+        if (cityAreaData?.group) {
+          cityArea.group = cityAreaData.group;
         }
       }
     }

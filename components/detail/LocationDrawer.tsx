@@ -100,33 +100,49 @@ export function LocationDrawer({
       />
 
       <div className="drawer-content">
-        {/* Top header row with City Guide and close button */}
-        <div
-          className="flex items-center justify-between px-4 py-3 border-b border-border bg-transparent"
-          style={{
-            opacity: 1 - stickyHeaderOpacity,
-            pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
-          }}
-        >
-          <span className="text-xs text-textSecondary uppercase tracking-wide font-medium">
-            City Guide
-          </span>
-          <CircularCloseButton onPress={onClose} />
-        </div>
-
         {/* Header with background image */}
         <div
-          className="relative h-48 location-drawer-header"
+          className="relative location-drawer-header overflow-hidden"
           style={{
             backgroundColor: primaryColor,
-            backgroundImage: backgroundImage
-              ? `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url(${backgroundImage})`
-              : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
           }}
         >
-          <div className="absolute bottom-0 left-4 right-4" style={{ paddingBottom: '24px' }}>
+          {/* Background image with color overlay */}
+          {backgroundImage && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            >
+              {/* Primary color overlay */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: primaryColor,
+                  opacity: 0.7,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Top header row with City Guide and close button */}
+          <div
+            className="relative flex items-center justify-between px-4 py-3 border-b border-white/10"
+            style={{
+              opacity: 1 - stickyHeaderOpacity,
+              pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
+            }}
+          >
+            <span className="text-xs text-white/70 uppercase tracking-wide font-medium">
+              City Guide
+            </span>
+            <CircularCloseButton onPress={onClose} size="sm" />
+          </div>
+
+          <div className="relative px-4 pb-6 pt-16">
             <h2
               className="text-white"
               style={{
@@ -160,10 +176,10 @@ export function LocationDrawer({
         <div className="p-6 space-y-6">
           {/* Beta Banner */}
           {currentLocation.beta && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+            <div className="bg-surface border border-border-default rounded-lg p-4 flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 <svg
-                  className="w-5 h-5 text-blue-600"
+                  className="w-5 h-5 text-accent"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -175,10 +191,10 @@ export function LocationDrawer({
                 </svg>
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                <h4 className="text-sm font-semibold text-primary mb-1">
                   This location is in beta
                 </h4>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-text-secondary">
                   More shops are currently being added
                 </p>
               </div>
@@ -190,7 +206,7 @@ export function LocationDrawer({
             {/* City Rating */}
             {currentLocation.rating_stars && (
               <div className="flex items-center gap-2">
-                <span className="text-gray-500">Rating</span>
+                <span className="text-text-secondary">Rating</span>
                 <StarRating
                   rating={currentLocation.rating_stars}
                   size={14}
@@ -203,7 +219,7 @@ export function LocationDrawer({
 
             {/* Total Shops */}
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Shops</span>
+              <span className="text-text-secondary">Shops</span>
               <span className="font-medium">{totalShops}</span>
             </div>
           </div>
@@ -213,7 +229,7 @@ export function LocationDrawer({
             <div>
               <div className="relative">
                 <p
-                  className="text-gray-700 leading-relaxed whitespace-pre-line"
+                  className="text-primary leading-relaxed whitespace-pre-line"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: storyExpanded ? 'unset' : 3,
@@ -244,7 +260,7 @@ export function LocationDrawer({
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Top Choices</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">Top Choices</h3>
               <div className="grid grid-cols-2 gap-3">
                 {topRecommendationShops.map((shop, index) => {
                   const imageUrl = getMediaUrl(shop.featured_image);
@@ -254,7 +270,7 @@ export function LocationDrawer({
                     <button
                       key={shop.documentId}
                       onClick={() => onShopSelect(shop)}
-                      className="group relative overflow-hidden bg-gray-100 aspect-[4/3] hover:brightness-110 transition-all duration-300 rounded-xl border border-gray-200"
+                      className="group relative overflow-hidden bg-surface aspect-[4/3] hover:brightness-110 transition-all duration-300 rounded-xl border border-border-default"
                     >
                       {imageUrl && (
                         <Image
@@ -267,7 +283,7 @@ export function LocationDrawer({
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
                         {logoUrl && (
-                          <div className="w-7 h-7 rounded-md overflow-hidden bg-white mb-2 shadow-sm">
+                          <div className="w-7 h-7 rounded-md overflow-hidden bg-background mb-2 shadow-sm">
                             <Image
                               src={logoUrl}
                               alt={shop.brand?.name || shop.name}

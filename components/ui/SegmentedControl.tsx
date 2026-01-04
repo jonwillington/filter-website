@@ -52,10 +52,10 @@ export function SegmentedControl({
       className={className}
       classNames={{
         base: 'w-full',
-        tabList: 'bg-gray-200/80 p-1 w-full gap-0 rounded-lg',
+        tabList: 'bg-surface p-1 w-full gap-0 rounded-lg border border-border-default',
         tab: 'text-sm font-medium h-8',
-        tabContent: 'text-gray-600 group-data-[selected=true]:text-gray-900',
-        cursor: 'bg-white shadow-md rounded-md',
+        tabContent: 'text-text-secondary group-data-[selected=true]:text-primary',
+        cursor: 'bg-background shadow-md rounded-md',
       }}
     >
       {segments.map((segment) => (

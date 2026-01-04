@@ -1,18 +1,23 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ModalBody, ScrollShadow } from '@heroui/react';
-import { X, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import { Location, Country } from '@/lib/types';
+import { Location, Country, Shop } from '@/lib/types';
 import { ResponsiveModal } from '@/components/ui';
 import { StarRating } from '@/components/ui/StarRating';
+import { cn } from '@/lib/utils';
+
+type ViewMode = 'region' | 'rating';
+type SortDirection = 'best' | 'worst';
 
 interface ExploreModalProps {
   isOpen: boolean;
   onClose: () => void;
   locations: Location[];
   countries?: Country[];
+  allShops?: Shop[];
   onLocationSelect: (location: Location) => void;
 }
 
@@ -47,8 +52,24 @@ export function ExploreModal({
   onClose,
   locations,
   countries = [],
+  allShops = [],
   onLocationSelect,
 }: ExploreModalProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('region');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('best');
+
+  // Create a map of location documentId -> shop count
+  const shopCountByLocation = useMemo(() => {
+    const countMap = new Map<string, number>();
+    allShops.forEach((shop) => {
+      const locationId = shop.location?.documentId;
+      if (locationId) {
+        countMap.set(locationId, (countMap.get(locationId) || 0) + 1);
+      }
+    });
+    return countMap;
+  }, [allShops]);
+
   // Create a map of country code -> country (with region) from the countries prop
   const countryMap = useMemo(() => {
     const map = new Map<string, Country>();
@@ -102,6 +123,15 @@ export function ExploreModal({
       .filter((r) => r.countries.length > 0);
   }, [locations, countryMap]);
 
+  // Locations sorted by rating for the rating view
+  const locationsByRating = useMemo(() => {
+    const filtered = [...locations].filter((loc) => loc.rating_stars != null);
+    return filtered.sort((a, b) => {
+      const diff = (b.rating_stars || 0) - (a.rating_stars || 0);
+      return sortDirection === 'best' ? diff : -diff;
+    });
+  }, [locations, sortDirection]);
+
   const handleLocationClick = (location: Location) => {
     onLocationSelect(location);
     onClose();
@@ -112,127 +142,276 @@ export function ExploreModal({
       isOpen={isOpen}
       onClose={onClose}
       size="4xl"
-      hideCloseButton
       modalClassNames={{
         backdrop: 'bg-black/60 backdrop-blur-sm',
-        base: 'max-h-[90vh] bg-white',
+        base: 'max-h-[90vh] bg-background',
       }}
     >
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-6 py-5 lg:py-6">
+      {/* Header with filter chips */}
+      <div className="sticky top-0 z-10 bg-background border-b border-border-default">
+        <div className="px-6 py-5 lg:py-6 space-y-4">
           <h2 className="text-xl lg:text-2xl font-display" style={{ color: 'var(--text)' }}>
             Where to?
           </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-          </button>
+          {/* Filter chips */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('region')}
+                className={cn(
+                  'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
+                  viewMode === 'region'
+                    ? 'bg-contrastBlock text-contrastText'
+                    : 'bg-surface text-text-secondary hover:bg-border-default'
+                )}
+              >
+                By region
+              </button>
+              <button
+                onClick={() => setViewMode('rating')}
+                className={cn(
+                  'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
+                  viewMode === 'rating'
+                    ? 'bg-contrastBlock text-contrastText'
+                    : 'bg-surface text-text-secondary hover:bg-border-default'
+                )}
+              >
+                By rating
+              </button>
+            </div>
+
+            {/* Sort options - only visible in rating view */}
+            {viewMode === 'rating' && (
+              <div className="flex items-center gap-1 text-sm">
+                <span className="text-text-secondary hidden sm:inline">Sort:</span>
+                <button
+                  onClick={() => setSortDirection('best')}
+                  className={cn(
+                    'px-3 py-1 rounded-full transition-colors',
+                    sortDirection === 'best'
+                      ? 'bg-surface text-primary font-medium'
+                      : 'text-text-secondary hover:text-primary'
+                  )}
+                >
+                  Best
+                </button>
+                <button
+                  onClick={() => setSortDirection('worst')}
+                  className={cn(
+                    'px-3 py-1 rounded-full transition-colors',
+                    sortDirection === 'worst'
+                      ? 'bg-surface text-primary font-medium'
+                      : 'text-text-secondary hover:text-primary'
+                  )}
+                >
+                  Worst
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <ModalBody className="p-0">
         <ScrollShadow className="max-h-[75vh]">
-          {/* Desktop: Multi-column masonry-style layout */}
-          <div className="hidden lg:block px-8 py-8">
-            <div className="columns-3 gap-12">
-              {groupedData.map(({ region, countries: regionCountries }) => (
-                <div key={region} className="break-inside-avoid mb-12">
-                  <h3 className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-6 pb-3 border-b border-gray-100">
-                    {region}
-                  </h3>
-                  <div className="space-y-8">
-                    {regionCountries.map(({ country, locations: locs }) => (
-                      <CountryGroupItem
-                        key={country.documentId || country.code}
-                        country={country}
-                        locations={locs}
-                        onLocationClick={handleLocationClick}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {viewMode === 'region' ? (
+            <>
+              {/* Desktop: 3-column grid with vertical dividers */}
+              <div className="hidden lg:block py-6">
+                <div className="grid grid-cols-3 divide-x divide-border-default">
+                  {(() => {
+                    // Calculate items per column for even distribution
+                    const totalItems = groupedData.reduce(
+                      (sum, r) => sum + r.countries.reduce((s, c) => s + c.locations.length, 0),
+                      0
+                    );
+                    const itemsPerCol = Math.ceil(totalItems / 3);
 
-          {/* Mobile: Clean stacked layout */}
-          <div className="lg:hidden px-5 py-6">
-            {groupedData.map(({ region, countries: regionCountries }, idx) => (
-              <div key={region} className={idx > 0 ? 'mt-10 pt-8 border-t border-gray-100' : ''}>
-                <h3 className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-6">
-                  {region}
-                </h3>
-                <div className="space-y-8">
-                  {regionCountries.map(({ country, locations: locs }) => (
-                    <CountryGroupItem
-                      key={country.documentId || country.code}
-                      country={country}
-                      locations={locs}
-                      onLocationClick={handleLocationClick}
-                    />
-                  ))}
+                    // Distribute regions to columns, trying to balance
+                    const columns: typeof groupedData[] = [[], [], []];
+                    let currentCol = 0;
+                    let currentColItems = 0;
+
+                    groupedData.forEach((regionData) => {
+                      const regionItems = regionData.countries.reduce((sum, c) => sum + c.locations.length, 0);
+
+                      if (currentColItems > 0 && currentColItems + regionItems > itemsPerCol && currentCol < 2) {
+                        currentCol++;
+                        currentColItems = 0;
+                      }
+
+                      columns[currentCol].push(regionData);
+                      currentColItems += regionItems;
+                    });
+
+                    return columns.map((colRegions, colIndex) => (
+                      <div key={colIndex} className="px-6 first:pl-8 last:pr-8">
+                        {colRegions.map(({ region, countries: regionCountries }, idx) => (
+                          <div key={region} className={idx > 0 ? 'mt-8' : ''}>
+                            <h3 className="font-display text-sm text-text-secondary mb-4">
+                              {region}
+                            </h3>
+                            <div className="space-y-4">
+                              {regionCountries.map(({ country, locations: locs }) => (
+                                <div key={country.documentId || country.code}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-3.5 h-3.5 rounded-full overflow-hidden flex-shrink-0">
+                                      <Image
+                                        src={getFlagUrl(country.code)}
+                                        alt={country.name}
+                                        width={14}
+                                        height={14}
+                                        className="object-cover w-full h-full"
+                                        unoptimized
+                                      />
+                                    </div>
+                                    <span className="text-xs text-text-secondary">
+                                      {country.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-x-1 gap-y-0.5">
+                                    {locs.map((location, locIdx) => (
+                                      <span key={location.documentId} className="inline-flex items-center">
+                                        <button
+                                          onClick={() => handleLocationClick(location)}
+                                          className="text-sm font-medium text-primary hover:text-accent transition-colors"
+                                        >
+                                          {location.name}
+                                        </button>
+                                        {locIdx < locs.length - 1 && (
+                                          <span className="text-border-default mx-1">·</span>
+                                        )}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Mobile: Clean stacked layout */}
+              <div className="lg:hidden px-5 py-6">
+                {groupedData.map(({ region, countries: regionCountries }, idx) => (
+                  <div key={region} className={idx > 0 ? 'mt-6 pt-5 border-t border-border-default' : ''}>
+                    <h3 className="font-display text-sm text-text-secondary mb-4">
+                      {region}
+                    </h3>
+                    <div className="space-y-4">
+                      {regionCountries.map(({ country, locations: locs }) => (
+                        <div key={country.documentId || country.code}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-3.5 h-3.5 rounded-full overflow-hidden flex-shrink-0">
+                              <Image
+                                src={getFlagUrl(country.code)}
+                                alt={country.name}
+                                width={14}
+                                height={14}
+                                className="object-cover w-full h-full"
+                                unoptimized
+                              />
+                            </div>
+                            <span className="text-xs text-text-secondary">
+                              {country.name}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-1 gap-y-0.5">
+                            {locs.map((location, locIdx) => (
+                              <span key={location.documentId} className="inline-flex items-center">
+                                <button
+                                  onClick={() => handleLocationClick(location)}
+                                  className="text-sm font-medium text-primary hover:text-accent transition-colors"
+                                >
+                                  {location.name}
+                                </button>
+                                {locIdx < locs.length - 1 && (
+                                  <span className="text-border-default mx-1">·</span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* Rating view - table-like layout */
+            <div className="py-2">
+              <div>
+                {locationsByRating.map((location, index) => {
+                  const shopCount = shopCountByLocation.get(location.documentId) || 0;
+
+                  return (
+                    <button
+                      key={location.documentId}
+                      onClick={() => handleLocationClick(location)}
+                      className="group w-full flex items-center gap-4 lg:gap-5 py-3 px-4 lg:px-6 transition-colors hover:bg-surface border-b border-border-default last:border-b-0"
+                    >
+                      {/* Rank number */}
+                      <span className="text-sm font-medium text-border-default w-6 text-right flex-shrink-0">
+                        {index + 1}
+                      </span>
+
+                      {/* City name and country */}
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center gap-2">
+                          {location.country && (
+                            <div className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
+                              <Image
+                                src={getFlagUrl(location.country.code)}
+                                alt={location.country.name}
+                                width={16}
+                                height={16}
+                                className="object-cover w-full h-full"
+                                unoptimized
+                              />
+                            </div>
+                          )}
+                          <span className="text-base font-medium text-primary group-hover:text-accent transition-colors">
+                            {location.name}
+                          </span>
+                          {location.country && (
+                            <span className="text-sm text-text-secondary hidden lg:inline">
+                              {location.country.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Shop count */}
+                      <div className="flex-shrink-0 text-right hidden sm:block">
+                        <span className="text-sm text-text-secondary">
+                          {shopCount} {shopCount === 1 ? 'shop' : 'shops'}
+                        </span>
+                      </div>
+
+                      {/* Rating - far right */}
+                      <div className="flex-shrink-0 flex items-start gap-2 pt-0.5">
+                        <StarRating rating={location.rating_stars || 0} size={14} />
+                        <span className="text-sm font-medium text-primary w-8">
+                          {location.rating_stars?.toFixed(1)}
+                        </span>
+                      </div>
+
+                      {/* Arrow indicator */}
+                      <ChevronRight className="w-4 h-4 text-border-default group-hover:text-accent transition-colors flex-shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </ScrollShadow>
       </ModalBody>
     </ResponsiveModal>
   );
 }
 
-// Shared country + locations component
-function CountryGroupItem({
-  country,
-  locations,
-  onLocationClick,
-}: {
-  country: Country;
-  locations: Location[];
-  onLocationClick: (location: Location) => void;
-}) {
-  return (
-    <div>
-      {/* Country - small label with flag */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
-          <Image
-            src={getFlagUrl(country.code)}
-            alt={country.name}
-            width={16}
-            height={16}
-            className="object-cover w-full h-full"
-            unoptimized
-          />
-        </div>
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-          {country.name}
-        </span>
-      </div>
-      {/* Locations - dominant, clickable */}
-      <div className="space-y-1">
-        {locations.map((location) => (
-          <button
-            key={location.documentId}
-            onClick={() => onLocationClick(location)}
-            className="group w-full flex items-center justify-between py-2 transition-colors hover:text-accent"
-            style={{ color: 'var(--text)' }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-base font-medium">
-                {location.name}
-              </span>
-              {location.rating_stars && (
-                <StarRating rating={location.rating_stars} size={12} />
-              )}
-            </div>
-            <ChevronRight className="w-4 h-4 opacity-30 group-hover:opacity-100 group-hover:text-accent transition-all" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}

@@ -146,21 +146,36 @@ export function MainLayout({
         );
 
         if (matchedLocation) {
+          // Calculate center for the matched location's shops
+          const locationShops = shops.filter(s =>
+            s.location?.documentId === matchedLocation.documentId ||
+            s.city_area?.location?.documentId === matchedLocation.documentId
+          );
+          const validShops = locationShops.filter((s) => getShopCoords(s));
+
+          if (validShops.length > 0) {
+            const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
+            const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
+            // Start the map flying immediately
+            setMapCenter([avgLng, avgLat]);
+            setMapZoom(12);
+          }
+
           // Smoothly transition to the supported city
           setIsAreaUnsupported(false);
           setIsExploreMode(false);
           setIsNearbyMode(false); // Exit nearby mode
           setShopFilter('all');
 
-          // Set location first, then navigate after a brief delay to let state settle
-          setSelectedLocation(matchedLocation);
-
-          // Navigate to the location page
+          // Delay setting the location to sync with the map animation start
           setTimeout(() => {
+            setSelectedLocation(matchedLocation);
+
+            // Navigate to the location page
             const countrySlug = slugify(matchedLocation.country?.name ?? '');
             const citySlug = slugify(matchedLocation.name);
             router.push(`/${countrySlug}/${citySlug}`);
-          }, 100);
+          }, 300);
         } else {
           // Area detected but location not in our list
           setIsNearbyMode(true);
@@ -205,13 +220,24 @@ export function MainLayout({
     };
   }, []);
 
-  // Sync state with props
+  // Sync state with props - only update if the ID actually changed
+  // This prevents double-renders when navigating between shops
   useEffect(() => {
-    setSelectedLocation(initialLocation);
+    setSelectedLocation((prev) => {
+      if (prev?.documentId === initialLocation?.documentId) {
+        return prev; // Keep same reference to avoid re-render
+      }
+      return initialLocation;
+    });
   }, [initialLocation]);
 
   useEffect(() => {
-    setSelectedShop(initialShop);
+    setSelectedShop((prev) => {
+      if (prev?.documentId === initialShop?.documentId) {
+        return prev; // Keep same reference to avoid re-render
+      }
+      return initialShop;
+    });
   }, [initialShop]);
 
   const handleLocationChange = useCallback(
@@ -441,7 +467,7 @@ export function MainLayout({
             isIconOnly
             variant="flat"
             onPress={() => setIsMobileSidebarOpen(true)}
-            className="bg-white"
+            className="bg-background"
           >
             <Menu className="w-5 h-5" />
           </Button>
@@ -505,6 +531,7 @@ export function MainLayout({
           isLoading={isLoading}
           onTransitionComplete={handleMapTransitionComplete}
           countries={countries}
+          locations={locations}
           onUnsupportedCountryClick={handleUnsupportedCountryClick}
         />
 
@@ -518,6 +545,7 @@ export function MainLayout({
                 onClose={handleCloseDrawer}
                 onShopSelect={handleShopSelect}
                 onOpenLoginModal={() => setShowLoginModal(true)}
+                onBack={selectedLocation ? () => setSelectedShop(null) : undefined}
                 useWrapper={false}
               />
             ) : selectedLocation ? (

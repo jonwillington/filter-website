@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
-import { Location, Country } from '@/lib/types';
+import { Location, Country, Shop } from '@/lib/types';
 import { ExploreModal } from '../modals/ExploreModal';
 import { SegmentedControl } from '../ui/SegmentedControl';
 
 interface DestinationSelectorProps {
   locations: Location[];
   countries?: Country[];
+  allShops?: Shop[];
   selectedLocation: Location | null;
   onLocationChange: (location: Location | null) => void;
   isNearbyMode: boolean;
@@ -23,6 +24,7 @@ const getFlagUrl = (countryCode: string): string =>
 export function DestinationSelector({
   locations,
   countries = [],
+  allShops = [],
   selectedLocation,
   onLocationChange,
   isNearbyMode,
@@ -87,6 +89,7 @@ export function DestinationSelector({
         onClose={() => setIsModalOpen(false)}
         locations={locations}
         countries={countries}
+        allShops={allShops}
         onLocationSelect={handleLocationSelect}
       />
     </>

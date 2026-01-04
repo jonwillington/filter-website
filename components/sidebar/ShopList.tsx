@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopCard } from './ShopCard';
 import { ChevronDown } from 'lucide-react';
@@ -10,6 +10,12 @@ interface ShopListProps {
   selectedShop: Shop | null;
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
+}
+
+interface AreaWithGroup {
+  name: string;
+  group: string | null;
+  shops: Shop[];
 }
 
 export function ShopList({
@@ -31,19 +37,53 @@ export function ShopList({
     );
   }
 
-  // Group shops by area
-  const shopsByArea = shops.reduce((acc, shop) => {
-    const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? 'Other';
-    if (!acc[areaName]) acc[areaName] = [];
-    acc[areaName].push(shop);
-    return acc;
-  }, {} as Record<string, Shop[]>);
+  // Group shops by area, preserving the group info
+  const areasWithGroups = useMemo(() => {
+    const areaMap = new Map<string, AreaWithGroup>();
 
-  // Sort areas alphabetically
-  const sortedAreas = Object.keys(shopsByArea).sort();
+    shops.forEach((shop) => {
+      const cityArea = shop.city_area ?? shop.cityArea;
+      const areaName = cityArea?.name ?? 'Other';
+      const group = cityArea?.group ?? null;
 
-  // If only one area or no areas, show flat list
-  const shouldUseAccordion = sortedAreas.length > 1;
+      if (!areaMap.has(areaName)) {
+        areaMap.set(areaName, { name: areaName, group, shops: [] });
+      }
+      areaMap.get(areaName)!.shops.push(shop);
+    });
+
+    return Array.from(areaMap.values());
+  }, [shops]);
+
+  // Group areas by their group field
+  const areasByGroup = useMemo(() => {
+    const groupMap = new Map<string, AreaWithGroup[]>();
+
+    areasWithGroups.forEach((area) => {
+      const groupName = area.group || '';
+      if (!groupMap.has(groupName)) {
+        groupMap.set(groupName, []);
+      }
+      groupMap.get(groupName)!.push(area);
+    });
+
+    // Sort areas within each group alphabetically
+    groupMap.forEach((areas) => {
+      areas.sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    // Sort groups alphabetically, with empty group last
+    const sortedGroups = Array.from(groupMap.entries()).sort(([a], [b]) => {
+      if (a === '') return 1;
+      if (b === '') return -1;
+      return a.localeCompare(b);
+    });
+
+    return sortedGroups;
+  }, [areasWithGroups]);
+
+  // If only one area, show flat list
+  const shouldUseAccordion = areasWithGroups.length > 1;
 
   // Single area: show flat list with simple headers
   if (!shouldUseAccordion) {
@@ -57,10 +97,10 @@ export function ShopList({
             All shops
           </h3>
         </div>
-        {sortedAreas.map((areaName) => (
-          <div key={areaName}>
+        {areasWithGroups.map((area) => (
+          <div key={area.name}>
             <div className="py-1">
-              {shopsByArea[areaName].map((shop) => (
+              {area.shops.map((shop) => (
                 <ShopCard
                   key={shop.documentId}
                   shop={shop}
@@ -76,21 +116,32 @@ export function ShopList({
     );
   }
 
-  // All mode: show collapsible sections for each area
+  // Multiple areas: show grouped sections
   return (
     <div
       className="transition-opacity duration-300"
       style={{ opacity: isLoading ? 0.4 : 1 }}
     >
-      {sortedAreas.map((areaName) => (
-        <AreaSection
-          key={areaName}
-          areaName={areaName}
-          shops={shopsByArea[areaName]}
-          selectedShop={selectedShop}
-          onShopSelect={onShopSelect}
-          isLoading={isLoading}
-        />
+      {areasByGroup.map(([groupName, areas]) => (
+        <div key={groupName || 'ungrouped'}>
+          {groupName && (
+            <div className="px-4 pt-4 pb-2">
+              <h4 className="text-[10px] font-semibold text-textSecondary uppercase tracking-wider">
+                {groupName}
+              </h4>
+            </div>
+          )}
+          {areas.map((area) => (
+            <AreaSection
+              key={area.name}
+              areaName={area.name}
+              shops={area.shops}
+              selectedShop={selectedShop}
+              onShopSelect={onShopSelect}
+              isLoading={isLoading}
+            />
+          ))}
+        </div>
       ))}
     </div>
   );
