@@ -16,17 +16,16 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
-  // Extract street identifier from address (before first comma)
-  const getStreetIdentifier = (address: string) => {
-    // Split by comma and take first part
-    const parts = address.split(',');
-    if (parts.length > 0) {
-      return parts[0].trim();
+  // Extract first two parts of address (street + area/district)
+  const getShortAddress = (address: string) => {
+    const parts = address.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+      return `${parts[0]}, ${parts[1]}`;
     }
-    return address;
+    return parts[0] || address;
   };
 
-  const streetAddress = shop.address ? getStreetIdentifier(shop.address) : null;
+  const shortAddress = shop.address ? getShortAddress(shop.address) : null;
 
   // Check if shop has city area recommendation
   const hasCityAreaRecommendation = (): boolean => {
@@ -57,7 +56,7 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
         <Avatar
           src={logoUrl || undefined}
           name={shop.brand?.name ?? shop.name}
-          size="md"
+          size="sm"
           className="flex-shrink-0"
           showFallback
           fallback={
@@ -80,9 +79,9 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
         <h4 className="font-medium text-primary truncate text-sm overflow-hidden">
           {displayName}
         </h4>
-        {streetAddress && (
-          <p className="text-xs text-text-secondary/70 line-clamp-2 overflow-hidden">
-            {streetAddress}
+        {shortAddress && (
+          <p className="text-xs text-gray-400 dark:text-white/40 truncate">
+            {shortAddress}
           </p>
         )}
       </div>
