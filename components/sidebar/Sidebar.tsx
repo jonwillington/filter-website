@@ -1,6 +1,6 @@
 'use client';
 
-import { DestinationSelector } from './DestinationSelector';
+import { LocationCell } from './LocationCell';
 import { ShopList } from './ShopList';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
 import { WelcomeStats } from './WelcomeStats';
@@ -22,13 +22,13 @@ interface SidebarProps {
   allShops?: Shop[]; // Unfiltered shops for counting
   selectedShop: Shop | null;
   onShopSelect: (shop: Shop) => void;
-  isNearbyMode: boolean;
-  onNearbyToggle: () => void;
   isLoading?: boolean;
   isOpen?: boolean;
   shopFilter?: ShopFilterType;
   onShopFilterChange?: (filter: ShopFilterType) => void;
   isAreaUnsupported?: boolean;
+  unsupportedCountry?: { name: string; code: string } | null;
+  onOpenExploreModal: () => void;
   authComponent?: ReactNode;
   onOpenCityGuide?: () => void;
 }
@@ -50,13 +50,13 @@ export function Sidebar({
   allShops,
   selectedShop,
   onShopSelect,
-  isNearbyMode,
-  onNearbyToggle,
   isLoading,
   isOpen = true,
   shopFilter = 'all',
   onShopFilterChange,
   isAreaUnsupported = false,
+  unsupportedCountry,
+  onOpenExploreModal,
   authComponent,
   onOpenCityGuide,
 }: SidebarProps) {
@@ -111,14 +111,11 @@ export function Sidebar({
 
       {/* Controls section - outside gradient header */}
       <div className="px-4 py-5 space-y-4 border-b border-border-default bg-background">
-        <DestinationSelector
-          locations={locations}
-          countries={countries}
-          allShops={allShops}
+        <LocationCell
           selectedLocation={selectedLocation}
-          onLocationChange={onLocationChange}
-          isNearbyMode={isNearbyMode}
-          onNearbyToggle={onNearbyToggle}
+          unsupportedCountry={unsupportedCountry ?? null}
+          isAreaUnsupported={isAreaUnsupported}
+          onClick={onOpenExploreModal}
         />
         {shouldShowFilter && (
           <select
@@ -151,26 +148,28 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-content">
-        {isLoading && !selectedLocation && !isNearbyMode ? (
+        {isLoading && !selectedLocation && !isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-textSecondary">Finding your location...</p>
+              <p className="text-sm text-text-secondary">Finding your location...</p>
             </div>
           </div>
         ) : isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8 text-center">
             <div>
-              <p className="text-lg font-medium text-text mb-3">Not Available Yet</p>
-              <p className="text-textSecondary mb-2">
-                We're not currently supported in your location
+              <p className="text-lg font-medium text-primary mb-3">Coming Soon</p>
+              <p className="text-text-secondary mb-2">
+                We are not currently live in{' '}
+                <span className="font-semibold">{unsupportedCountry?.name || 'your area'}</span>{' '}
+                but we are coming soon!
               </p>
-              <p className="text-sm text-textSecondary">
-                Coming soon! Select a city from the dropdown above to explore other locations.
+              <p className="text-sm text-text-secondary">
+                Select a city above to explore other locations.
               </p>
             </div>
           </div>
-        ) : !selectedLocation && !isNearbyMode ? (
+        ) : !selectedLocation ? (
           <WelcomeStats
             locations={locations}
             shops={allShops || shops}

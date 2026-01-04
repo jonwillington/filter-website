@@ -109,7 +109,7 @@ export function LocationDrawer({
         >
           {/* Top header row with City Guide and close button */}
           <div
-            className="relative flex items-center justify-between px-4 py-3 border-b border-white/10"
+            className="relative flex items-center justify-between p-5"
             style={{
               opacity: 1 - stickyHeaderOpacity,
               pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
@@ -118,7 +118,7 @@ export function LocationDrawer({
             <span className="text-xs text-white/70 uppercase tracking-wide font-medium">
               City Guide
             </span>
-            <CircularCloseButton onPress={onClose} size="sm" />
+            <CircularCloseButton onPress={onClose} size="md" />
           </div>
 
           {/* Contained feature image with curved edges */}

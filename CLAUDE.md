@@ -169,6 +169,29 @@ Dark mode uses **warm brown tones** (like the gradient header), NOT cold blacks/
 | `text-gray-500`, `text-gray-600` | `text-text-secondary` |
 | `border-gray-100`, `border-gray-200` | `border-border-default` |
 
+### Opacity Modifiers Don't Work with CSS Variables
+
+**IMPORTANT:** Tailwind's opacity modifier syntax (e.g., `bg-surface/50`, `border-border-default/30`) does NOT work with our CSS variable-based colors. This is because Tailwind needs RGB values to apply opacity, but our variables use hex values.
+
+**DON'T:**
+```tsx
+// These will NOT apply opacity - the /30 is ignored
+<div className="border-border-default/30">  // ❌ Opacity ignored
+<div className="bg-surface/50">  // ❌ Opacity ignored
+<div className="text-text-secondary/60">  // ❌ Opacity ignored
+```
+
+**DO:** Use explicit `dark:` modifiers with Tailwind's built-in colors or `white`/`black` with opacity:
+```tsx
+// For subtle borders/backgrounds that need different light/dark values
+<div className="border-gray-200 dark:border-white/5">  // ✅
+<div className="hover:bg-gray-50 dark:hover:bg-white/5">  // ✅
+<div className="text-gray-400 dark:text-white/30">  // ✅
+
+// Or use rgba in inline styles when needed
+<div style={{ borderColor: 'rgba(255,255,255,0.1)' }}>  // ✅ (dark mode only)
+```
+
 ### For Inline Styles (JavaScript)
 
 When you must use inline styles (e.g., in map markers), access the theme:

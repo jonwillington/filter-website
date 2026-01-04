@@ -77,11 +77,11 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
         )}
       </div>
       <div className="flex-1 min-w-0 overflow-hidden">
-        <h4 className="font-medium text-text truncate text-sm overflow-hidden">
+        <h4 className="font-medium text-primary truncate text-sm overflow-hidden">
           {displayName}
         </h4>
         {streetAddress && (
-          <p className="text-xs text-textSecondary line-clamp-2 overflow-hidden">
+          <p className="text-xs text-text-secondary/70 line-clamp-2 overflow-hidden">
             {streetAddress}
           </p>
         )}

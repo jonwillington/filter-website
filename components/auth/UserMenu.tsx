@@ -40,8 +40,6 @@ export function UserMenu() {
           name={userProfile.displayName}
           size="sm"
           className="cursor-pointer transition-transform hover:scale-105"
-          isBordered
-          color="primary"
         />
       </DropdownTrigger>
       <DropdownMenu

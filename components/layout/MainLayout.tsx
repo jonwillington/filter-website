@@ -8,7 +8,6 @@ import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
 import { UnifiedDrawer } from '../detail/UnifiedDrawer';
 import { WelcomeModal } from '../modals/WelcomeModal';
-import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
 import { SearchModal } from '../modals/SearchModal';
 import { Footer } from './Footer';
 import { LoginModal } from '../auth/LoginModal';
@@ -20,7 +19,8 @@ import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
-import { Menu, LogIn, Search } from 'lucide-react';
+import { Menu, LogIn, Search, MapPin } from 'lucide-react';
+import { ExploreModal } from '../modals/ExploreModal';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
 
 interface MainLayoutProps {
@@ -56,6 +56,7 @@ export function MainLayout({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showExploreModal, setShowExploreModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   const { coordinates, requestLocation } = useGeolocation();
@@ -133,8 +134,8 @@ export function MainLayout({
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
     // Only run when we have coordinates and we're in explore mode (waiting for nearby detection)
-    // and we don't already have a selected location
-    if (!coordinates || !isExploreMode || selectedLocation) return;
+    // isLoading indicates we're actively waiting for location detection
+    if (!coordinates || !isExploreMode || !isLoading) return;
 
     const checkArea = async () => {
       const areaData = await detectUserArea(coordinates.lat, coordinates.lng);
@@ -178,9 +179,11 @@ export function MainLayout({
           }, 300);
         } else {
           // Area detected but location not in our list
+          setSelectedLocation(null); // Clear location when unsupported
           setIsNearbyMode(true);
           setIsExploreMode(false);
           setIsAreaUnsupported(true);
+          setIsLoading(false); // Stop loading
           // Center on user location
           setMapCenter([coordinates.lng, coordinates.lat]);
           setMapZoom(12);
@@ -193,9 +196,11 @@ export function MainLayout({
         }
       } else {
         // No supported area detected - show nearby shops and detect country
+        setSelectedLocation(null); // Clear location when unsupported
         setIsNearbyMode(true);
         setIsExploreMode(false);
         setIsAreaUnsupported(true);
+        setIsLoading(false); // Stop loading
         // Center on user location
         setMapCenter([coordinates.lng, coordinates.lat]);
         setMapZoom(12);
@@ -209,7 +214,7 @@ export function MainLayout({
     };
 
     checkArea();
-  }, [coordinates, isExploreMode, selectedLocation, locations, router, shops]);
+  }, [coordinates, isExploreMode, isLoading, locations, router, shops]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -369,14 +374,11 @@ export function MainLayout({
     setSelectedShop(null);
     setIsAreaUnsupported(false);
 
-    // Stay in explore mode (zoomed out) until we get coordinates
+    // Stay in current view - don't change map or clear location yet
+    // The useEffect for coordinates will handle all updates when ready
     setIsExploreMode(true);
     setIsNearbyMode(false);
-    setSelectedLocation(null);
-
-    // Set map to world view
-    setMapCenter([0, 20]);
-    setMapZoom(2);
+    // Don't clear location or change map - keep current view during loading
 
     // Request user location
     requestLocation();
@@ -439,11 +441,19 @@ export function MainLayout({
         onExplore={handleWelcomeExplore}
       />
 
-      <UnsupportedCountryModal
-        isOpen={!!unsupportedCountry}
-        countryName={unsupportedCountry?.name || ''}
-        countryCode={unsupportedCountry?.code}
-        onClose={() => setUnsupportedCountry(null)}
+      <ExploreModal
+        isOpen={showExploreModal}
+        onClose={() => setShowExploreModal(false)}
+        locations={locations}
+        countries={countries}
+        allShops={shops}
+        onLocationSelect={(location) => {
+          handleLocationChange(location);
+          setShowExploreModal(false);
+          // Clear unsupported state when user selects a supported city
+          setIsAreaUnsupported(false);
+          setUnsupportedCountry(null);
+        }}
       />
 
       <LoginModal
@@ -484,20 +494,31 @@ export function MainLayout({
           allShops={locationFilteredShops}
           selectedShop={selectedShop}
           onShopSelect={handleShopSelect}
-          isNearbyMode={isNearbyMode}
-          onNearbyToggle={handleNearbyToggle}
           isLoading={isLoading}
           isOpen={isMobileSidebarOpen}
           shopFilter={shopFilter}
           onShopFilterChange={setShopFilter}
           isAreaUnsupported={isAreaUnsupported}
           onOpenCityGuide={() => setShowMobileCityGuide(true)}
+          unsupportedCountry={unsupportedCountry}
+          onOpenExploreModal={() => setShowExploreModal(true)}
           authComponent={
             !authLoading && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Button
                   isIconOnly
                   variant="flat"
+                  radius="full"
+                  onPress={handleNearbyToggle}
+                  size="sm"
+                  aria-label="Find nearby"
+                >
+                  <MapPin className="w-4 h-4" />
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="flat"
+                  radius="full"
                   onPress={() => setShowSearchModal(true)}
                   size="sm"
                   aria-label="Search"
@@ -508,12 +529,14 @@ export function MainLayout({
                   <UserMenu />
                 ) : (
                   <Button
+                    isIconOnly
                     variant="flat"
+                    radius="full"
                     onPress={() => setShowLoginModal(true)}
-                    startContent={<LogIn className="w-4 h-4" />}
                     size="sm"
+                    aria-label="Sign in"
                   >
-                    Sign In
+                    <LogIn className="w-4 h-4" />
                   </Button>
                 )}
               </div>

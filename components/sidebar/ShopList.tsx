@@ -122,11 +122,11 @@ export function ShopList({
       className="transition-opacity duration-300"
       style={{ opacity: isLoading ? 0.4 : 1 }}
     >
-      {areasByGroup.map(([groupName, areas]) => (
-        <div key={groupName || 'ungrouped'}>
+      {areasByGroup.map(([groupName, areas], index) => (
+        <div key={groupName || 'ungrouped'} className={index > 0 ? 'mt-6' : ''}>
           {groupName && (
             <div className="px-4 pt-4 pb-2">
-              <h4 className="text-[10px] font-semibold text-textSecondary uppercase tracking-wider">
+              <h4 className="text-[10px] font-medium text-gray-400 dark:text-white/30 uppercase tracking-wider">
                 {groupName}
               </h4>
             </div>
@@ -164,10 +164,10 @@ function AreaSection({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="border-b border-border last:border-b-0">
+    <div className="border-b border-gray-200 dark:border-white/5 last:border-b-0">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
       >
         <span className="text-sm font-medium text-text">{areaName}</span>
