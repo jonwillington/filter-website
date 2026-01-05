@@ -181,7 +181,7 @@ function AreaSection({
       <button
         onClick={toggleExpanded}
         className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-        style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+        style={{ fontFamily: 'PPNeueYork, system-ui, sans-serif' }}
       >
         <span className="text-sm font-medium text-text">{areaName}</span>
         <div className="flex items-center gap-2">

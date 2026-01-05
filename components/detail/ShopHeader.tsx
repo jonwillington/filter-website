@@ -66,7 +66,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
           </h1>
 
           {locationText && (
-            <p className="text-sm text-textSecondary mt-1">
+            <p className="text-sm text-gray-400 dark:text-white/40 mt-1">
               {locationText}
             </p>
           )}

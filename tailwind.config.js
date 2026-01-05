@@ -31,7 +31,7 @@ module.exports = {
         buttonText: '#FFFFFF',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['PPNeueYork', 'system-ui', 'sans-serif'],
       },
     },
   },

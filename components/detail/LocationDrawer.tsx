@@ -136,7 +136,7 @@ export function LocationDrawer({
             <h2
               className="text-white"
               style={{
-                fontFamily: 'Refrankt, serif',
+                fontFamily: 'PPNeueYork, serif',
                 fontSize: '28px',
                 letterSpacing: '-0.5px',
                 lineHeight: 1.1,
@@ -148,7 +148,7 @@ export function LocationDrawer({
               <span
                 className="text-white/50 block"
                 style={{
-                  fontFamily: 'Refrankt, serif',
+                  fontFamily: 'PPNeueYork, serif',
                   fontSize: '28px',
                   letterSpacing: '-0.5px',
                   lineHeight: 1.1,

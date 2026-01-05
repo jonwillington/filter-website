@@ -33,3 +33,5 @@ export { AwardBox } from './AwardBox';
 export { ResponsiveModal } from './ResponsiveModal';
 
 export { StickyDrawerHeader } from './StickyDrawerHeader';
+
+export { ModalAnnouncementBanner } from './ModalAnnouncementBanner';

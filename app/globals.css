@@ -4,9 +4,17 @@
 
 /* Custom Fonts */
 @font-face {
-  font-family: 'Refrankt';
-  src: url('/fonts/Trial-Refrankt-SemiBold.otf') format('opentype');
-  font-weight: 600;
+  font-family: 'PPNeueYork';
+  src: url('/fonts/PPNeueYork-NormalLight.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PPNeueYork';
+  src: url('/fonts/PPNeueYork-NormalMedium.otf') format('opentype');
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
@@ -66,14 +74,14 @@ body {
 }
 
 h1, h2 {
-  font-family: 'Refrankt', system-ui, sans-serif;
-  font-weight: 600;
+  font-family: 'PPNeueYork', system-ui, sans-serif;
+  font-weight: 500;
 }
 
 /* Utility class for custom display font */
 .font-display {
-  font-family: 'Refrankt', system-ui, sans-serif;
-  font-weight: 600;
+  font-family: 'PPNeueYork', system-ui, sans-serif;
+  font-weight: 500;
 }
 
 /* Main Layout */

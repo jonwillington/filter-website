@@ -2,10 +2,14 @@
 
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Avatar, DropdownSection } from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
-import { User, Heart, Settings, LogOut, MessageSquare } from 'lucide-react';
+import { User, Heart, Settings, MessageSquare, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export function UserMenu() {
+interface UserMenuProps {
+  onOpenSettings?: () => void;
+}
+
+export function UserMenu({ onOpenSettings }: UserMenuProps) {
   const { user, userProfile, signOut } = useAuth();
   const router = useRouter();
 
@@ -23,7 +27,11 @@ export function UserMenu() {
         router.push('/reviews');
         break;
       case 'settings':
-        router.push('/settings');
+        if (onOpenSettings) {
+          onOpenSettings();
+        } else {
+          router.push('/settings');
+        }
         break;
       case 'signout':
         await signOut();

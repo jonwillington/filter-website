@@ -19,8 +19,10 @@ import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
-import { Menu, LogIn, Search, MapPin } from 'lucide-react';
+import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
 import { ExploreModal } from '../modals/ExploreModal';
+import { FilterPreferencesModal } from '../modals/FilterPreferencesModal';
+import { SettingsModal } from '../modals/SettingsModal';
 import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
 import { LocationBlockedModal } from '../modals/LocationBlockedModal';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
@@ -59,6 +61,8 @@ export function MainLayout({
   const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showExploreModal, setShowExploreModal] = useState(false);
+  const [showFilterPreferencesModal, setShowFilterPreferencesModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [isLocationDrawerClosing, setIsLocationDrawerClosing] = useState(false);
 
@@ -515,6 +519,16 @@ export function MainLayout({
         shops={shops}
       />
 
+      <FilterPreferencesModal
+        isOpen={showFilterPreferencesModal}
+        onClose={() => setShowFilterPreferencesModal(false)}
+      />
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
+
       {/* Mobile menu toggle */}
       <div className="mobile-toggle lg:hidden">
         {isMobileSidebarOpen ? (
@@ -550,44 +564,58 @@ export function MainLayout({
           unsupportedCountry={unsupportedCountry}
           onOpenExploreModal={() => setShowExploreModal(true)}
           authComponent={
-            !authLoading && (
-              <div className="flex items-center gap-3">
-                <Button
-                  isIconOnly
-                  variant="flat"
-                  radius="full"
-                  onPress={handleNearbyToggle}
-                  size="sm"
-                  aria-label="Find nearby"
-                >
-                  <MapPin className="w-4 h-4" />
-                </Button>
-                <Button
-                  isIconOnly
-                  variant="flat"
-                  radius="full"
-                  onPress={() => setShowSearchModal(true)}
-                  size="sm"
-                  aria-label="Search"
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-                {user ? (
-                  <UserMenu />
-                ) : (
+            <div className="flex items-center gap-3">
+              <Button
+                isIconOnly
+                variant="flat"
+                radius="full"
+                onPress={handleNearbyToggle}
+                size="sm"
+                aria-label="Find nearby"
+                isDisabled={authLoading}
+              >
+                <MapPin className="w-4 h-4" />
+              </Button>
+              <Button
+                isIconOnly
+                variant="flat"
+                radius="full"
+                onPress={() => setShowSearchModal(true)}
+                size="sm"
+                aria-label="Search"
+                isDisabled={authLoading}
+              >
+                <Search className="w-4 h-4" />
+              </Button>
+              {authLoading ? (
+                <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
+              ) : user ? (
+                <>
                   <Button
                     isIconOnly
                     variant="flat"
                     radius="full"
-                    onPress={() => setShowLoginModal(true)}
+                    onPress={() => setShowFilterPreferencesModal(true)}
                     size="sm"
-                    aria-label="Sign in"
+                    aria-label="Filter preferences"
                   >
-                    <LogIn className="w-4 h-4" />
+                    <SlidersHorizontal className="w-4 h-4" />
                   </Button>
-                )}
-              </div>
-            )
+                  <UserMenu onOpenSettings={() => setShowSettingsModal(true)} />
+                </>
+              ) : (
+                <Button
+                  isIconOnly
+                  variant="flat"
+                  radius="full"
+                  onPress={() => setShowLoginModal(true)}
+                  size="sm"
+                  aria-label="Sign in"
+                >
+                  <LogIn className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           }
         />
 
