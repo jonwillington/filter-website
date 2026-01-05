@@ -1,7 +1,7 @@
 'use client';
 
 import { Shop } from '@/lib/types';
-import { Coffee, Award, Wrench } from 'lucide-react';
+import { Divider } from '@heroui/react';
 
 interface BrandInfoSectionProps {
   shop: Shop;
@@ -20,7 +20,6 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
 
   const equipment = brand?.equipment;
   const awards = brand?.awards;
-  const founded = brand?.founded;
   const founder = brand?.founder;
 
   // Check if equipment has any items
@@ -32,10 +31,9 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
   );
 
   const hasAwards = awards && awards.length > 0;
-  const hasMeta = founded || founder;
 
   // Don't render if no brand info to show
-  if (!hasEquipment && !hasAwards && !hasMeta) return null;
+  if (!hasEquipment && !hasAwards && !founder) return null;
 
   // Build equipment text
   const equipmentText = hasEquipment ? EQUIPMENT_CATEGORIES
@@ -52,47 +50,38 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
       .join(' • ')
     : '';
 
-  // Build meta text
-  const metaParts: string[] = [];
-  if (founded) metaParts.push(`Founded: ${founded}`);
-  if (founder) metaParts.push(`Founder: ${founder}`);
-  const metaText = metaParts.join(' • ');
-
   return (
-    <div className="space-y-3">
-      {hasMeta && (
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div className="space-y-3">
+      {founder && (
         <div className="text-xs text-textSecondary">
-          {metaText}
+          Founder: {founder}
         </div>
       )}
 
       {hasEquipment && (
-        <div className="bg-surface rounded-xl p-4 flex gap-3">
-          <div className="w-10 h-10 bg-chipBackground rounded-lg flex items-center justify-center flex-shrink-0">
-            <Wrench className="w-5 h-5 text-text" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-text mb-1">Equipment</h4>
-            <p className="text-xs text-textSecondary leading-relaxed">
-              {equipmentText}
-            </p>
-          </div>
+        <div>
+          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
+            Equipment
+          </h3>
+          <p className="text-sm text-text leading-snug">
+            {equipmentText}
+          </p>
         </div>
       )}
 
       {hasAwards && (
-        <div className="bg-surface rounded-xl p-4 flex gap-3">
-          <div className="w-10 h-10 bg-chipBackground rounded-lg flex items-center justify-center flex-shrink-0">
-            <Award className="w-5 h-5 text-text" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-text mb-1">Awards</h4>
-            <p className="text-xs text-textSecondary leading-relaxed">
-              {awardsText}
-            </p>
-          </div>
+        <div>
+          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
+            Awards
+          </h3>
+          <p className="text-sm text-text leading-snug">
+            {awardsText}
+          </p>
         </div>
       )}
     </div>
+    </>
   );
 }

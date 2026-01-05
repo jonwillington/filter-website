@@ -59,9 +59,7 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
           size="sm"
           className="flex-shrink-0"
           showFallback
-          fallback={
-            <span className="text-lg">☕</span>
-          }
+          fallback={<span />}
         />
         {hasCityAreaRecommendation() && (
           <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-50 flex items-center justify-center shadow-md ring-2 ring-white">

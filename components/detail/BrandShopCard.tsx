@@ -54,7 +54,7 @@ export function BrandShopCard({ shop, onClick }: BrandShopCardProps) {
                 className="w-8 h-8 ring-2 ring-white shadow-sm"
                 radius="md"
                 showFallback
-                fallback={<span className="text-xs">☕</span>}
+                fallback={<span />}
               />
             </div>
           )}

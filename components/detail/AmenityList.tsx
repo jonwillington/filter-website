@@ -1,6 +1,7 @@
 import { Shop } from '@/lib/types';
 import { AmenityChip } from '@/components/ui';
 import { getMergedAmenities } from '@/lib/utils';
+import { Divider } from '@heroui/react';
 
 interface AmenityListProps {
   shop: Shop;
@@ -23,7 +24,9 @@ export function AmenityList({ shop }: AmenityListProps) {
   if (activeAmenities.length === 0) return null;
 
   return (
-    <div>
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div>
       <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
         Amenities
       </h3>
@@ -35,5 +38,6 @@ export function AmenityList({ shop }: AmenityListProps) {
         ))}
       </div>
     </div>
+    </>
   );
 }

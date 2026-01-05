@@ -260,3 +260,23 @@ export type ShopWithDistance = Shop & {
   distance?: number;
   distanceFormatted?: string;
 };
+
+export interface UserImage {
+  id: number;
+  documentId: string;
+  shop?: {
+    id: number;
+    documentId: string;
+  };
+  userId?: string;
+  userEmail?: string;
+  avatarUrl?: string | null;
+  image?: {
+    id: number;
+    documentId: string;
+    url: string;
+  };
+  approved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

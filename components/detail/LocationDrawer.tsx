@@ -24,8 +24,6 @@ export function LocationDrawer({
   onShopSelect,
   useWrapper = true,
 }: LocationDrawerProps) {
-  const [storyExpanded, setStoryExpanded] = useState(false);
-  const [storyTruncated, setStoryTruncated] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
@@ -60,10 +58,8 @@ export function LocationDrawer({
   // Use extracted hook for sticky header opacity
   const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
 
-  // Reset story state when location changes
+  // Reset opacity when location changes
   useEffect(() => {
-    setStoryExpanded(false);
-    setStoryTruncated(false);
     resetOpacity();
   }, [location.documentId, resetOpacity]);
 
@@ -161,6 +157,11 @@ export function LocationDrawer({
                 {currentLocation.country.name}
               </span>
             )}
+            {currentLocation.story && (
+              <p className="text-white text-xs leading-snug mt-3">
+                {currentLocation.story.trim()}
+              </p>
+            )}
           </div>
         </div>
 
@@ -215,39 +216,6 @@ export function LocationDrawer({
               <span className="font-medium">{totalShops}</span>
             </div>
           </div>
-
-          {/* Story */}
-          {currentLocation.story && (
-            <div>
-              <div className="relative">
-                <p
-                  className="text-primary leading-relaxed whitespace-pre-line"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: storyExpanded ? 'unset' : 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: storyExpanded ? 'visible' : 'hidden',
-                  }}
-                  ref={(el) => {
-                    if (el && !storyExpanded && !storyTruncated) {
-                      const isTruncated = el.scrollHeight > el.clientHeight;
-                      if (isTruncated) setStoryTruncated(true);
-                    }
-                  }}
-                >
-                  {currentLocation.story.trim()}
-                </p>
-                {storyTruncated && !storyExpanded && (
-                  <button
-                    onClick={() => setStoryExpanded(true)}
-                    className="text-accent font-medium text-sm mt-2 hover:underline"
-                  >
-                    Read more
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (

@@ -1,6 +1,7 @@
 import { Shop, OpeningHours } from '@/lib/types';
 import { MapPin, Clock, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
+import { Divider } from '@heroui/react';
 
 interface ShopInfoProps {
   shop: Shop;
@@ -62,7 +63,9 @@ export function ShopInfo({ shop }: ShopInfoProps) {
       : null;
 
   return (
-    <div className="space-y-3">
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div className="space-y-3">
       {/* Address */}
       {shop.address && (
         <div className="flex items-start gap-3">
@@ -72,12 +75,12 @@ export function ShopInfo({ shop }: ShopInfoProps) {
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-text hover:text-accent transition-colors text-sm leading-relaxed"
+              className="text-text hover:text-accent transition-colors text-sm leading-snug"
             >
               {shop.address}
             </a>
           ) : (
-            <span className="text-text text-sm leading-relaxed">{shop.address}</span>
+            <span className="text-text text-sm leading-snug">{shop.address}</span>
           )}
         </div>
       )}
@@ -148,5 +151,6 @@ export function ShopInfo({ shop }: ShopInfoProps) {
         </div>
       )}
     </div>
+    </>
   );
 }

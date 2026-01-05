@@ -15,7 +15,7 @@ import { db } from '../config/firebase';
 import { Review } from '../types/auth';
 
 class ReviewsService {
-  private readonly COLLECTION = 'reviews';
+  private readonly COLLECTION = 'shopQuickReviews';
 
   async createReview(
     shopId: string,
@@ -50,6 +50,7 @@ class ReviewsService {
         tags,
         comment,
         createdAt: serverTimestamp(),
+        visibility: 'public',
         likes: 0,
         likedBy: [],
         cityAreaId: locationData?.cityAreaId || null,
@@ -116,7 +117,13 @@ class ReviewsService {
 
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((doc) => this.mapReviewData(doc.data()));
+      // Filter to only show public reviews (or reviews without visibility field for backwards compat)
+      return snapshot.docs
+        .filter((doc) => {
+          const visibility = doc.data().visibility;
+          return visibility === 'public' || visibility === undefined;
+        })
+        .map((doc) => this.mapReviewData(doc.data()));
     } catch (error) {
       console.error('Error getting shop reviews:', error);
       throw new Error('Failed to get shop reviews');

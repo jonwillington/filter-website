@@ -41,7 +41,7 @@ export function ShopMiniCard({ shop, onClick }: ShopMiniCardProps) {
                 size="sm"
                 className="absolute bottom-1 left-1 w-6 h-6 ring-1 ring-white"
                 showFallback
-                fallback={<span className="text-xs">☕</span>}
+                fallback={<span />}
               />
             )}
           </>
@@ -52,7 +52,7 @@ export function ShopMiniCard({ shop, onClick }: ShopMiniCardProps) {
               name={shop.brand?.name ?? shop.name}
               size="md"
               showFallback
-              fallback={<span className="text-lg">☕</span>}
+              fallback={<span />}
             />
           </div>
         )}

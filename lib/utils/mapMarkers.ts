@@ -184,7 +184,7 @@ function createDetailedMarkerElement(
     };
     img.src = logoUrl;
   } else {
-    logoEl.innerHTML = '☕';
+    logoEl.innerHTML = '';
     logoEl.style.cssText = `
       ${baseStyles}
       background: ${labelBg};

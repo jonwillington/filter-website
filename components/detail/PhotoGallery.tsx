@@ -3,6 +3,7 @@
 import { Shop } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
+import { Divider } from '@heroui/react';
 
 interface PhotoGalleryProps {
   shop: Shop;
@@ -15,7 +16,9 @@ export function PhotoGallery({ shop }: PhotoGalleryProps) {
   if (!featuredImage && gallery.length === 0) return null;
 
   return (
-    <div>
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div>
       <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
         Photos
       </h3>
@@ -51,5 +54,6 @@ export function PhotoGallery({ shop }: PhotoGalleryProps) {
         </div>
       )}
     </div>
+    </>
   );
 }

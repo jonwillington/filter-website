@@ -44,12 +44,20 @@ export function useUserLocationMarker({
     }
 
     // Create and add the marker
-    markerRef.current = new mapboxgl.Marker({
+    const marker = new mapboxgl.Marker({
       element: el,
       anchor: 'center',
     })
       .setLngLat([coordinates.lng, coordinates.lat])
       .addTo(map);
+
+    // Ensure marker appears above other map elements
+    const markerEl = marker.getElement();
+    if (markerEl) {
+      markerEl.style.zIndex = '100';
+    }
+
+    markerRef.current = marker;
 
     return () => {
       if (markerRef.current) {

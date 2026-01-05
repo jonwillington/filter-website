@@ -23,12 +23,12 @@ export function AboutSection({ shop }: AboutSectionProps) {
     : description.slice(0, MAX_LENGTH).trim() + '...';
 
   return (
-    <div>
+    <div className="mt-5">
       <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
         About
       </h3>
       <div className="space-y-2">
-        <p className="text-sm text-text leading-relaxed whitespace-pre-line">
+        <p className="text-sm text-text leading-snug whitespace-pre-line">
           {displayText}
         </p>
         {isLong && (

@@ -48,7 +48,7 @@ export function BrandShopsModal({
               size="md"
               radius="md"
               showFallback
-              fallback={<span className="text-sm">☕</span>}
+              fallback={<span />}
             />
           )}
           <div>

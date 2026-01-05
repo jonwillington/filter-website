@@ -1,5 +1,5 @@
 import { Shop, CoffeePartner } from '@/lib/types';
-import { Avatar } from '@heroui/react';
+import { Avatar, Divider } from '@heroui/react';
 import { getMediaUrl } from '@/lib/utils';
 import { CountryChip } from '@/components/ui';
 import { Bean } from 'lucide-react';
@@ -48,14 +48,16 @@ export function BeansSection({ shop }: BeansSectionProps) {
   if (!hasInHouseRoast && !hasSuppliers && !hasCoffeePartner) return null;
 
   return (
-    <div className="space-y-4">
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div className="space-y-4">
       {/* In-house roast */}
       {hasInHouseRoast && (
         <div>
           <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
             Coffee Roasting
           </h3>
-          <p className="text-sm text-text">
+          <p className="text-sm text-text leading-snug">
             {ownRoastDesc || `Roasted in-house by ${brand.name}`}
           </p>
           {ownRoastCountries.length > 0 && (
@@ -82,5 +84,6 @@ export function BeansSection({ shop }: BeansSectionProps) {
         <PartnerCard partner={shopCoffeePartner || brandCoffeePartner!} />
       )}
     </div>
+    </>
   );
 }

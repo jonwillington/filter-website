@@ -1,6 +1,7 @@
 import { Shop } from '@/lib/types';
 import { BrewMethodChip } from '@/components/ui';
 import { getMergedBrewMethods } from '@/lib/utils';
+import { Divider } from '@heroui/react';
 
 interface BrewMethodsProps {
   shop: Shop;
@@ -27,7 +28,9 @@ export function BrewMethods({ shop }: BrewMethodsProps) {
   if (activeMethodKeys.length === 0) return null;
 
   return (
-    <div>
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div>
       <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
         Brew Methods
       </h3>
@@ -39,5 +42,6 @@ export function BrewMethods({ shop }: BrewMethodsProps) {
         ))}
       </div>
     </div>
+    </>
   );
 }

@@ -3,8 +3,7 @@
 import { Shop, OpeningHours } from '@/lib/types';
 import { Avatar, Chip } from '@heroui/react';
 import { StatusChip } from '@/components/ui';
-import { getMediaUrl, getShopDisplayName, countBrewMethods } from '@/lib/utils';
-import { Coffee } from 'lucide-react';
+import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
 
 interface ShopHeaderProps {
   shop: Shop;
@@ -18,7 +17,6 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const heroUrl = getMediaUrl(shop.featured_image);
   const displayName = getShopDisplayName(shop);
-  const brewMethodCount = countBrewMethods(shop);
 
   const openingHours = isOpeningHoursObject(shop.opening_hours) ? shop.opening_hours : null;
   const isOpen = shop.is_open ?? openingHours?.open_now;
@@ -39,9 +37,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-6xl opacity-20">☕</span>
-            </div>
+            <div className="w-full h-full" />
           )}
         </div>
         {/* Gradient overlay */}
@@ -56,7 +52,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
               size="lg"
               className="w-16 h-16 ring-3 ring-white shadow-lg"
               showFallback
-              fallback={<span className="text-2xl">☕</span>}
+              fallback={<span />}
             />
           </div>
         )}
@@ -83,20 +79,6 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
               </StatusChip>
             )}
 
-            {brewMethodCount > 0 && (
-              <Chip
-                size="sm"
-                variant="flat"
-                startContent={<Coffee className="w-3 h-3" />}
-                classNames={{
-                  base: 'bg-surface',
-                  content: 'text-text text-xs',
-                }}
-              >
-                {brewMethodCount} brew {brewMethodCount === 1 ? 'method' : 'methods'}
-              </Chip>
-            )}
-
             {(shop.independent || shop.is_chain === false) && (
               <Chip
                 size="sm"
@@ -107,19 +89,6 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
                 }}
               >
                 Independent
-              </Chip>
-            )}
-
-            {shop.brand?.type && (
-              <Chip
-                size="sm"
-                variant="flat"
-                classNames={{
-                  base: 'bg-surface',
-                  content: 'text-textSecondary text-xs',
-                }}
-              >
-                {shop.brand.type}
               </Chip>
             )}
           </div>

@@ -11,14 +11,16 @@ import { BrewMethods } from './BrewMethods';
 import { BeansSection } from './BeansSection';
 import { BrandInfoSection } from './BrandInfoSection';
 import { PhotoGallery } from './PhotoGallery';
+import { UserPhotosSection } from './UserPhotosSection';
 import { BrandShopCard } from './BrandShopCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
 import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
+import { UserPhotoModal } from '@/components/modals/UserPhotoModal';
 import { Divider } from '@heroui/react';
 import { CircularCloseButton, AwardBox, StickyDrawerHeader } from '@/components/ui';
 import { ChevronLeft } from 'lucide-react';
 import { getShopDisplayName, hasCityAreaRecommendation, getMediaUrl } from '@/lib/utils';
-import { useStickyHeaderOpacity, useDrawerTransition } from '@/lib/hooks';
+import { useStickyHeaderOpacity, useDrawerTransition, useShopUserImages } from '@/lib/hooks';
 import { getMoreFromBrand } from '@/lib/utils/shopFiltering';
 import { ShopDrawerFooter } from './ShopDrawerFooter';
 
@@ -37,6 +39,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
   const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+  const [selectedUserImageIndex, setSelectedUserImageIndex] = useState(-1);
 
   // Find scrollable parent when not using wrapper
   useEffect(() => {
@@ -73,6 +76,9 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
     getKey: (s) => s.documentId,
     scrollRef,
   });
+
+  // Fetch user photos for this shop
+  const { data: userImages = [], isLoading: userImagesLoading } = useShopUserImages(currentShop.documentId);
 
   // Get related shops from the same brand
   const moreFromBrand = useMemo(
@@ -126,7 +132,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         <ShopHeader shop={currentShop} />
 
         {/* Rest of content with padding */}
-        <div className="p-5 pb-20 space-y-6">
+        <div className="p-5 pb-20">
           {/* City Area Recommendation Award - at top */}
           {isTopChoice && (
             <AwardBox
@@ -137,67 +143,69 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {/* Action bar */}
           <ActionBar shop={currentShop} />
 
-        {/* About/Description */}
-        <AboutSection shop={currentShop} />
+          {/* About/Description */}
+          <AboutSection shop={currentShop} />
 
-        <Divider className="my-4" />
+          {/* Amenities */}
+          <AmenityList shop={currentShop} />
 
-        {/* Amenities */}
-        <AmenityList shop={currentShop} />
+          {/* Brew Methods */}
+          <BrewMethods shop={currentShop} />
 
-        {/* Brew Methods */}
-        <BrewMethods shop={currentShop} />
+          {/* Coffee Sourcing */}
+          <BeansSection shop={currentShop} />
 
-        {/* Coffee Sourcing */}
-        <BeansSection shop={currentShop} />
+          {/* Brand Info (Equipment & Awards) */}
+          <BrandInfoSection shop={currentShop} />
 
-        {/* Brand Info (Equipment & Awards) */}
-        <BrandInfoSection shop={currentShop} />
+          {/* Photo Gallery */}
+          <PhotoGallery shop={currentShop} />
 
-        <Divider className="my-4" />
+          {/* User Photos */}
+          <UserPhotosSection
+            images={userImages}
+            onPhotoPress={(_, index) => setSelectedUserImageIndex(index)}
+            loading={userImagesLoading}
+          />
 
-        {/* Photo Gallery */}
-        <PhotoGallery shop={currentShop} />
+          {/* Reviews */}
+          <ShopReviewsSection shop={currentShop} onOpenLoginModal={onOpenLoginModal} />
 
-        <Divider className="my-4" />
+          {/* More from Brand */}
+          {moreFromBrand.length > 0 && currentShop.brand && (
+            <>
+              <Divider className="my-5 opacity-30" />
+              <div>
+                <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-4">
+                  More from {currentShop.brand.name}
+                </h3>
 
-        {/* Reviews */}
-        <ShopReviewsSection shop={currentShop} onOpenLoginModal={onOpenLoginModal} />
+                {/* Horizontal scroll of brand shop cards */}
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+                  {moreFromBrand.slice(0, 2).map((relatedShop) => (
+                    <BrandShopCard
+                      key={relatedShop.documentId}
+                      shop={relatedShop}
+                      onClick={() => onShopSelect(relatedShop)}
+                    />
+                  ))}
+                </div>
 
-        {/* More from Brand */}
-        {moreFromBrand.length > 0 && currentShop.brand && (
-          <div>
-            <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-4">
-              More from {currentShop.brand.name}
-            </h3>
+                {/* View More button */}
+                {moreFromBrand.length > 2 && (
+                  <button
+                    onClick={() => setIsBrandModalOpen(true)}
+                    className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border rounded-xl hover:bg-surface"
+                  >
+                    View all {moreFromBrand.length} locations
+                  </button>
+                )}
+              </div>
+            </>
+          )}
 
-            {/* Horizontal scroll of brand shop cards */}
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
-              {moreFromBrand.slice(0, 2).map((relatedShop) => (
-                <BrandShopCard
-                  key={relatedShop.documentId}
-                  shop={relatedShop}
-                  onClick={() => onShopSelect(relatedShop)}
-                />
-              ))}
-            </div>
-
-            {/* View More button */}
-            {moreFromBrand.length > 2 && (
-              <button
-                onClick={() => setIsBrandModalOpen(true)}
-                className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border rounded-xl hover:bg-surface"
-              >
-                View all {moreFromBrand.length} locations
-              </button>
-            )}
-          </div>
-        )}
-
-        <Divider className="my-4" />
-
-        {/* Address & Opening Hours */}
-        <ShopInfo shop={currentShop} />
+          {/* Address & Opening Hours */}
+          <ShopInfo shop={currentShop} />
         </div>
       </div>
 
@@ -217,11 +225,21 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
     />
   );
 
+  const userPhotoModal = (
+    <UserPhotoModal
+      isOpen={selectedUserImageIndex >= 0}
+      onClose={() => setSelectedUserImageIndex(-1)}
+      images={userImages}
+      initialIndex={Math.max(0, selectedUserImageIndex)}
+    />
+  );
+
   if (useWrapper) {
     return (
       <div ref={drawerRef} className="shop-drawer relative">
         {content}
         {modal}
+        {userPhotoModal}
       </div>
     );
   }
@@ -230,6 +248,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
     <div ref={contentRef} className="relative">
       {content}
       {modal}
+      {userPhotoModal}
     </div>
   );
 }

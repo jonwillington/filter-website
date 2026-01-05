@@ -5,6 +5,7 @@ export { useNearbyShops } from './useNearbyShops';
 export { useStickyHeaderOpacity } from './useStickyHeaderOpacity';
 export { useLoadingTransition } from './useLoadingTransition';
 export { useDrawerTransition } from './useDrawerTransition';
+export { useShopUserImages } from './useShopUserImages';
 
 // Map-related hooks
 export { useMapInstance } from './useMapInstance';

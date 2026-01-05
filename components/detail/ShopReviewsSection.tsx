@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner, Divider } from '@heroui/react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { reviewsService } from '@/lib/services/reviewsService';
 import { Review } from '@/lib/types/auth';
@@ -60,7 +60,9 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
   };
 
   return (
-    <div className="space-y-4">
+    <>
+      <Divider className="my-5 opacity-30" />
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
           Reviews
@@ -131,5 +133,6 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
         onSuccess={handleReviewSuccess}
       />
     </div>
+    </>
   );
 }
