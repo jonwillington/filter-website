@@ -195,7 +195,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
                 {moreFromBrand.length > 2 && (
                   <button
                     onClick={() => setIsBrandModalOpen(true)}
-                    className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border rounded-xl hover:bg-surface"
+                    className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border-default rounded-xl hover:bg-surface"
                   >
                     View all {moreFromBrand.length} locations
                   </button>

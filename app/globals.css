@@ -5,8 +5,8 @@
 /* Custom Fonts */
 @font-face {
   font-family: 'PPNeueYork';
-  src: url('/fonts/PPNeueYork-NormalLight.otf') format('opentype');
-  font-weight: 300;
+  src: url('/fonts/PPNeueYork-NormalRegular.otf') format('opentype');
+  font-weight: 100 499;
   font-style: normal;
   font-display: swap;
 }
@@ -14,7 +14,15 @@
 @font-face {
   font-family: 'PPNeueYork';
   src: url('/fonts/PPNeueYork-NormalMedium.otf') format('opentype');
-  font-weight: 500;
+  font-weight: 500 599;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PPNeueYork';
+  src: url('/fonts/PPNeueYork-NormalBold.otf') format('opentype');
+  font-weight: 600 900;
   font-style: normal;
   font-display: swap;
 }

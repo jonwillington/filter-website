@@ -84,7 +84,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
                 size="sm"
                 variant="flat"
                 classNames={{
-                  base: 'bg-surface border border-border',
+                  base: 'bg-surface border border-border-default',
                   content: 'text-text text-xs font-medium',
                 }}
               >

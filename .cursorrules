@@ -1,0 +1,34 @@
+# Cursor Rules for Filter Website
+
+## Color Token System - MANDATORY
+
+This project uses semantic color tokens. **Never use hardcoded colors.**
+
+### Border Classes
+- **CORRECT**: `border-border-default`
+- **WRONG**: `border-border`, `border-gray-200`, `border-gray-100`
+
+### Background Classes
+- **CORRECT**: `bg-background`, `bg-surface`, `bg-surface-elevated`
+- **WRONG**: `bg-white`, `bg-gray-50`, `bg-gray-100`
+
+### Text Classes
+- **CORRECT**: `text-primary`, `text-text-secondary`
+- **WRONG**: `text-gray-900`, `text-gray-500`, `text-black`
+
+### Quick Reference
+
+| Hardcoded | Replace With |
+|-----------|--------------|
+| `bg-white` | `bg-background` |
+| `bg-gray-50`, `bg-gray-100` | `bg-surface` |
+| `border-gray-200`, `border-border` | `border-border-default` |
+| `text-gray-900`, `text-black` | `text-primary` |
+| `text-gray-500`, `text-gray-600` | `text-text-secondary` |
+
+### Why This Matters
+- Ensures dark mode works correctly
+- Dark mode uses warm brown tones, not cold grays
+- CSS variables auto-switch between light/dark themes
+
+See CLAUDE.md for full documentation.

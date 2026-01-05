@@ -192,7 +192,7 @@ export function Sidebar({
       </div>
 
       {/* Mobile footer - only visible on mobile */}
-      <div className="lg:hidden border-t border-border p-4">
+      <div className="lg:hidden border-t border-border-default p-4">
         <div className="flex items-center justify-center gap-4 text-xs text-textSecondary">
           <button
             onClick={() => setLegalModal('privacy')}

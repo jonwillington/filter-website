@@ -126,11 +126,11 @@ export function ShopDrawerFooter({ shop }: ShopDrawerFooterProps) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-105 ${textClass}`}
+            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-105 ${textClass}`}
             style={style}
             aria-label={label}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4" />
           </a>
         ))}
 
@@ -140,10 +140,10 @@ export function ShopDrawerFooter({ shop }: ShopDrawerFooterProps) {
             href={directionsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="directions-button w-11 h-11 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-105"
+            className="directions-button w-9 h-9 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-105"
             aria-label="Get directions"
           >
-            <Navigation className="w-5 h-5" />
+            <Navigation className="w-4 h-4" />
           </a>
         )}
       </div>
