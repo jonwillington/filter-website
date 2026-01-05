@@ -220,6 +220,12 @@ export interface Shop {
   rating?: number | null;
   rating_count?: number | null;
 
+  // Google Places Integration
+  google_place_id?: string | null;
+  google_place_verified?: boolean;
+  google_place_last_sync?: string | null;
+  google_place_match_confidence?: number | null;
+
   // Contact
   website?: string | null;
   phone?: string | null;

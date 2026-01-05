@@ -56,11 +56,14 @@ export function ShopInfo({ shop }: ShopInfoProps) {
     ? { lat: shop.latitude, lng: shop.longitude }
     : null);
 
-  const mapsUrl = coords
-    ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
-    : shop.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`
-      : null;
+  // Prefer Place ID for most reliable linking, fallback to coordinates, then address
+  const mapsUrl = shop.google_place_id
+    ? `https://www.google.com/maps/place/?q=place_id:${shop.google_place_id}`
+    : coords
+      ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
+      : shop.address
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`
+        : null;
 
   return (
     <>
