@@ -130,11 +130,18 @@ export function Sidebar({
             variant="flat"
             classNames={{
               trigger: 'bg-surface hover:bg-border-default',
+              value: 'text-primary',
+            }}
+            renderValue={(items) => {
+              const selected = items[0];
+              const option = FILTER_OPTIONS.find(o => o.key === selected?.key);
+              const count = option ? filterCounts[option.key as ShopFilterType] : 0;
+              return <span style={{ fontFeatureSettings: '"dlig" 0, "calt" 0' }}>{option?.label} ({String(count)})</span>;
             }}
           >
             {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
-              <SelectItem key={option.key}>
-                {option.label} ({filterCounts[option.key]})
+              <SelectItem key={option.key} textValue={`${option.label} (${filterCounts[option.key]})`}>
+                <span style={{ fontFeatureSettings: '"dlig" 0, "calt" 0' }}>{option.label} ({String(filterCounts[option.key])})</span>
               </SelectItem>
             ))}
           </Select>

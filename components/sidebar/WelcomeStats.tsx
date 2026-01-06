@@ -61,7 +61,7 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
               const imageUrl = getMediaUrl(shop.featured_image);
               const countryCode = shop.location?.country?.code?.toLowerCase();
               const flagUrl = countryCode
-                ? `https://hatscripts.github.io/circle-flags/flags/${countryCode}.svg`
+                ? `https://flagcdn.com/w40/${countryCode}.png`
                 : null;
 
               return (

@@ -109,7 +109,7 @@ interface CountryChipProps {
 }
 
 const getFlagUrl = (code: string) =>
-  `https://hatscripts.github.io/circle-flags/flags/${code.toLowerCase()}.svg`;
+  `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
 
 export const CountryChip = ({ code, name }: CountryChipProps) => (
   <Chip

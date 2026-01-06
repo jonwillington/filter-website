@@ -13,7 +13,7 @@ interface UnsupportedCountryModalProps {
 
 export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onClose }: UnsupportedCountryModalProps) {
   const flagUrl = countryCode
-    ? `https://hatscripts.github.io/circle-flags/flags/${countryCode.toLowerCase()}.svg`
+    ? `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`
     : null;
 
   return (

@@ -99,11 +99,13 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         title={displayName}
         opacity={stickyHeaderOpacity}
         onClose={onClose}
+        onBack={onBack}
+        backLabel={previousShop ? getShopDisplayName(previousShop) : 'City guide'}
       />
 
       {/* Floating buttons (visible when sticky header is hidden) */}
       <div
-        className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between"
+        className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between"
         style={{
           opacity: 1 - stickyHeaderOpacity,
           pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
@@ -113,19 +115,19 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         {onBack ? (
           <button
             onClick={onBack}
-            className="group h-8 rounded-full bg-white/90 dark:bg-surface/90 backdrop-blur-sm hover:bg-white dark:hover:bg-surface shadow-md transition-all duration-200 flex items-center gap-1 px-1.5 pr-3"
+            className="group h-10 rounded-full bg-white/90 dark:bg-surface/90 backdrop-blur-sm hover:bg-white dark:hover:bg-surface shadow-md transition-all duration-200 flex items-center gap-1 px-2 pr-3"
             aria-label={previousShop ? `Back to ${getShopDisplayName(previousShop)}` : 'Back to city guide'}
             title={previousShop ? getShopDisplayName(previousShop) : 'City guide'}
           >
             <ChevronLeft className="w-5 h-5 flex-shrink-0" />
-            <span className="text-xs font-medium truncate max-w-[100px] text-primary">
+            <span className="text-sm font-medium truncate max-w-[100px] text-primary">
               {previousShop ? getShopDisplayName(previousShop) : 'City guide'}
             </span>
           </button>
         ) : (
           <div />
         )}
-        <CircularCloseButton onPress={onClose} size="sm" />
+        <CircularCloseButton onPress={onClose} size="md" />
       </div>
 
       {/* Content */}
@@ -136,8 +138,8 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         {/* Header with hero image - no padding */}
         <ShopHeader shop={currentShop} />
 
-        {/* Rest of content with padding */}
-        <div className="p-5 pb-20">
+        {/* Rest of content with padding - staggered animation */}
+        <div key={currentShop.documentId} className="p-5 pb-20 stagger-fade-in">
           {/* City Area Recommendation Award - at top */}
           {isTopChoice && (
             <AwardBox
@@ -178,35 +180,33 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
           {/* More from Brand */}
           {moreFromBrand.length > 0 && currentShop.brand && (
-            <>
+            <div>
               <Divider className="my-5 opacity-30" />
-              <div>
-                <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-4">
-                  More from {currentShop.brand.name}
-                </h3>
+              <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-4">
+                More from {currentShop.brand.name}
+              </h3>
 
-                {/* Brand shop cards */}
-                <div className="flex gap-3">
-                  {moreFromBrand.slice(0, 2).map((relatedShop) => (
-                    <BrandShopCard
-                      key={relatedShop.documentId}
-                      shop={relatedShop}
-                      onClick={() => onShopSelect(relatedShop)}
-                    />
-                  ))}
-                </div>
-
-                {/* View More button */}
-                {moreFromBrand.length > 2 && (
-                  <button
-                    onClick={() => setIsBrandModalOpen(true)}
-                    className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border-default rounded-xl hover:bg-surface"
-                  >
-                    View all {moreFromBrand.length} locations
-                  </button>
-                )}
+              {/* Brand shop cards */}
+              <div className="flex gap-3">
+                {moreFromBrand.slice(0, 2).map((relatedShop) => (
+                  <BrandShopCard
+                    key={relatedShop.documentId}
+                    shop={relatedShop}
+                    onClick={() => onShopSelect(relatedShop)}
+                  />
+                ))}
               </div>
-            </>
+
+              {/* View More button */}
+              {moreFromBrand.length > 2 && (
+                <button
+                  onClick={() => setIsBrandModalOpen(true)}
+                  className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border-default rounded-xl hover:bg-surface"
+                >
+                  View all {moreFromBrand.length} locations
+                </button>
+              )}
+            </div>
           )}
 
           {/* Address & Opening Hours */}

@@ -14,14 +14,11 @@ interface UnifiedDrawerProps {
 
 export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
   function UnifiedDrawer({ children, className = 'shop-drawer', contentType, isVisible = true }, ref) {
-    const [frozenContent, setFrozenContent] = useState<ReactNode | null>(null);
-    const [isTransitioning, setIsTransitioning] = useState(false);
     // Only animate entering if drawer hasn't been shown yet in this session
     const [isEntering, setIsEntering] = useState(!hasDrawerBeenShown);
     const [isExiting, setIsExiting] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const previousContentTypeRef = useRef(contentType);
-    const currentChildrenRef = useRef(children);
-    const oldChildrenRef = useRef(children);
 
     // Mark drawer as shown and remove entering class after animation
     useEffect(() => {
@@ -41,31 +38,13 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
       }
     }, [isVisible, isExiting]);
 
+    // Reset scroll position when switching between content types
     useEffect(() => {
-      // Only transition when switching between different content types
-      if (contentType && previousContentTypeRef.current && contentType !== previousContentTypeRef.current) {
-        // Freeze the OLD content and start fade out
-        setFrozenContent(oldChildrenRef.current);
-        setIsTransitioning(true);
-
-        // Wait for fade out, then clear frozen content and fade in new content
-        const timeout = setTimeout(() => {
-          setFrozenContent(null);
-          oldChildrenRef.current = currentChildrenRef.current;
-          previousContentTypeRef.current = contentType;
-          setIsTransitioning(false);
-        }, 150);
-
-        return () => clearTimeout(timeout);
-      } else {
-        // Initial render or same content type - update old children
+      if (contentType !== previousContentTypeRef.current) {
+        scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
         previousContentTypeRef.current = contentType;
-        oldChildrenRef.current = currentChildrenRef.current;
       }
-    }, [contentType]); // Only depend on contentType
-
-    // Update current children ref
-    currentChildrenRef.current = children;
+    }, [contentType]);
 
     const classNames = [
       className,
@@ -74,13 +53,13 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
     ].filter(Boolean).join(' ');
 
     return (
-      <div ref={ref} className={classNames}>
-        <div
-          className="transition-opacity duration-150"
-          style={{ opacity: isTransitioning ? 0 : 1 }}
-        >
-          {isTransitioning && frozenContent ? frozenContent : children}
-        </div>
+      <div ref={(node) => {
+        // Merge refs
+        (scrollRef as any).current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      }} className={classNames}>
+        {children}
       </div>
     );
   }

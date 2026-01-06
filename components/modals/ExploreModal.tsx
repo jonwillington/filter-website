@@ -36,7 +36,7 @@ const REGION_ORDER = [
 
 // Get flag URL from country code
 const getFlagUrl = (countryCode: string): string =>
-  `https://hatscripts.github.io/circle-flags/flags/${countryCode.toLowerCase()}.svg`;
+  `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 
 interface CountryGroup {
   country: Country;

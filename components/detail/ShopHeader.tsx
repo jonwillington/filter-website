@@ -29,7 +29,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
     <div>
       {/* Hero Image with centered content */}
       <div className="relative">
-        <div className="aspect-[4/3] overflow-hidden bg-surface">
+        <div className="h-[240px] overflow-hidden bg-surface">
           {heroUrl ? (
             <img
               src={heroUrl}
@@ -44,7 +44,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
         {/* Centered content on hero */}
-        <div className="absolute inset-x-0 bottom-0 pb-5 px-5 flex flex-col items-center text-center">
+        <div className="absolute inset-x-0 bottom-0 pb-3 px-5 flex flex-col items-center text-center">
           {/* Brand logo */}
           {logoUrl && (
             <Avatar
