@@ -83,8 +83,8 @@ export interface CoffeePartner {
   documentId: string;
   name: string;
   logo?: MediaAsset | null;
-  country?: string | null;
-  description?: string | null;
+  country?: Country | null;
+  story?: string | null;
   website?: string | null;
   instagram?: string | null;
 }
@@ -111,10 +111,11 @@ export interface Brand {
 
   // Coffee sourcing
   roastOwnBeans?: boolean;
-  suppliers?: CoffeePartner[];
+  suppliers?: Brand[];
   coffee_partner?: CoffeePartner | null;
   ownRoastDesc?: string | null;
   ownRoastCountry?: Country[];
+  country?: Country | null;
 
   // Equipment
   equipment?: {
