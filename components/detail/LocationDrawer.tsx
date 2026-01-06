@@ -86,6 +86,10 @@ export function LocationDrawer({
 
   const backgroundImage = getMediaUrl(currentLocation.background_image);
 
+  // Placeholder story for locations without one
+  const placeholderStory = `Discover the best specialty coffee in ${currentLocation.name}. Our curated selection features ${totalShops} carefully chosen cafés, from hidden neighbourhood gems to celebrated roasters.`;
+  const displayStory = currentLocation.story?.trim() || placeholderStory;
+
   const content = (
     <>
       {/* Sticky header that fades in on scroll */}
@@ -158,11 +162,9 @@ export function LocationDrawer({
                 {currentLocation.country.name}
               </span>
             )}
-            {currentLocation.story && (
-              <p className="text-white text-xs leading-snug mt-3">
-                {currentLocation.story.trim()}
-              </p>
-            )}
+            <p className="text-white text-xs leading-snug mt-3">
+              {displayStory}
+            </p>
           </div>
         </div>
 

@@ -26,10 +26,10 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
   const locationText = [areaName, cityName].filter(Boolean).join(', ');
 
   return (
-    <div className="space-y-4">
-      {/* Hero Image - always render container, show placeholder if no image */}
+    <div>
+      {/* Hero Image with centered content */}
       <div className="relative">
-        <div className="aspect-[16/9] overflow-hidden bg-surface">
+        <div className="aspect-[4/3] overflow-hidden bg-surface">
           {heroUrl ? (
             <img
               src={heroUrl}
@@ -40,39 +40,37 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
             <div className="w-full h-full" />
           )}
         </div>
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* Gradient overlay - stronger for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Brand logo positioned on hero */}
-        {logoUrl && (
-          <div className="absolute bottom-4 left-4">
+        {/* Centered content on hero */}
+        <div className="absolute inset-x-0 bottom-0 pb-5 px-5 flex flex-col items-center text-center">
+          {/* Brand logo */}
+          {logoUrl && (
             <Avatar
               src={logoUrl}
               name={shop.brand?.name ?? shop.name}
               size="lg"
-              className="w-16 h-16 ring-3 ring-white shadow-lg"
+              className="w-16 h-16 ring-3 ring-white shadow-lg mb-3"
               showFallback
               fallback={<span />}
             />
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Shop Info */}
-      <div className="pt-2 px-5">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-contrastBlock leading-tight">
+          {/* Shop name */}
+          <h1 className="text-xl font-bold text-white leading-tight">
             {displayName}
           </h1>
 
+          {/* Location */}
           {locationText && (
-            <p className="text-sm text-gray-400 dark:text-white/40 mt-1">
+            <p className="text-sm text-white/70 mt-1">
               {locationText}
             </p>
           )}
 
           {/* Status chips */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
             {isOpen !== undefined && (
               <StatusChip status={isOpen ? 'success' : 'danger'}>
                 {isOpen ? 'Open' : 'Closed'}
@@ -84,8 +82,8 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
                 size="sm"
                 variant="flat"
                 classNames={{
-                  base: 'bg-surface border border-border-default',
-                  content: 'text-text text-xs font-medium',
+                  base: 'bg-white/20 backdrop-blur-sm border-0',
+                  content: 'text-white text-xs font-medium',
                 }}
               >
                 Independent

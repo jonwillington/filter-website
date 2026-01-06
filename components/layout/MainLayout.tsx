@@ -47,6 +47,7 @@ export function MainLayout({
 
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(initialLocation);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(initialShop);
+  const [shopHistory, setShopHistory] = useState<Shop[]>([]); // Track shop navigation history
   const [isNearbyMode, setIsNearbyMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -359,6 +360,11 @@ export function MainLayout({
     (shop: Shop) => {
       const isSameLocation = shop.location?.documentId === selectedLocation?.documentId;
 
+      // Track shop history for back navigation (only when navigating from one shop to another)
+      if (selectedShop && selectedShop.documentId !== shop.documentId) {
+        setShopHistory((prev) => [...prev, selectedShop]);
+      }
+
       setSelectedShop(shop);
       setIsMobileSidebarOpen(false);
 
@@ -392,6 +398,7 @@ export function MainLayout({
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedShop(null);
+    setShopHistory([]); // Clear history when closing drawer
 
     // Stay on the city view when closing a shop drawer
     if (selectedLocation) {
@@ -400,6 +407,30 @@ export function MainLayout({
       router.push(`/${countrySlug}/${citySlug}`, { scroll: false });
     }
   }, [router, selectedLocation]);
+
+  // Handle going back - either to previous shop or to location drawer
+  const handleShopBack = useCallback(() => {
+    if (shopHistory.length > 0) {
+      // Pop the last shop from history and navigate to it
+      const previousShop = shopHistory[shopHistory.length - 1];
+      setShopHistory((prev) => prev.slice(0, -1));
+      setSelectedShop(previousShop);
+
+      // Update URL
+      const countrySlug = slugify(previousShop.location?.country?.name ?? '');
+      const citySlug = slugify(previousShop.location?.name ?? '');
+      const areaSlug = slugify(previousShop.city_area?.name ?? previousShop.cityArea?.name ?? 'All');
+      const shopSlug = getShopSlug(previousShop);
+
+      if (countrySlug && citySlug && areaSlug && shopSlug) {
+        const newUrl = `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`;
+        window.history.pushState({}, '', newUrl);
+      }
+    } else {
+      // No history - go back to location drawer
+      setSelectedShop(null);
+    }
+  }, [shopHistory]);
 
   const handleNearbyToggle = useCallback(async () => {
     // Clear any existing timeout
@@ -648,7 +679,8 @@ export function MainLayout({
                 onClose={handleCloseDrawer}
                 onShopSelect={handleShopSelect}
                 onOpenLoginModal={() => setShowLoginModal(true)}
-                onBack={selectedLocation ? () => setSelectedShop(null) : undefined}
+                onBack={selectedLocation || shopHistory.length > 0 ? handleShopBack : undefined}
+                previousShop={shopHistory.length > 0 ? shopHistory[shopHistory.length - 1] : undefined}
                 useWrapper={false}
               />
             ) : selectedLocation ? (

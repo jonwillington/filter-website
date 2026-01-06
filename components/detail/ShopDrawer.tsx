@@ -31,10 +31,11 @@ interface ShopDrawerProps {
   onShopSelect: (shop: Shop) => void;
   onOpenLoginModal?: () => void;
   onBack?: () => void;
+  previousShop?: Shop; // The shop we're coming from (for dynamic back button)
   useWrapper?: boolean;
 }
 
-export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal, onBack, useWrapper = true }: ShopDrawerProps) {
+export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginModal, onBack, previousShop, useWrapper = true }: ShopDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
@@ -108,14 +109,18 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
         }}
       >
-        {/* Back button - only shown if came from city guide */}
+        {/* Back button - shows previous shop name or city guide */}
         {onBack ? (
           <button
             onClick={onBack}
-            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-md transition-all duration-200 flex items-center justify-center"
-            aria-label="Back to city guide"
+            className="group h-8 rounded-full bg-white/90 dark:bg-surface/90 backdrop-blur-sm hover:bg-white dark:hover:bg-surface shadow-md transition-all duration-200 flex items-center gap-1 px-1.5 pr-3"
+            aria-label={previousShop ? `Back to ${getShopDisplayName(previousShop)}` : 'Back to city guide'}
+            title={previousShop ? getShopDisplayName(previousShop) : 'City guide'}
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 flex-shrink-0" />
+            <span className="text-xs font-medium truncate max-w-[100px] text-primary">
+              {previousShop ? getShopDisplayName(previousShop) : 'City guide'}
+            </span>
           </button>
         ) : (
           <div />
@@ -206,6 +211,19 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
           {/* Address & Opening Hours */}
           <ShopInfo shop={currentShop} />
+
+          {/* Disclaimer */}
+          <p className="mt-8 text-xs text-text-secondary text-center">
+            This information is the most up to date we have as of{' '}
+            {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+            {' '}Notice something incorrect?{' '}
+            <a
+              href="mailto:hello@filter.coffee"
+              className="text-accent hover:underline"
+            >
+              Get in touch
+            </a>
+          </p>
         </div>
       </div>
 

@@ -132,21 +132,11 @@ export function Sidebar({
               trigger: 'bg-surface hover:bg-border-default',
             }}
           >
-            {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => {
-              const label = `${option.label} (${filterCounts[option.key]})`;
-              return (
-                <SelectItem
-                  key={option.key}
-                  textValue={label}
-                  hideSelectedIcon={false}
-                >
-                  <div className="flex justify-between w-full">
-                    <span>{option.label}</span>
-                    <span className="text-text-secondary">{filterCounts[option.key]}</span>
-                  </div>
-                </SelectItem>
-              );
-            })}
+            {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
+              <SelectItem key={option.key}>
+                {option.label} ({filterCounts[option.key]})
+              </SelectItem>
+            ))}
           </Select>
         )}
         {selectedLocation && onOpenCityGuide && (
