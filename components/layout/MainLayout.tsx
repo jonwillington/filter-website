@@ -342,8 +342,8 @@ export function MainLayout({
     });
   }, [locationFilteredShops, shopFilter]);
 
-  // Map always shows all shops
-  const shopsForMap = shops;
+  // Map shows filtered shops when filter is active, otherwise all shops
+  const shopsForMap = selectedLocation && shopFilter !== 'all' ? sidebarShops : shops;
 
   // Debug: Log when shops or selectedLocation changes
   useEffect(() => {

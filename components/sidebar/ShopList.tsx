@@ -84,10 +84,10 @@ export function ShopList({
     return sortedGroups;
   }, [areasWithGroups]);
 
-  // If only one area, show flat list
-  const shouldUseAccordion = areasWithGroups.length > 1;
+  // If only one area or filtered, show flat list
+  const shouldUseAccordion = areasWithGroups.length > 1 && !isFiltered;
 
-  // Single area: show flat list with simple headers
+  // Single area or filtered: show flat list
   if (!shouldUseAccordion) {
     return (
       <div
@@ -96,24 +96,20 @@ export function ShopList({
       >
         <div className="area-header">
           <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
-            All shops
+            {isFiltered ? `${shops.length} shops` : 'All shops'}
           </h3>
         </div>
-        {areasWithGroups.map((area) => (
-          <div key={area.name}>
-            <div className="py-1">
-              {area.shops.map((shop) => (
-                <ShopCard
-                  key={shop.documentId}
-                  shop={shop}
-                  isSelected={selectedShop?.documentId === shop.documentId}
-                  onClick={() => onShopSelect(shop)}
-                  disabled={isLoading}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+        <div className="py-1">
+          {shops.map((shop) => (
+            <ShopCard
+              key={shop.documentId}
+              shop={shop}
+              isSelected={selectedShop?.documentId === shop.documentId}
+              onClick={() => onShopSelect(shop)}
+              disabled={isLoading}
+            />
+          ))}
+        </div>
       </div>
     );
   }
