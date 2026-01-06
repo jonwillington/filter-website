@@ -61,6 +61,9 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      - name: Wait for GitHub Pages propagation
+        run: sleep 30
+
       - name: Purge Cloudflare Cache
         run: |
           curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
