@@ -39,7 +39,7 @@ export function CircularCloseButton({
       aria-label={ariaLabel}
       style={style}
       className={cn(
-        'rounded-full bg-background/90 backdrop-blur-sm hover:bg-background',
+        'rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-sm hover:bg-white dark:hover:bg-black/70',
         'shadow-md transition-all duration-200 min-w-0 p-0',
         sizeClasses[size],
         className

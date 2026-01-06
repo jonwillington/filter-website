@@ -53,9 +53,9 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
   return (
     <>
       <Divider className="my-5 opacity-30" />
-      <div className="space-y-3">
+
       {founder && (
-        <div className="text-xs text-textSecondary">
+        <div className="text-xs text-textSecondary mb-3">
           Founder: {founder}
         </div>
       )}
@@ -71,6 +71,10 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
         </div>
       )}
 
+      {hasEquipment && hasAwards && (
+        <Divider className="my-5 opacity-30" />
+      )}
+
       {hasAwards && (
         <div>
           <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
@@ -81,7 +85,6 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
           </p>
         </div>
       )}
-    </div>
     </>
   );
 }

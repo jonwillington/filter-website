@@ -10,6 +10,7 @@ interface ShopListProps {
   selectedShop: Shop | null;
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
+  isFiltered?: boolean;
 }
 
 interface AreaWithGroup {
@@ -23,6 +24,7 @@ export function ShopList({
   selectedShop,
   onShopSelect,
   isLoading,
+  isFiltered = false,
 }: ShopListProps) {
   if (shops.length === 0 && !isLoading) {
     return (
@@ -139,6 +141,7 @@ export function ShopList({
               selectedShop={selectedShop}
               onShopSelect={onShopSelect}
               isLoading={isLoading}
+              isFiltered={isFiltered}
             />
           ))}
         </div>
@@ -154,23 +157,25 @@ function AreaSection({
   selectedShop,
   onShopSelect,
   isLoading,
+  isFiltered = false,
 }: {
   areaName: string;
   shops: Shop[];
   selectedShop: Shop | null;
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
+  isFiltered?: boolean;
 }) {
   const hasSelectedShop = selectedShop && shops.some(s => s.documentId === selectedShop.documentId);
   const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
 
-  // Reset manual state when selected shop changes, so auto-expand takes over
+  // Reset manual state when selected shop changes or filter changes, so auto-expand takes over
   useEffect(() => {
     setIsManuallyToggled(null);
-  }, [selectedShop?.documentId]);
+  }, [selectedShop?.documentId, isFiltered]);
 
-  // Auto-expand if this area contains the selected shop, otherwise use manual state
-  const isExpanded = isManuallyToggled !== null ? isManuallyToggled : !!hasSelectedShop;
+  // Auto-expand if filtered, if this area contains the selected shop, otherwise use manual state
+  const isExpanded = isManuallyToggled !== null ? isManuallyToggled : (isFiltered || !!hasSelectedShop);
 
   const toggleExpanded = () => {
     setIsManuallyToggled(prev => prev !== null ? !prev : !hasSelectedShop);

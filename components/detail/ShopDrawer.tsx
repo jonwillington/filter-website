@@ -146,14 +146,14 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {/* About/Description */}
           <AboutSection shop={currentShop} />
 
-          {/* Amenities */}
-          <AmenityList shop={currentShop} />
-
           {/* Brew Methods */}
           <BrewMethods shop={currentShop} />
 
           {/* Coffee Sourcing */}
           <BeansSection shop={currentShop} />
+
+          {/* Amenities */}
+          <AmenityList shop={currentShop} />
 
           {/* Brand Info (Equipment & Awards) */}
           <BrandInfoSection shop={currentShop} />
@@ -180,8 +180,8 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
                   More from {currentShop.brand.name}
                 </h3>
 
-                {/* Horizontal scroll of brand shop cards */}
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+                {/* Brand shop cards */}
+                <div className="flex gap-3">
                   {moreFromBrand.slice(0, 2).map((relatedShop) => (
                     <BrandShopCard
                       key={relatedShop.documentId}

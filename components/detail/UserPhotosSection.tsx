@@ -2,7 +2,6 @@
 
 import { UserImage } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
-import Image from 'next/image';
 import { Divider } from '@heroui/react';
 
 interface UserPhotosSectionProps {
@@ -18,8 +17,22 @@ export function UserPhotosSection({
   onPhotoPress,
   loading = false,
 }: UserPhotosSectionProps) {
+  // Debug: log the structure of first image
+  console.log('UserPhotosSection first image:', JSON.stringify(images?.[0], null, 2));
+
+  // Get URL from image object - handle different structures
+  const getImageUrl = (img: UserImage): string | null => {
+    // Try different possible locations for the URL
+    const imageData = img.image as any;
+    if (imageData?.url) return imageData.url;
+    if (imageData?.formats?.small?.url) return imageData.formats.small.url;
+    if (imageData?.formats?.thumbnail?.url) return imageData.formats.thumbnail.url;
+    if ((img as any).url) return (img as any).url;
+    return null;
+  };
+
   // Filter to only images with valid URLs
-  const validImages = (images || []).filter(image => image.image?.url);
+  const validImages = (images || []).filter(img => !!getImageUrl(img));
 
   if (loading || validImages.length === 0) {
     return null;
@@ -34,7 +47,7 @@ export function UserPhotosSection({
         </h3>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
           {validImages.map((image, index) => {
-            const imageUrl = getMediaUrl(image.image);
+            const imageUrl = getImageUrl(image);
 
             return (
               <button
@@ -43,12 +56,10 @@ export function UserPhotosSection({
                 className="relative flex-shrink-0 rounded-xl overflow-hidden group focus:outline-none focus:ring-2 focus:ring-accent"
                 style={{ width: PHOTO_SIZE, height: PHOTO_SIZE }}
               >
-                <Image
+                <img
                   src={imageUrl!}
                   alt={`User photo ${index + 1}`}
-                  fill
-                  className="object-cover transition-transform group-hover:scale-105"
-                  sizes="100px"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                 />
               </button>
             );

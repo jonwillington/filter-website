@@ -138,6 +138,7 @@ export function LocationDrawer({
               style={{
                 fontFamily: 'PPNeueYork, serif',
                 fontSize: '28px',
+                fontWeight: 600,
                 letterSpacing: '-0.5px',
                 lineHeight: 1.1,
               }}

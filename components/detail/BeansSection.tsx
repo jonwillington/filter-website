@@ -61,7 +61,7 @@ export function BeansSection({ shop }: BeansSectionProps) {
             {ownRoastDesc || `Roasted in-house by ${brand.name}`}
           </p>
           {ownRoastCountries.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-4">
               {ownRoastCountries.map((country) => (
                 <CountryChip
                   key={country.documentId}

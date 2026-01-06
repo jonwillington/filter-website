@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Mail, Instagram } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
 import { useTheme } from '@/lib/context/ThemeContext';
 
@@ -30,6 +30,23 @@ export function Footer() {
           >
             Terms
           </button>
+          <span className="text-border">•</span>
+          <a
+            href="mailto:hey@filter.coffee"
+            className="hover:text-accent transition-colors p-1"
+            aria-label="Email us"
+          >
+            <Mail className="w-4 h-4" />
+          </a>
+          <a
+            href="https://www.instagram.com/filter.coffee.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-accent transition-colors p-1"
+            aria-label="Follow us on Instagram"
+          >
+            <Instagram className="w-4 h-4" />
+          </a>
           <span className="text-border">•</span>
           <span>© {new Date().getFullYear()} Filter</span>
           <span className="text-border">•</span>

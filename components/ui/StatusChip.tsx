@@ -121,12 +121,12 @@ export const CountryChip = ({ code, name }: CountryChipProps) => (
       <img
         src={getFlagUrl(code)}
         alt={name}
-        className="w-4 h-4 rounded-full"
+        className="w-3 h-3 rounded-full"
       />
     }
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none',
-      content: 'text-text text-xs font-medium',
+      base: 'bg-gray-100 dark:bg-white/15 border-none pl-3',
+      content: 'text-text text-xs',
     }}
   >
     {name}

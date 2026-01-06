@@ -8,7 +8,7 @@ import { WelcomeStats } from './WelcomeStats';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useMemo, ReactNode, useState } from 'react';
-import { Button } from '@heroui/react';
+import { Button, Select, SelectItem } from '@heroui/react';
 import { Map } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
 
@@ -119,18 +119,35 @@ export function Sidebar({
           onClick={onOpenExploreModal}
         />
         {shouldShowFilter && (
-          <select
-            value={shopFilter}
-            onChange={(e) => onShopFilterChange(e.target.value as ShopFilterType)}
-            className="w-full h-9 px-3 text-sm text-primary bg-surface border-0 rounded-lg cursor-pointer hover:bg-border-default transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30"
+          <Select
+            selectedKeys={[shopFilter]}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0] as ShopFilterType;
+              if (selected) onShopFilterChange(selected);
+            }}
             aria-label="Filter shops"
+            size="sm"
+            variant="flat"
+            classNames={{
+              trigger: 'bg-surface hover:bg-border-default',
+            }}
           >
-            {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label} ({filterCounts[option.key]})
-              </option>
-            ))}
-          </select>
+            {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => {
+              const label = `${option.label} (${filterCounts[option.key]})`;
+              return (
+                <SelectItem
+                  key={option.key}
+                  textValue={label}
+                  hideSelectedIcon={false}
+                >
+                  <div className="flex justify-between w-full">
+                    <span>{option.label}</span>
+                    <span className="text-text-secondary">{filterCounts[option.key]}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </Select>
         )}
         {selectedLocation && onOpenCityGuide && (
           <div className="lg:hidden">
@@ -183,6 +200,7 @@ export function Sidebar({
               selectedShop={selectedShop}
               onShopSelect={onShopSelect}
               isLoading={isLoading}
+              isFiltered={shopFilter !== 'all'}
             />
             {selectedLocation && filterCounts.all < 5 && (
               <ShortOnShopsAlert locationName={selectedLocation.name} />

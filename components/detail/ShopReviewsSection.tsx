@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button, Spinner, Divider } from '@heroui/react';
+import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { reviewsService } from '@/lib/services/reviewsService';
 import { Review } from '@/lib/types/auth';
@@ -109,11 +110,14 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
           )}
         </div>
       ) : (
-        <div
-          className="text-center py-8 rounded-lg"
-          style={{ backgroundColor: 'var(--surface)' }}
-        >
-          <MessageSquarePlus className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-secondary)' }} />
+        <div className="text-center py-8 rounded-lg border border-gray-200 dark:border-white/10">
+          <Image
+            src="/empty_beans.png"
+            alt="Coffee beans illustration"
+            width={140}
+            height={93}
+            className="mx-auto mb-4 opacity-80"
+          />
           <p className="font-medium" style={{ color: 'var(--text)' }}>
             No reviews yet
           </p>

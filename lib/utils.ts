@@ -113,10 +113,10 @@ interface ShopWithBrand {
 }
 
 export function getShopDescription(shop: ShopWithBrand): string | null {
-  // Fallback chain: shop.description → brand.description → brand.story
+  // Fallback chain: shop.description → brand.story → brand.description
   if (shop.description) return shop.description;
-  if (shop.brand?.description) return shop.brand.description;
   if (shop.brand?.story) return shop.brand.story;
+  if (shop.brand?.description) return shop.brand.description;
   return null;
 }
 
