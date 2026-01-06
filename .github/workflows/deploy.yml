@@ -62,7 +62,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Wait for GitHub Pages propagation
-        run: sleep 30
+        run: sleep 90
 
       - name: Purge Cloudflare Cache
         run: |
