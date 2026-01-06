@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ModalHeader, ModalBody, Input } from '@heroui/react';
-import { Search, MapPin, Coffee, X } from 'lucide-react';
+import { ModalHeader, ModalBody, Input, Avatar } from '@heroui/react';
+import { Search, Coffee, X } from 'lucide-react';
 import { Location, Shop } from '@/lib/types';
-import { slugify, getShopSlug } from '@/lib/utils';
+import { slugify, getShopSlug, getMediaUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { ResponsiveModal } from '@/components/ui';
+
+// Get flag URL from country code
+const getFlagUrl = (countryCode: string): string =>
+  `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -148,7 +152,7 @@ export function SearchModal({ isOpen, onClose, locations, shops }: SearchModalPr
             />
           </div>
         </ModalHeader>
-        <ModalBody className="pb-6">
+        <ModalBody className="pb-6 overflow-y-auto max-h-[calc(600px-80px)]">
           {searchQuery.trim().length < 2 ? (
             <div className="text-center py-12">
               <Search className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-secondary)' }} />
@@ -188,11 +192,18 @@ export function SearchModal({ isOpen, onClose, locations, shops }: SearchModalPr
                           e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                       >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: 'var(--surface)' }}
-                        >
-                          <MapPin className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-surface">
+                          {result.location?.country?.code ? (
+                            <img
+                              src={getFlagUrl(result.location.country.code)}
+                              alt={result.location.country.name || ''}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-lg">🌍</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate" style={{ color: 'var(--text)' }}>
@@ -230,12 +241,14 @@ export function SearchModal({ isOpen, onClose, locations, shops }: SearchModalPr
                           e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                       >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: 'var(--surface)' }}
-                        >
-                          <Coffee className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                        </div>
+                        <Avatar
+                          src={getMediaUrl(result.shop?.brand?.logo) || undefined}
+                          name={result.name}
+                          size="md"
+                          className="flex-shrink-0"
+                          showFallback
+                          fallback={<Coffee className="w-5 h-5" style={{ color: 'var(--accent)' }} />}
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate" style={{ color: 'var(--text)' }}>
                             {result.name}
