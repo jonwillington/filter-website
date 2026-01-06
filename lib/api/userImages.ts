@@ -8,7 +8,7 @@ export async function getUserImagesByShop(shopDocumentId: string): Promise<UserI
 
   try {
     const response = await fetch(
-      `${STRAPI_URL}/user-images?filters[shop][documentId][$eq]=${shopDocumentId}&filters[approved][$eq]=true&populate=image,shop`,
+      `${STRAPI_URL}/user-images?filters[shop][documentId][$eq]=${shopDocumentId}&filters[approved][$eq]=true&populate[0]=image&populate[1]=shop`,
       {
         headers: {
           'Content-Type': 'application/json',
