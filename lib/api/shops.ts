@@ -1,6 +1,6 @@
 import { Shop, Country, Location } from '../types';
 import { getShopSlug as generateShopSlug } from '../utils';
-import { getCached, setCache } from './cache';
+import { getCached, setCache, getPrefetched } from './cache';
 import { getAllBrands, Brand } from './brands';
 
 // Populate params to get all related data including nested city_area.location
@@ -76,6 +76,19 @@ async function getAllCountries(): Promise<Map<string, Country>> {
   const cached = getCached<Map<string, Country>>(cacheKey);
   if (cached) return cached;
 
+  // Check for pre-fetched data
+  const prefetched = getPrefetched<Country[]>('countries');
+  if (prefetched) {
+    const countryMap = new Map<string, Country>();
+    for (const country of prefetched) {
+      if (country.documentId) {
+        countryMap.set(country.documentId, country);
+      }
+    }
+    setCache(cacheKey, countryMap);
+    return countryMap;
+  }
+
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/countries?pagination[pageSize]=100`,
@@ -117,6 +130,19 @@ async function getAllCityAreasMap(): Promise<Map<string, { group: string | null 
   const cacheKey = 'cityareas:map';
   const cached = getCached<Map<string, { group: string | null }>>(cacheKey);
   if (cached) return cached;
+
+  // Check for pre-fetched data
+  const prefetched = getPrefetched<Array<{ documentId: string; group?: string | null }>>('city-areas');
+  if (prefetched) {
+    const cityAreaMap = new Map<string, { group: string | null }>();
+    for (const cityArea of prefetched) {
+      if (cityArea.documentId) {
+        cityAreaMap.set(cityArea.documentId, { group: cityArea.group || null });
+      }
+    }
+    setCache(cacheKey, cityAreaMap);
+    return cityAreaMap;
+  }
 
   try {
     const cityAreaMap = new Map<string, { group: string | null }>();
@@ -247,6 +273,13 @@ export async function getAllShops(): Promise<Shop[]> {
   const cacheKey = 'shops:all';
   const cached = getCached<Shop[]>(cacheKey);
   if (cached) return cached;
+
+  // Check for pre-fetched data (from build-time prefetch script)
+  const prefetched = getPrefetched<Shop[]>('shops');
+  if (prefetched) {
+    setCache(cacheKey, prefetched);
+    return prefetched;
+  }
 
   try {
     const allShops: Shop[] = [];

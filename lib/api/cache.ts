@@ -6,10 +6,54 @@
  *
  * The cache uses a longer TTL during build (30 min) since data
  * doesn't change during a single build run.
+ *
+ * If pre-fetched data exists in .data/, it will be used instead of API calls.
  */
+
+import * as fs from 'fs';
+import * as path from 'path';
 
 type CacheEntry = { data: unknown; timestamp: number };
 type CacheMap = Map<string, CacheEntry>;
+
+// Pre-fetched data cache (loaded once from .data/ files)
+let prefetchedData: Map<string, unknown> | null = null;
+
+function loadPrefetchedData(): Map<string, unknown> {
+  if (prefetchedData) return prefetchedData;
+
+  prefetchedData = new Map();
+  const dataDir = path.join(process.cwd(), '.data');
+
+  if (fs.existsSync(dataDir)) {
+    const files = ['shops.json', 'countries.json', 'city-areas.json', 'brands.json'];
+    for (const file of files) {
+      const filePath = path.join(dataDir, file);
+      if (fs.existsSync(filePath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+          const key = file.replace('.json', '');
+          prefetchedData.set(key, data);
+          console.log(`[Cache] Loaded pre-fetched ${key}: ${Array.isArray(data) ? data.length : 0} items`);
+        } catch (e) {
+          console.warn(`[Cache] Failed to load ${file}:`, e);
+        }
+      }
+    }
+  }
+
+  return prefetchedData;
+}
+
+export function getPrefetched<T>(key: string): T | null {
+  const data = loadPrefetchedData();
+  return (data.get(key) as T) || null;
+}
+
+export function hasPrefetchedData(): boolean {
+  const data = loadPrefetchedData();
+  return data.size > 0;
+}
 
 // Lazy initialization to avoid module-level side effects (breaks HMR)
 function getCache(): CacheMap {

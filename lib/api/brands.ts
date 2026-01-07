@@ -1,4 +1,4 @@
-import { getCached, setCache } from './cache';
+import { getCached, setCache, getPrefetched } from './cache';
 
 export interface Brand {
   id: number;
@@ -44,6 +44,19 @@ export async function getAllBrands(): Promise<Map<string, Brand>> {
   const cacheKey = 'brands:all';
   const cached = getCached<Map<string, Brand>>(cacheKey);
   if (cached) return cached;
+
+  // Check for pre-fetched data (from build-time prefetch script)
+  const prefetched = getPrefetched<Brand[]>('brands');
+  if (prefetched) {
+    const brandMap = new Map<string, Brand>();
+    for (const brand of prefetched) {
+      if (brand.documentId) {
+        brandMap.set(brand.documentId, brand);
+      }
+    }
+    setCache(cacheKey, brandMap);
+    return brandMap;
+  }
 
   try {
     const allBrands: Brand[] = [];

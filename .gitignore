@@ -13,6 +13,9 @@
 /.next/
 /out/
 
+# pre-fetched data (generated at build time)
+/.data/
+
 # production
 /build
 /dist
