@@ -238,6 +238,10 @@ export interface Shop {
   // Tags
   public_tags?: string[];
   amenities?: string[];
+
+  // Shop details
+  architects?: string | null;
+  price?: string | null;
 }
 
 export interface NearbyShop {

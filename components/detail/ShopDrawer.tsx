@@ -10,6 +10,8 @@ import { AmenityList } from './AmenityList';
 import { BrewMethods } from './BrewMethods';
 import { BeansSection } from './BeansSection';
 import { BrandInfoSection } from './BrandInfoSection';
+import { BranchAboutSection } from './BranchAboutSection';
+import { ShopProperties } from './ShopProperties';
 import { PhotoGallery } from './PhotoGallery';
 import { UserPhotosSection } from './UserPhotosSection';
 import { BrandShopCard } from './BrandShopCard';
@@ -150,6 +152,9 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {/* Action bar */}
           <ActionBar shop={currentShop} />
 
+          {/* Shop Properties (Architects, Price) */}
+          <ShopProperties shop={currentShop} />
+
           {/* About/Description */}
           <AboutSection shop={currentShop} />
 
@@ -164,6 +169,9 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
           {/* Brand Info (Equipment & Awards) */}
           <BrandInfoSection shop={currentShop} />
+
+          {/* Branch-specific description for branded shops */}
+          <BranchAboutSection shop={currentShop} />
 
           {/* Photo Gallery */}
           <PhotoGallery shop={currentShop} />

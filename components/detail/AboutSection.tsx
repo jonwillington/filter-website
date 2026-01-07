@@ -11,9 +11,25 @@ interface AboutSectionProps {
 
 const MAX_LENGTH = 200;
 
+// Get description appropriate for the About section
+// For branded shops: show brand story/description (shop.description shown separately as "About This Branch")
+// For independent shops: show shop description with brand fallback
+function getAboutDescription(shop: Shop): string | null {
+  if (!shop.independent && shop.brand) {
+    // Branded shop: prefer brand story/description for the main "About" section
+    if (shop.brand.story) return shop.brand.story;
+    if (shop.brand.description) return shop.brand.description;
+    // Fall back to shop description if brand has none
+    if (shop.description) return shop.description;
+    return null;
+  }
+  // Independent shop: use standard fallback chain
+  return getShopDescription(shop);
+}
+
 export function AboutSection({ shop }: AboutSectionProps) {
   const [expanded, setExpanded] = useState(false);
-  const description = getShopDescription(shop);
+  const description = getAboutDescription(shop);
 
   if (!description) return null;
 

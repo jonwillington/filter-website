@@ -43,34 +43,34 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
         {/* Gradient overlay - stronger for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Centered content on hero */}
-        <div className="absolute inset-x-0 bottom-0 pb-3 px-5 flex flex-col items-center text-center">
+        {/* Left-aligned content on hero */}
+        <div className="absolute inset-x-0 bottom-0 pb-4 px-5 flex flex-col items-start">
           {/* Brand logo */}
           {logoUrl && (
             <Avatar
               src={logoUrl}
               name={shop.brand?.name ?? shop.name}
               size="lg"
-              className="w-16 h-16 ring-3 ring-white shadow-lg mb-3"
+              className="w-14 h-14 ring-2 ring-white/80 shadow-lg mb-3"
               showFallback
               fallback={<span />}
             />
           )}
 
           {/* Shop name */}
-          <h1 className="text-xl font-bold text-white leading-tight">
+          <h1 className="text-2xl font-bold text-white leading-tight">
             {displayName}
           </h1>
 
           {/* Location */}
           {locationText && (
-            <p className="text-sm text-white/70 mt-1">
+            <p className="text-base text-white/80 mt-1">
               {locationText}
             </p>
           )}
 
           {/* Status chips */}
-          <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
             {isOpen !== undefined && (
               <StatusChip status={isOpen ? 'success' : 'danger'}>
                 {isOpen ? 'Open' : 'Closed'}
