@@ -277,6 +277,47 @@ export async function getAllShops(): Promise<Shop[]> {
   // Check for pre-fetched data (from build-time prefetch script)
   const prefetched = getPrefetched<Shop[]>('shops');
   if (prefetched) {
+    // Still need to enrich with country, brand, and city area data
+    // (Strapi's nested populate doesn't return all fields for relations)
+    const [countryMap, brandMap, cityAreaMap] = await Promise.all([
+      getAllCountries(),
+      getAllBrands(),
+      getAllCityAreasMap(),
+    ]);
+
+    for (const shop of prefetched) {
+      enrichShopData(shop, countryMap);
+
+      // Enrich brand data from batch-fetched brands
+      // fullBrand has all top-level fields, shop.brand may have nested relations from shop populate
+      // Prefer shop.brand's nested relations if populated, otherwise use fullBrand's
+      if (shop.brand?.documentId) {
+        const fullBrand = brandMap.get(shop.brand.documentId);
+        if (fullBrand) {
+          const shopLogo = shop.brand.logo;
+          const shopSuppliers = shop.brand.suppliers;
+          const shopCoffeePartner = shop.brand.coffee_partner;
+          shop.brand = {
+            ...fullBrand,
+            ...shop.brand,
+            // Use shop's nested relations if they exist and are populated, otherwise use fullBrand's
+            logo: shopLogo || fullBrand.logo,
+            suppliers: shopSuppliers?.length ? shopSuppliers : fullBrand.suppliers,
+            coffee_partner: shopCoffeePartner || fullBrand.coffee_partner,
+          };
+        }
+      }
+
+      // Enrich city_area with group field if missing
+      const cityArea = shop.city_area ?? shop.cityArea;
+      if (cityArea?.documentId) {
+        const cityAreaData = cityAreaMap.get(cityArea.documentId);
+        if (cityAreaData?.group && !cityArea.group) {
+          cityArea.group = cityAreaData.group;
+        }
+      }
+    }
+
     setCache(cacheKey, prefetched);
     return prefetched;
   }
@@ -323,11 +364,22 @@ export async function getAllShops(): Promise<Shop[]> {
       enrichShopData(shop, countryMap);
 
       // Enrich brand data from batch-fetched brands
-      const brandDocumentId = shop.brand?.documentId;
-      if (brandDocumentId) {
-        const fullBrand = brandMap.get(brandDocumentId);
+      // fullBrand has all top-level fields, shop.brand may have nested relations from shop populate
+      // Prefer shop.brand's nested relations if populated, otherwise use fullBrand's
+      if (shop.brand?.documentId) {
+        const fullBrand = brandMap.get(shop.brand.documentId);
         if (fullBrand) {
-          shop.brand = { ...shop.brand, ...fullBrand };
+          const shopLogo = shop.brand.logo;
+          const shopSuppliers = shop.brand.suppliers;
+          const shopCoffeePartner = shop.brand.coffee_partner;
+          shop.brand = {
+            ...fullBrand,
+            ...shop.brand,
+            // Use shop's nested relations if they exist and are populated, otherwise use fullBrand's
+            logo: shopLogo || fullBrand.logo,
+            suppliers: shopSuppliers?.length ? shopSuppliers : fullBrand.suppliers,
+            coffee_partner: shopCoffeePartner || fullBrand.coffee_partner,
+          };
         }
       }
 
