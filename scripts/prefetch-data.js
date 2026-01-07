@@ -6,12 +6,24 @@
 const fs = require('fs');
 const path = require('path');
 
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
-const STRAPI_TOKEN = process.env.NEXT_PUBLIC_STRAPI_TOKEN;
+// Use production Strapi if USE_PROD=1 or NEXT_PUBLIC_STRAPI_URL_PROD is set
+const useProd = process.env.USE_PROD === '1';
+const STRAPI_URL = useProd
+  ? (process.env.NEXT_PUBLIC_STRAPI_URL_PROD || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api')
+  : (process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api');
+const STRAPI_TOKEN = useProd
+  ? process.env.NEXT_PUBLIC_STRAPI_TOKEN_PROD
+  : process.env.NEXT_PUBLIC_STRAPI_TOKEN;
 
 if (!STRAPI_TOKEN) {
-  console.error('Error: NEXT_PUBLIC_STRAPI_TOKEN is required');
+  console.error(useProd
+    ? 'Error: NEXT_PUBLIC_STRAPI_TOKEN_PROD is required (set in .env.local)'
+    : 'Error: NEXT_PUBLIC_STRAPI_TOKEN is required');
   process.exit(1);
+}
+
+if (useProd) {
+  console.log('Using PRODUCTION Strapi\n');
 }
 
 const headers = {
