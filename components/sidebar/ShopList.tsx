@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopCard } from './ShopCard';
 import { ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ShopListProps {
   shops: Shop[];
@@ -26,6 +27,13 @@ export function ShopList({
   isLoading,
   isFiltered = false,
 }: ShopListProps) {
+  // Track filter state to force re-animation when filter changes
+  const [animationKey, setAnimationKey] = useState(0);
+  
+  useEffect(() => {
+    // Increment key when filter changes to trigger re-animation
+    setAnimationKey(prev => prev + 1);
+  }, [isFiltered]);
   if (shops.length === 0 && !isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center">
@@ -100,15 +108,28 @@ export function ShopList({
           </h3>
         </div>
         <div className="py-1">
-          {shops.map((shop) => (
-            <ShopCard
-              key={shop.documentId}
-              shop={shop}
-              isSelected={selectedShop?.documentId === shop.documentId}
-              onClick={() => onShopSelect(shop)}
-              disabled={isLoading}
-            />
-          ))}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {shops.map((shop, index) => (
+              <motion.div
+                key={shop.documentId}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{
+                  duration: 0.3,
+                  delay: index * 0.03,
+                  ease: [0.25, 0.1, 0.25, 1],
+                }}
+              >
+                <ShopCard
+                  shop={shop}
+                  isSelected={selectedShop?.documentId === shop.documentId}
+                  onClick={() => onShopSelect(shop)}
+                  disabled={isLoading}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     );
@@ -138,6 +159,7 @@ export function ShopList({
               onShopSelect={onShopSelect}
               isLoading={isLoading}
               isFiltered={isFiltered}
+              animationKey={animationKey}
             />
           ))}
         </div>
@@ -154,6 +176,7 @@ function AreaSection({
   onShopSelect,
   isLoading,
   isFiltered = false,
+  animationKey,
 }: {
   areaName: string;
   shops: Shop[];
@@ -161,6 +184,7 @@ function AreaSection({
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
   isFiltered?: boolean;
+  animationKey: number;
 }) {
   const hasSelectedShop = selectedShop && shops.some(s => s.documentId === selectedShop.documentId);
   const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
@@ -196,15 +220,28 @@ function AreaSection({
       </button>
       {isExpanded && (
         <div className="pb-1">
-          {shops.map((shop) => (
-            <ShopCard
-              key={shop.documentId}
-              shop={shop}
-              isSelected={selectedShop?.documentId === shop.documentId}
-              onClick={() => onShopSelect(shop)}
-              disabled={isLoading}
-            />
-          ))}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {shops.map((shop, index) => (
+              <motion.div
+                key={`${shop.documentId}-${animationKey}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{
+                  duration: 0.3,
+                  delay: index * 0.03,
+                  ease: [0.25, 0.1, 0.25, 1],
+                }}
+              >
+                <ShopCard
+                  shop={shop}
+                  isSelected={selectedShop?.documentId === shop.documentId}
+                  onClick={() => onShopSelect(shop)}
+                  disabled={isLoading}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

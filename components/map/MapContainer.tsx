@@ -137,9 +137,12 @@ export function MapContainer({
 
       {/* Loading spinner overlay */}
       <div
-        className={`absolute inset-0 bg-white/60 dark:bg-[rgba(26,20,16,0.6)] backdrop-blur-sm flex items-center justify-center pointer-events-none z-10 transition-opacity duration-500 ease-in-out ${
+        className={`absolute inset-0 bg-white/60 dark:bg-[rgba(26,20,16,0.6)] backdrop-blur-sm flex items-center justify-center pointer-events-none z-10 ${
           isLoading ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{
+          transition: 'opacity 300ms cubic-bezier(0.25, 0.1, 0.25, 1)',
+        }}
       >
         <Spinner size="lg" color="primary" />
       </div>

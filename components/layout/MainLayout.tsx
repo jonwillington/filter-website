@@ -53,6 +53,8 @@ export function MainLayout({
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [shopFilter, setShopFilter] = useState<ShopFilterType>('all');
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const prevShopFilterRef = useRef<ShopFilterType>('all');
   const [isExploreMode, setIsExploreMode] = useState(!initialLocation);
   const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
@@ -344,6 +346,19 @@ export function MainLayout({
 
   // Map shows filtered shops when filter is active, otherwise all shops
   const shopsForMap = selectedLocation && shopFilter !== 'all' ? sidebarShops : shops;
+
+  // Track filter changes and show loading overlay
+  useEffect(() => {
+    if (prevShopFilterRef.current !== shopFilter) {
+      setIsFilterLoading(true);
+      // Clear loading after markers have time to update
+      const timer = setTimeout(() => {
+        setIsFilterLoading(false);
+      }, 400); // Slightly longer than marker animation
+      prevShopFilterRef.current = shopFilter;
+      return () => clearTimeout(timer);
+    }
+  }, [shopFilter]);
 
   // Debug: Log when shops or selectedLocation changes
   useEffect(() => {
@@ -657,7 +672,7 @@ export function MainLayout({
           onShopSelect={handleShopSelect}
           center={mapCenter}
           zoom={mapZoom}
-          isLoading={isLoading}
+          isLoading={isLoading || isFilterLoading}
           onTransitionComplete={handleMapTransitionComplete}
           countries={countries}
           locations={locations}

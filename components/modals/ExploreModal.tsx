@@ -254,7 +254,7 @@ export function ExploreModal({
                           <div key={colIndex} className="px-6 first:pl-0 last:pr-0">
                             {regionData ? (
                               <>
-                                <h3 className="font-display text-sm text-primary mb-4">
+                                <h3 className="font-display text-lg text-primary mb-4">
                                   {regionData.region}
                                 </h3>
                                 <div className="space-y-4">
@@ -271,7 +271,7 @@ export function ExploreModal({
                                             unoptimized
                                           />
                                         </div>
-                                        <span className="text-xs text-text-secondary">
+                                        <span className="text-sm text-text-secondary">
                                           {country.name}
                                         </span>
                                       </div>
@@ -307,7 +307,7 @@ export function ExploreModal({
               <div className="lg:hidden px-5 py-6">
                 {groupedData.map(({ region, countries: regionCountries }, idx) => (
                   <div key={region} className={idx > 0 ? 'mt-6 pt-5 border-t border-border-default' : ''}>
-                    <h3 className="font-display text-sm text-primary mb-4">
+                    <h3 className="font-display text-lg text-primary mb-4">
                       {region}
                     </h3>
                     <div className="space-y-4">
@@ -324,7 +324,7 @@ export function ExploreModal({
                                 unoptimized
                               />
                             </div>
-                            <span className="text-xs text-text-secondary">
+                            <span className="text-sm text-text-secondary">
                               {country.name}
                             </span>
                           </div>

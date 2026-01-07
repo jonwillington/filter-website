@@ -27,7 +27,7 @@ export function BrandShopCard({ shop, onClick }: BrandShopCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex-1 min-w-0 text-left transition-transform duration-200 hover:scale-[1.02]"
+      className="group w-full text-left transition-transform duration-200 hover:scale-[1.02]"
     >
       <div className="bg-surface rounded-2xl overflow-hidden shadow-sm">
         {/* Feature image */}

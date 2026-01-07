@@ -87,13 +87,14 @@ export function WelcomeStats({ locations, shops, onShopSelect, compact = false }
 
                   {/* Flag in top right - smaller */}
                   {flagUrl && (
-                    <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full overflow-hidden bg-background shadow-sm">
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full overflow-hidden bg-background shadow-sm ring-1 ring-black/10">
                       <Image
                         src={flagUrl}
                         alt={shop.location?.country?.name || 'Country'}
-                        width={16}
-                        height={16}
-                        className="object-cover"
+                        width={20}
+                        height={20}
+                        className="object-cover w-full h-full"
+                        unoptimized
                       />
                     </div>
                   )}

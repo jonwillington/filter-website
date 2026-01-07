@@ -13,22 +13,31 @@ export function filterShopsByLocation(shops: Shop[], location: Location | null):
 }
 
 /**
- * Get shops from the same brand as the given shop.
+ * Get shops from the same brand as the given shop (across all locations).
  */
 export function getMoreFromBrand(
   shop: Shop,
   allShops: Shop[],
-  limit: number = 5
+  limit: number = 10
 ): Shop[] {
   if (!shop.brand?.documentId) return [];
+
+  const currentLocationId = shop.location?.documentId;
 
   return allShops
     .filter(
       (s) =>
         s.documentId !== shop.documentId &&
-        s.brand?.documentId === shop.brand?.documentId &&
-        s.location?.documentId === shop.location?.documentId
+        s.brand?.documentId === shop.brand?.documentId
     )
+    // Sort: same location first, then other locations
+    .sort((a, b) => {
+      const aInLocation = a.location?.documentId === currentLocationId;
+      const bInLocation = b.location?.documentId === currentLocationId;
+      if (aInLocation && !bInLocation) return -1;
+      if (!aInLocation && bInLocation) return 1;
+      return 0;
+    })
     .slice(0, limit);
 }
 

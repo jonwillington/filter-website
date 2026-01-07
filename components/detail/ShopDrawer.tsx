@@ -152,11 +152,14 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {/* Action bar */}
           <ActionBar shop={currentShop} />
 
-          {/* Shop Properties (Architects, Price) */}
-          <ShopProperties shop={currentShop} />
-
           {/* About/Description */}
           <AboutSection shop={currentShop} />
+
+          {/* Branch-specific description for branded shops */}
+          <BranchAboutSection shop={currentShop} />
+
+          {/* Shop Properties (Architects, Price) */}
+          <ShopProperties shop={currentShop} />
 
           {/* Brew Methods */}
           <BrewMethods shop={currentShop} />
@@ -169,9 +172,6 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
           {/* Brand Info (Equipment & Awards) */}
           <BrandInfoSection shop={currentShop} />
-
-          {/* Branch-specific description for branded shops */}
-          <BranchAboutSection shop={currentShop} />
 
           {/* Photo Gallery */}
           <PhotoGallery shop={currentShop} />
@@ -195,7 +195,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
               </h3>
 
               {/* Brand shop cards */}
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {moreFromBrand.slice(0, 2).map((relatedShop) => (
                   <BrandShopCard
                     key={relatedShop.documentId}

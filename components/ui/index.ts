@@ -35,3 +35,5 @@ export { ResponsiveModal } from './ResponsiveModal';
 export { StickyDrawerHeader } from './StickyDrawerHeader';
 
 export { ModalAnnouncementBanner } from './ModalAnnouncementBanner';
+
+export { PropertyRow } from './PropertyRow';
