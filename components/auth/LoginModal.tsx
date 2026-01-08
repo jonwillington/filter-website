@@ -50,7 +50,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         onClose={onClose}
       >
         <ModalHeader className="flex flex-col gap-2 pt-8 px-6">
-          <span id="login-modal-title" className="font-display text-3xl">
+          <span id="login-modal-title" className="font-display text-3xl font-bold">
             Sign in to Filter
           </span>
           <span id="login-modal-description" className="text-base font-normal text-default-500">
@@ -58,7 +58,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </span>
         </ModalHeader>
         <ModalBody className="pb-8 px-6">
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
             <Button
               onPress={handleGoogleSignIn}
               isLoading={loading === 'google'}
