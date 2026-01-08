@@ -175,15 +175,18 @@ async function main() {
     // Populate brands with suppliers including their media fields
     console.log('4. Fetching brands...');
     const brandPopulate = [
-      'populate[logo]=*',
-      'populate[suppliers][populate][logo]=*',
-      'populate[suppliers][populate][bg-image]=*',
-      'populate[suppliers][populate][country]=*',
-      'populate[suppliers][populate][ownRoastCountry]=*',
-      'populate[coffee_partner][populate][logo]=*',
-      'populate[coffee_partner][populate][bg-image]=*',
-      'populate[coffee_partner][populate][country]=*',
-      'populate[ownRoastCountry]=*',
+      'populate[logo][fields][0]=url',
+      'populate[logo][fields][1]=formats',
+      'populate[suppliers][populate][logo][fields][0]=url',
+      'populate[suppliers][populate][logo][fields][1]=formats',
+      'populate[suppliers][populate][bg-image][fields][0]=url',
+      'populate[suppliers][populate][bg-image][fields][1]=formats',
+      'populate[suppliers][populate][country][fields][0]=name',
+      'populate[suppliers][populate][country][fields][1]=code',
+      'populate[suppliers][populate][ownRoastCountry][fields][0]=name',
+      'populate[suppliers][populate][ownRoastCountry][fields][1]=code',
+      'populate[ownRoastCountry][fields][0]=name',
+      'populate[ownRoastCountry][fields][1]=code',
     ].join('&');
     const brands = await fetchPaginated('brands', brandPopulate);
     fs.writeFileSync(path.join(dataDir, 'brands.json'), JSON.stringify(brands, null, 2));

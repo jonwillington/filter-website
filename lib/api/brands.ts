@@ -66,15 +66,18 @@ export async function getAllBrands(): Promise<Map<string, Brand>> {
     while (page <= pageCount) {
       // Populate suppliers with their media fields (logo, bg-image)
       const populateParams = [
-        'populate[logo]=*',
-        'populate[suppliers][populate][logo]=*',
-        'populate[suppliers][populate][bg-image]=*',
-        'populate[suppliers][populate][country]=*',
-        'populate[suppliers][populate][ownRoastCountry]=*',
-        'populate[coffee_partner][populate][logo]=*',
-        'populate[coffee_partner][populate][bg-image]=*',
-        'populate[coffee_partner][populate][country]=*',
-        'populate[ownRoastCountry]=*',
+        'populate[logo][fields][0]=url',
+        'populate[logo][fields][1]=formats',
+        'populate[suppliers][populate][logo][fields][0]=url',
+        'populate[suppliers][populate][logo][fields][1]=formats',
+        'populate[suppliers][populate][bg-image][fields][0]=url',
+        'populate[suppliers][populate][bg-image][fields][1]=formats',
+        'populate[suppliers][populate][country][fields][0]=name',
+        'populate[suppliers][populate][country][fields][1]=code',
+        'populate[suppliers][populate][ownRoastCountry][fields][0]=name',
+        'populate[suppliers][populate][ownRoastCountry][fields][1]=code',
+        'populate[ownRoastCountry][fields][0]=name',
+        'populate[ownRoastCountry][fields][1]=code',
       ].join('&');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
@@ -123,12 +126,16 @@ export async function getBrandById(documentId: string): Promise<Brand | null> {
   // Fallback to individual fetch (shouldn't happen often)
   try {
     const populateParams = [
-      'populate[logo]=*',
-      'populate[suppliers][populate][logo]=*',
-      'populate[suppliers][populate][bg-image]=*',
-      'populate[suppliers][populate][country]=*',
-      'populate[coffee_partner][populate][logo]=*',
-      'populate[coffee_partner][populate][bg-image]=*',
+      'populate[logo][fields][0]=url',
+      'populate[logo][fields][1]=formats',
+      'populate[suppliers][populate][logo][fields][0]=url',
+      'populate[suppliers][populate][logo][fields][1]=formats',
+      'populate[suppliers][populate][bg-image][fields][0]=url',
+      'populate[suppliers][populate][bg-image][fields][1]=formats',
+      'populate[suppliers][populate][country][fields][0]=name',
+      'populate[suppliers][populate][country][fields][1]=code',
+      'populate[ownRoastCountry][fields][0]=name',
+      'populate[ownRoastCountry][fields][1]=code',
     ].join('&');
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands/${documentId}?${populateParams}`,
