@@ -96,7 +96,6 @@ export function BeansSection({ shop }: BeansSectionProps) {
   const hasCoffeePartner = shopCoffeePartner || brandCoffeePartner;
 
   const handleSupplierClick = (supplier: Brand | CoffeePartner) => {
-    console.log('Supplier data:', JSON.stringify(supplier, null, 2));
     setSelectedSupplier(supplier);
     setIsModalOpen(true);
   };

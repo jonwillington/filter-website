@@ -36,10 +36,15 @@ const SHOP_POPULATE = [
   'populate[brand][populate][ownRoastCountry][fields][1]=id',
   'populate[brand][populate][ownRoastCountry][fields][2]=name',
   'populate[brand][populate][ownRoastCountry][fields][3]=code',
-  // Suppliers - use deep populate to get all nested relations including media
-  'populate[brand][populate][suppliers][populate]=*',
-  // Coffee partner - use deep populate to get all nested relations including media
-  'populate[brand][populate][coffee_partner][populate]=*',
+  // Suppliers - deep populate with level 3 for media
+  'populate[brand][populate][suppliers][populate][0]=logo',
+  'populate[brand][populate][suppliers][populate][1]=bg-image',
+  'populate[brand][populate][suppliers][populate][2]=country',
+  'populate[brand][populate][suppliers][populate][3]=ownRoastCountry',
+  // Coffee partner - deep populate with media
+  'populate[brand][populate][coffee_partner][populate][0]=logo',
+  'populate[brand][populate][coffee_partner][populate][1]=bg-image',
+  'populate[brand][populate][coffee_partner][populate][2]=country',
   // Other shop fields
   'populate[featured_image]=*',
   'populate[gallery]=*',

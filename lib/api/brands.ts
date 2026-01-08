@@ -64,8 +64,20 @@ export async function getAllBrands(): Promise<Map<string, Brand>> {
     let pageCount = 1;
 
     while (page <= pageCount) {
+      // Populate suppliers with their media fields (logo, bg-image)
+      const populateParams = [
+        'populate[logo]=*',
+        'populate[suppliers][populate][logo]=*',
+        'populate[suppliers][populate][bg-image]=*',
+        'populate[suppliers][populate][country]=*',
+        'populate[suppliers][populate][ownRoastCountry]=*',
+        'populate[coffee_partner][populate][logo]=*',
+        'populate[coffee_partner][populate][bg-image]=*',
+        'populate[coffee_partner][populate][country]=*',
+        'populate[ownRoastCountry]=*',
+      ].join('&');
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands?populate=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -110,8 +122,16 @@ export async function getBrandById(documentId: string): Promise<Brand | null> {
 
   // Fallback to individual fetch (shouldn't happen often)
   try {
+    const populateParams = [
+      'populate[logo]=*',
+      'populate[suppliers][populate][logo]=*',
+      'populate[suppliers][populate][bg-image]=*',
+      'populate[suppliers][populate][country]=*',
+      'populate[coffee_partner][populate][logo]=*',
+      'populate[coffee_partner][populate][bg-image]=*',
+    ].join('&');
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands/${documentId}?populate=*`,
+      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands/${documentId}?${populateParams}`,
       {
         headers: {
           'Content-Type': 'application/json',

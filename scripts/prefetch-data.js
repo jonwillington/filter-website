@@ -110,26 +110,21 @@ async function main() {
       'populate[brand][fields][21]=roastOwnBeans',
       'populate[brand][fields][22]=ownRoastDesc',
       // Populate brand relations
-      'populate[brand][populate][logo]=*',
-      'populate[brand][populate][suppliers][populate][logo]=*',
-      'populate[brand][populate][suppliers][populate][country]=*',
-      'populate[brand][populate][suppliers][populate][ownRoastCountry]=*',
-      'populate[brand][populate][suppliers][fields][0]=id',
-      'populate[brand][populate][suppliers][fields][1]=documentId',
-      'populate[brand][populate][suppliers][fields][2]=name',
-      'populate[brand][populate][suppliers][fields][3]=story',
-      'populate[brand][populate][suppliers][fields][4]=website',
-      'populate[brand][populate][suppliers][fields][5]=instagram',
-      'populate[brand][populate][suppliers][fields][6]=founded',
-      'populate[brand][populate][coffee_partner][populate][logo]=*',
-      'populate[brand][populate][coffee_partner][populate][country]=*',
-      'populate[brand][populate][coffee_partner][fields][0]=id',
-      'populate[brand][populate][coffee_partner][fields][1]=documentId',
-      'populate[brand][populate][coffee_partner][fields][2]=name',
-      'populate[brand][populate][coffee_partner][fields][3]=story',
-      'populate[brand][populate][coffee_partner][fields][4]=website',
-      'populate[brand][populate][coffee_partner][fields][5]=instagram',
-      'populate[brand][populate][ownRoastCountry]=*',
+      'populate[brand][populate][logo][fields][0]=url',
+      'populate[brand][populate][logo][fields][1]=formats',
+      'populate[brand][populate][ownRoastCountry][fields][0]=documentId',
+      'populate[brand][populate][ownRoastCountry][fields][1]=id',
+      'populate[brand][populate][ownRoastCountry][fields][2]=name',
+      'populate[brand][populate][ownRoastCountry][fields][3]=code',
+      // Suppliers - deep populate with level 3 for media
+      'populate[brand][populate][suppliers][populate][0]=logo',
+      'populate[brand][populate][suppliers][populate][1]=bg-image',
+      'populate[brand][populate][suppliers][populate][2]=country',
+      'populate[brand][populate][suppliers][populate][3]=ownRoastCountry',
+      // Coffee partner - deep populate with media
+      'populate[brand][populate][coffee_partner][populate][0]=logo',
+      'populate[brand][populate][coffee_partner][populate][1]=bg-image',
+      'populate[brand][populate][coffee_partner][populate][2]=country',
       // Other shop fields
       'populate[featured_image]=*',
       'populate[gallery]=*',
@@ -177,11 +172,19 @@ async function main() {
     console.log(`   ✓ ${cityAreas.length} city areas\n`);
 
     // Fetch brands - Note: nested relations (suppliers, coffee_partner) are fully
-    // populated via the shop->brand relation in shops.json, so brands.json only
-    // needs top-level fields for fallback lookups. Strapi v5 has issues with deep
-    // nested populates on the brands endpoint directly.
+    // Populate brands with suppliers including their media fields
     console.log('4. Fetching brands...');
-    const brandPopulate = 'populate=*';
+    const brandPopulate = [
+      'populate[logo]=*',
+      'populate[suppliers][populate][logo]=*',
+      'populate[suppliers][populate][bg-image]=*',
+      'populate[suppliers][populate][country]=*',
+      'populate[suppliers][populate][ownRoastCountry]=*',
+      'populate[coffee_partner][populate][logo]=*',
+      'populate[coffee_partner][populate][bg-image]=*',
+      'populate[coffee_partner][populate][country]=*',
+      'populate[ownRoastCountry]=*',
+    ].join('&');
     const brands = await fetchPaginated('brands', brandPopulate);
     fs.writeFileSync(path.join(dataDir, 'brands.json'), JSON.stringify(brands, null, 2));
     console.log(`   ✓ ${brands.length} brands\n`);

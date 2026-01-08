@@ -169,7 +169,7 @@ export function LocationDrawer({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div key={currentLocation.documentId} className="p-6 space-y-6 stagger-fade-in">
           {/* Beta Banner */}
           {currentLocation.beta && (
             <div className="bg-surface border border-border-default rounded-lg p-4 flex items-start gap-3">
