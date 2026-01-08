@@ -22,6 +22,8 @@ export function StickyDrawerHeader({ title, opacity, onClose, onBack, backLabel 
         opacity,
         pointerEvents: opacity > 0.5 ? 'auto' : 'none',
         transition: 'opacity 0.15s ease-out',
+        paddingLeft: 'max(16px, env(safe-area-inset-left))',
+        paddingRight: 'max(16px, env(safe-area-inset-right))',
       }}
     >
       <div className="flex items-center gap-2 min-w-0">

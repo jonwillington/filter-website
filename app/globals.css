@@ -548,9 +548,10 @@ h1, h2 {
     position: fixed;
     top: 0;
     right: 0;
-    bottom: 48px;
+    bottom: 0;
     width: 100%;
     max-width: 420px;
+    border-radius: 0;
     box-shadow: -2px 0 20px rgba(0, 0, 0, 0.1);
   }
 

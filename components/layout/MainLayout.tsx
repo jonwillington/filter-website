@@ -441,11 +441,22 @@ export function MainLayout({
         const newUrl = `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`;
         window.history.pushState({}, '', newUrl);
       }
+    } else if (selectedLocation) {
+      // No history - go back to location drawer (city guide)
+      setSelectedShop(null);
+      setShowMobileCityGuide(true); // Keep drawer open on mobile to show city guide
+
+      // Update URL to location page
+      const countrySlug = slugify(selectedLocation.country?.name ?? '');
+      const citySlug = slugify(selectedLocation.name);
+      if (countrySlug && citySlug) {
+        window.history.pushState({}, '', `/${countrySlug}/${citySlug}`);
+      }
     } else {
-      // No history - go back to location drawer
+      // No history and no location - just close
       setSelectedShop(null);
     }
-  }, [shopHistory]);
+  }, [shopHistory, selectedLocation]);
 
   const handleNearbyToggle = useCallback(async () => {
     // Clear any existing timeout

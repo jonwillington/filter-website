@@ -106,10 +106,12 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
       {/* Floating buttons (visible when sticky header is hidden) */}
       <div
-        className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between"
+        className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between lg:left-4"
         style={{
           opacity: 1 - stickyHeaderOpacity,
           pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
+          paddingLeft: 'max(0px, env(safe-area-inset-left))',
+          paddingRight: 'max(0px, env(safe-area-inset-right))',
         }}
       >
         {/* Back button - shows previous shop name or city guide */}
