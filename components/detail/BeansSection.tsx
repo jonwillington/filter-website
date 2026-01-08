@@ -117,7 +117,7 @@ export function BeansSection({ shop }: BeansSectionProps) {
 
       {/* In-house roasting badge */}
       {hasInHouseRoast && brand && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10">
+        <div className="flex items-center gap-3 py-3">
           <div className="relative flex-shrink-0">
             <Avatar
               src={getMediaUrl(brand.logo) || undefined}
@@ -126,7 +126,7 @@ export function BeansSection({ shop }: BeansSectionProps) {
               showFallback
               fallback={<Bean className="w-4 h-4" />}
             />
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-accent rounded-full flex items-center justify-center ring-2 ring-surface-elevated dark:ring-white/10">
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-accent rounded-full flex items-center justify-center ring-2 ring-background">
               <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
             </div>
           </div>
