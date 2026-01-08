@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { ModalHeader, ModalBody, Divider, ScrollShadow } from '@heroui/react';
-import { SlidersHorizontal } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ModalHeader, ModalBody, ModalFooter, Divider, ScrollShadow, Button } from '@heroui/react';
+import { SlidersHorizontal, Check } from 'lucide-react';
 import { ResponsiveModal } from '@/components/ui';
-import { Toast } from '@/components/ui/Toast';
+import { useAuth } from '@/lib/context/AuthContext';
+import { userService } from '@/lib/services/userService';
 import { BrewMethodsSection } from '@/components/settings/BrewMethodsSection';
 import { ShopTagsSection } from '@/components/settings/ShopTagsSection';
 import { ShopFiltersSection } from '@/components/settings/ShopFiltersSection';
@@ -15,24 +16,67 @@ interface FilterPreferencesModalProps {
 }
 
 export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesModalProps) {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean } | null>(null);
+  const { user, userProfile, refreshUserProfile } = useAuth();
+  const [toast, setToast] = useState<{ message: string; isVisible: boolean } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSuccess = () => {
-    // Close modal first
-    onClose();
-    // Show toast after modal closes
-    setTimeout(() => {
-      setToast({ message: 'Your settings have been updated', type: 'success', isVisible: true });
-    }, 100);
-  };
+  // Local state for all preferences
+  const [selectedBrewMethods, setSelectedBrewMethods] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [preferIndependentOnly, setPreferIndependentOnly] = useState(false);
 
-  const handleError = (msg: string) => {
-    setToast({ message: msg, type: 'error', isVisible: true });
+  // Track if any changes have been made
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Initialize from user profile when modal opens
+  useEffect(() => {
+    if (isOpen && userProfile?.preferences) {
+      setSelectedBrewMethods(new Set(userProfile.preferences.preferredBrewMethods || []));
+      setSelectedTags(new Set(userProfile.preferences.preferredTags || []));
+      setPreferIndependentOnly(userProfile.preferences.preferIndependentOnly || false);
+      setHasChanges(false);
+    }
+  }, [isOpen, userProfile?.preferences]);
+
+  const handleSave = async () => {
+    if (!user?.uid) return;
+
+    setIsSaving(true);
+    try {
+      await userService.updateUserPreferences(user.uid, {
+        preferredBrewMethods: Array.from(selectedBrewMethods),
+        preferredTags: Array.from(selectedTags),
+        preferIndependentOnly,
+        personalizationComplete: true,
+      });
+      await refreshUserProfile();
+
+      // Close modal and show toast
+      onClose();
+      setTimeout(() => {
+        setToast({ message: 'Your settings have been updated', isVisible: true });
+      }, 100);
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const hideToast = () => {
     setToast((prev) => prev ? { ...prev, isVisible: false } : null);
   };
+
+  // Clear toast after delay
+  useEffect(() => {
+    if (toast?.isVisible) {
+      const timer = setTimeout(() => {
+        hideToast();
+        setTimeout(() => setToast(null), 200);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast?.isVisible]);
 
   return (
     <>
@@ -40,7 +84,7 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
         <ModalHeader className="flex flex-col gap-1 pt-8 px-6">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-            <span className="font-display text-2xl" style={{ color: 'var(--text)' }}>
+            <span className="font-display text-2xl font-bold" style={{ color: 'var(--text)' }}>
               Filter Preferences
             </span>
           </div>
@@ -49,38 +93,67 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
           </span>
         </ModalHeader>
 
-        <ModalBody className="pb-8 px-6">
-          <ScrollShadow className="space-y-6 max-h-[60vh] lg:max-h-[65vh]">
+        <ModalBody className="px-6 pb-0">
+          <ScrollShadow className="space-y-6 max-h-[50vh] lg:max-h-[55vh]">
             <BrewMethodsSection
-              onSuccess={handleSuccess}
-              onError={handleError}
+              selectedMethods={selectedBrewMethods}
+              onMethodsChange={(methods) => {
+                setSelectedBrewMethods(methods);
+                setHasChanges(true);
+              }}
             />
 
             <Divider />
 
             <ShopTagsSection
-              onSuccess={handleSuccess}
-              onError={handleError}
+              selectedTags={selectedTags}
+              onTagsChange={(tags) => {
+                setSelectedTags(tags);
+                setHasChanges(true);
+              }}
             />
 
             <Divider />
 
             <ShopFiltersSection
-              onSuccess={handleSuccess}
-              onError={handleError}
+              preferIndependentOnly={preferIndependentOnly}
+              onIndependentChange={(value) => {
+                setPreferIndependentOnly(value);
+                setHasChanges(true);
+              }}
             />
           </ScrollShadow>
         </ModalBody>
+
+        <ModalFooter className="px-6 pb-6 pt-4">
+          <Button
+            color="primary"
+            size="lg"
+            className="w-full"
+            onPress={handleSave}
+            isLoading={isSaving}
+            isDisabled={!hasChanges}
+            startContent={!isSaving ? <Check className="w-5 h-5" /> : null}
+          >
+            Save Preferences
+          </Button>
+        </ModalFooter>
       </ResponsiveModal>
 
-      {/* Toast renders outside modal so it persists after close */}
+      {/* Toast at bottom of screen */}
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          isVisible={toast.isVisible}
-          onClose={hideToast}
-        />
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-xl shadow-lg
+            flex items-center gap-3 transition-all duration-200
+            ${toast.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+          style={{
+            backgroundColor: '#1A1410',
+            color: '#FAF7F5',
+          }}
+        >
+          <Check className="w-5 h-5" />
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
       )}
     </>
   );

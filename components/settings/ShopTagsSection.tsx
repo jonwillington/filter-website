@@ -1,29 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button, Chip } from '@heroui/react';
-import { useAuth } from '@/lib/context/AuthContext';
-import { userService } from '@/lib/services/userService';
+import { Chip } from '@heroui/react';
 import { shopTagOptions } from '@/lib/constants/shopTags';
-import { Check } from 'lucide-react';
 
 interface ShopTagsSectionProps {
-  onSuccess?: (message: string) => void;
-  onError?: (message: string) => void;
+  selectedTags: Set<string>;
+  onTagsChange: (tags: Set<string>) => void;
 }
 
-export function ShopTagsSection({ onSuccess, onError }: ShopTagsSectionProps) {
-  const { user, userProfile, refreshUserProfile } = useAuth();
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    if (userProfile?.preferences?.preferredTags) {
-      setSelectedTags(new Set(userProfile.preferences.preferredTags));
-    }
-  }, [userProfile?.preferences?.preferredTags]);
-
+export function ShopTagsSection({ selectedTags, onTagsChange }: ShopTagsSectionProps) {
   const toggleTag = (key: string) => {
     const newSelected = new Set(selectedTags);
     if (newSelected.has(key)) {
@@ -31,52 +16,14 @@ export function ShopTagsSection({ onSuccess, onError }: ShopTagsSectionProps) {
     } else {
       newSelected.add(key);
     }
-    setSelectedTags(newSelected);
-
-    const original = new Set(userProfile?.preferences?.preferredTags || []);
-    const changed = newSelected.size !== original.size ||
-      Array.from(newSelected).some(t => !original.has(t));
-    setHasChanges(changed);
-  };
-
-  const handleSave = async () => {
-    if (!user?.uid) return;
-
-    setIsSaving(true);
-    try {
-      await userService.updateUserPreferences(user.uid, {
-        preferredTags: Array.from(selectedTags),
-        personalizationComplete: true,
-      });
-      await refreshUserProfile();
-      setHasChanges(false);
-      onSuccess?.('Tag preferences updated');
-    } catch (error) {
-      console.error('Failed to update tag preferences:', error);
-      onError?.('Failed to update tag preferences');
-    } finally {
-      setIsSaving(false);
-    }
+    onTagsChange(newSelected);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
-          Shop Vibes
-        </h3>
-        {hasChanges && (
-          <Button
-            size="sm"
-            color="primary"
-            onPress={handleSave}
-            isLoading={isSaving}
-            startContent={!isSaving ? <Check className="w-4 h-4" /> : null}
-          >
-            Save
-          </Button>
-        )}
-      </div>
+      <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+        Shop Vibes
+      </h3>
 
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
         Select your preferred shop vibes. We&apos;ll highlight shops that match your style.

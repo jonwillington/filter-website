@@ -1,48 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Switch } from '@heroui/react';
-import { useAuth } from '@/lib/context/AuthContext';
-import { userService } from '@/lib/services/userService';
 import { Store } from 'lucide-react';
 
 interface ShopFiltersSectionProps {
-  onSuccess?: (message: string) => void;
-  onError?: (message: string) => void;
+  preferIndependentOnly: boolean;
+  onIndependentChange: (value: boolean) => void;
 }
 
-export function ShopFiltersSection({ onSuccess, onError }: ShopFiltersSectionProps) {
-  const { user, userProfile, refreshUserProfile } = useAuth();
-  const [preferIndependentOnly, setPreferIndependentOnly] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  useEffect(() => {
-    if (userProfile?.preferences?.preferIndependentOnly !== undefined) {
-      setPreferIndependentOnly(userProfile.preferences.preferIndependentOnly);
-    }
-  }, [userProfile?.preferences?.preferIndependentOnly]);
-
-  const handleToggle = async (checked: boolean) => {
-    if (!user?.uid) return;
-
-    setPreferIndependentOnly(checked);
-    setIsUpdating(true);
-
-    try {
-      await userService.updateUserPreferences(user.uid, {
-        preferIndependentOnly: checked,
-      });
-      await refreshUserProfile();
-      onSuccess?.(checked ? 'Showing independent shops only' : 'Showing all shops');
-    } catch (error) {
-      console.error('Failed to update shop filter:', error);
-      setPreferIndependentOnly(!checked);
-      onError?.('Failed to update filter');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
+export function ShopFiltersSection({ preferIndependentOnly, onIndependentChange }: ShopFiltersSectionProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
@@ -71,8 +37,7 @@ export function ShopFiltersSection({ onSuccess, onError }: ShopFiltersSectionPro
         </div>
         <Switch
           isSelected={preferIndependentOnly}
-          onValueChange={handleToggle}
-          isDisabled={isUpdating}
+          onValueChange={onIndependentChange}
           aria-label="Show independent shops only"
         />
       </div>
