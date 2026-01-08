@@ -1,4 +1,4 @@
-import { getCached, setCache } from './cache';
+// Client-safe tags API (no Node.js fs imports)
 
 export interface Tag {
   id: string;
@@ -63,10 +63,12 @@ const FALLBACK_TAGS: Tag[] = [
   { id: 'minimalist', label: 'Minimalist' },
 ].sort((a, b) => a.label.localeCompare(b.label));
 
+// Simple in-memory cache for client-side
+let cachedTags: Tag[] | null = null;
+
 export async function getAllTags(): Promise<Tag[]> {
-  const cacheKey = 'tags:all';
-  const cached = getCached<Tag[]>(cacheKey);
-  if (cached) return cached;
+  // Return cached if available
+  if (cachedTags) return cachedTags;
 
   try {
     const response = await fetch(
@@ -76,7 +78,6 @@ export async function getAllTags(): Promise<Tag[]> {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
         },
-        next: { revalidate: 300 },
       }
     );
 
@@ -92,7 +93,7 @@ export async function getAllTags(): Promise<Tag[]> {
       .sort((a: Tag, b: Tag) => a.label.localeCompare(b.label));
 
     if (tags.length > 0) {
-      setCache(cacheKey, tags);
+      cachedTags = tags;
       return tags;
     }
 
