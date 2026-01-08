@@ -505,11 +505,14 @@ export function useMapClustering({
     if (previousBracket !== currentBracket) {
       wasAboveZoomThreshold.current = currentBracket;
 
-      // Safety check - map may have been unmounted
-      if (!map || typeof map.getSource !== 'function') return;
-
-      const source = map.getSource('shops') as mapboxgl.GeoJSONSource;
-      if (!source) return;
+      // Safety check - map may have been unmounted or in invalid state
+      try {
+        if (!map || typeof map.getSource !== 'function') return;
+        const source = map.getSource('shops') as mapboxgl.GeoJSONSource;
+        if (!source) return;
+      } catch {
+        return;
+      }
 
       // Clear and recreate all markers with new zoom level
       markers.current.forEach((marker) => marker.remove());
@@ -532,7 +535,7 @@ export function useMapClustering({
           anchor: 'center',
         })
           .setLngLat(coords)
-          .addTo(m);
+          .addTo(map);
 
         el.addEventListener('click', (e: MouseEvent) => {
           e.stopPropagation();
