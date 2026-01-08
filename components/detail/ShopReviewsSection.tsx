@@ -24,14 +24,14 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
 
   const loadReviews = useCallback(async () => {
     try {
-      const shopReviews = await reviewsService.getShopReviews(shop.documentId);
+      const shopReviews = await reviewsService.getShopReviews(shop.documentId, shop.name);
       setReviews(shopReviews);
     } catch (error) {
       console.error('Failed to load reviews:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [shop.documentId]);
+  }, [shop.documentId, shop.name]);
 
   useEffect(() => {
     loadReviews();
@@ -71,7 +71,7 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
         <Button
           size="sm"
           variant="flat"
-          color="primary"
+          className="bg-surface-elevated border border-border-default hover:bg-border-default"
           startContent={<MessageSquarePlus className="w-4 h-4" />}
           onPress={handleWriteReview}
         >

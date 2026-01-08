@@ -326,8 +326,7 @@ export function ReviewModal({
             </ModalBody>
             <ModalFooter className="flex-col gap-2">
               <Button
-                color="primary"
-                className="w-full"
+                className="w-full bg-surface-elevated border border-border-default hover:bg-border-default"
                 onPress={handleSubmit}
                 isLoading={isSubmitting}
                 isDisabled={!hasSelections}

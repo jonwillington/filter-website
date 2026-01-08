@@ -12,7 +12,6 @@ import { BeansSection } from './BeansSection';
 import { BrandInfoSection } from './BrandInfoSection';
 import { BranchAboutSection } from './BranchAboutSection';
 import { ShopProperties } from './ShopProperties';
-import { PhotoGallery } from './PhotoGallery';
 import { UserPhotosSection } from './UserPhotosSection';
 import { BrandShopCard } from './BrandShopCard';
 import { ShopReviewsSection } from './ShopReviewsSection';
@@ -81,7 +80,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
   });
 
   // Fetch user photos for this shop
-  const { data: userImages = [], isLoading: userImagesLoading } = useShopUserImages(currentShop.documentId);
+  const { data: userImages = [], isLoading: userImagesLoading } = useShopUserImages(currentShop.documentId, currentShop.id);
 
   // Get related shops from the same brand
   const moreFromBrand = useMemo(
@@ -172,9 +171,6 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
           {/* Brand Info (Equipment & Awards) */}
           <BrandInfoSection shop={currentShop} />
-
-          {/* Photo Gallery */}
-          <PhotoGallery shop={currentShop} />
 
           {/* User Photos */}
           <UserPhotosSection

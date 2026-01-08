@@ -5,6 +5,7 @@ import { Brand, CoffeePartner, Country } from '@/lib/types';
 import { ResponsiveModal, CountryChip } from '@/components/ui';
 import { getMediaUrl } from '@/lib/utils';
 import { Globe, Instagram, Facebook, Bean } from 'lucide-react';
+import { Avatar } from '@heroui/react';
 
 // TikTok icon (not in lucide-react)
 function TikTokIcon({ className }: { className?: string }) {
@@ -66,6 +67,7 @@ export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps)
   if (!supplier) return null;
 
   const logoUrl = getMediaUrl(supplier.logo);
+  const bgImageUrl = getMediaUrl(supplier.bg_image);
   const hasStory = supplier.story && supplier.story.trim().length > 0;
   const hasInstagram = supplier.instagram && supplier.instagram.trim().length > 0;
   const hasWebsite = supplier.website && supplier.website.trim().length > 0;
@@ -89,122 +91,138 @@ export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps)
       size="md"
       modalClassNames={{
         backdrop: 'bg-black/60 backdrop-blur-sm',
-        base: 'bg-background',
+        base: 'bg-background overflow-hidden',
       }}
     >
-      <ModalBody className="px-6 pb-6 pt-2">
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={supplier.name}
-              className="w-24 h-24 rounded-2xl object-cover"
+      <ModalBody className="p-0">
+        {/* Hero Header with bg_image */}
+        <div className="relative">
+          <div className="h-[140px] overflow-hidden bg-surface">
+            {bgImageUrl ? (
+              <img
+                src={bgImageUrl}
+                alt={supplier.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20" />
+            )}
+          </div>
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+          {/* Logo positioned at bottom-left of hero */}
+          <div className="absolute bottom-0 left-5 translate-y-1/2">
+            <Avatar
+              src={logoUrl || undefined}
+              name={supplier.name}
+              className="w-16 h-16 ring-4 ring-background shadow-lg"
+              showFallback
+              fallback={<Bean className="w-6 h-6" />}
             />
-          ) : (
-            <div className="w-24 h-24 rounded-2xl bg-surface flex items-center justify-center">
-              <Bean className="w-10 h-10 text-text-secondary" />
+          </div>
+        </div>
+
+        {/* Content - left aligned */}
+        <div className="px-5 pt-12 pb-6">
+          {/* Name */}
+          <h2 className="text-xl font-display text-primary mb-1">
+            {supplier.name}
+          </h2>
+
+          {/* Country & Founded */}
+          {(countryName || foundedYear) && (
+            <p className="text-sm text-text-secondary mb-4">
+              {countryName}
+              {countryName && foundedYear && ' · '}
+              {foundedYear && `Est. ${foundedYear}`}
+            </p>
+          )}
+
+          {/* Story */}
+          {hasStory && (
+            <div className="mt-4">
+              <p className="text-sm text-primary leading-relaxed">
+                {supplier.story}
+              </p>
+            </div>
+          )}
+
+          {/* Roast Countries */}
+          {hasRoastCountries && (
+            <div className="mt-5">
+              <p className="text-xs uppercase tracking-wider text-text-secondary mb-2">
+                Roasting beans from
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {roastCountries.map((c) => (
+                  <CountryChip
+                    key={c.documentId}
+                    code={c.code}
+                    name={c.name}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Social Links - left aligned */}
+          {hasSocials && (
+            <div className="flex items-center gap-3 mt-6">
+              {hasInstagram && (
+                <a
+                  href={getInstagramUrl(supplier.instagram!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
+                  style={{
+                    background:
+                      'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                  }}
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {hasFacebook && isBrand(supplier) && (
+                <a
+                  href={getFacebookUrl(supplier.facebook!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
+                  style={{ background: '#1877F2' }}
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+              )}
+              {hasTikTok && isBrand(supplier) && (
+                <a
+                  href={getTikTokUrl(supplier.tiktok!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
+                  style={{ background: '#000000' }}
+                  aria-label="TikTok"
+                >
+                  <TikTokIcon className="w-5 h-5" />
+                </a>
+              )}
+              {hasWebsite && (
+                <a
+                  href={getWebsiteUrl(supplier.website!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
+                  style={{ background: '#374151' }}
+                  aria-label="Website"
+                >
+                  <Globe className="w-5 h-5" />
+                </a>
+              )}
             </div>
           )}
         </div>
-
-        {/* Name */}
-        <h2 className="text-xl font-display text-center text-primary mb-1">
-          {supplier.name}
-        </h2>
-
-        {/* Country & Founded */}
-        {(countryName || foundedYear) && (
-          <p className="text-sm text-text-secondary text-center mb-4">
-            {countryName}
-            {countryName && foundedYear && ' · '}
-            {foundedYear && `Est. ${foundedYear}`}
-          </p>
-        )}
-
-        {/* Story */}
-        {hasStory && (
-          <div className="mt-4">
-            <p className="text-sm text-primary leading-relaxed">
-              {supplier.story}
-            </p>
-          </div>
-        )}
-
-        {/* Roast Countries */}
-        {hasRoastCountries && (
-          <div className="mt-5">
-            <p className="text-xs uppercase tracking-wider text-text-secondary mb-2">
-              Roasting beans from
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {roastCountries.map((c) => (
-                <CountryChip
-                  key={c.documentId}
-                  code={c.code}
-                  name={c.name}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Social Links */}
-        {hasSocials && (
-          <div className="flex items-center justify-center gap-3 mt-6">
-            {hasInstagram && (
-              <a
-                href={getInstagramUrl(supplier.instagram!)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                style={{
-                  background:
-                    'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                }}
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-            )}
-            {hasFacebook && isBrand(supplier) && (
-              <a
-                href={getFacebookUrl(supplier.facebook!)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                style={{ background: '#1877F2' }}
-                aria-label="Facebook"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-            )}
-            {hasTikTok && isBrand(supplier) && (
-              <a
-                href={getTikTokUrl(supplier.tiktok!)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                style={{ background: '#000000' }}
-                aria-label="TikTok"
-              >
-                <TikTokIcon className="w-5 h-5" />
-              </a>
-            )}
-            {hasWebsite && (
-              <a
-                href={getWebsiteUrl(supplier.website!)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                style={{ background: '#374151' }}
-                aria-label="Website"
-              >
-                <Globe className="w-5 h-5" />
-              </a>
-            )}
-          </div>
-        )}
       </ModalBody>
     </ResponsiveModal>
   );

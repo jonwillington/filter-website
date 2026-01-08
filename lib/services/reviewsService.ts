@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Review } from '../types/auth';
+import { getMockReviews } from '../utils/mockData';
 
 class ReviewsService {
   private readonly COLLECTION = 'shopQuickReviews';
@@ -104,7 +105,14 @@ class ReviewsService {
     }
   }
 
-  async getShopReviews(shopId: string): Promise<Review[]> {
+  async getShopReviews(shopId: string, shopName?: string): Promise<Review[]> {
+    // Check for mock data first (dev only)
+    const mockReviews = getMockReviews(shopId, shopName || 'Shop');
+    if (mockReviews) {
+      console.log('[ReviewsService] Using mock reviews for', shopId);
+      return mockReviews;
+    }
+
     try {
       if (!db) throw new Error('Firestore not initialized');
 

@@ -70,26 +70,28 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
           )}
 
           {/* Status chips */}
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            {isOpen !== undefined && (
-              <StatusChip status={isOpen ? 'success' : 'danger'}>
-                {isOpen ? 'Open' : 'Closed'}
-              </StatusChip>
-            )}
+          {(isOpen !== undefined || shop.independent || shop.is_chain === false) && (
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              {isOpen !== undefined && (
+                <StatusChip status={isOpen ? 'success' : 'danger'}>
+                  {isOpen ? 'Open' : 'Closed'}
+                </StatusChip>
+              )}
 
-            {(shop.independent || shop.is_chain === false) && (
-              <Chip
-                size="sm"
-                variant="flat"
-                classNames={{
-                  base: 'bg-white/20 backdrop-blur-sm border-0',
-                  content: 'text-white text-xs font-medium',
-                }}
-              >
-                Independent
-              </Chip>
-            )}
-          </div>
+              {(shop.independent || shop.is_chain === false) && (
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  classNames={{
+                    base: 'bg-white/20 backdrop-blur-sm border-0',
+                    content: 'text-white text-xs font-medium',
+                  }}
+                >
+                  Independent
+                </Chip>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

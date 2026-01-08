@@ -721,7 +721,7 @@ export function MainLayout({
         )}
       </div>
 
-      <Footer />
+      <Footer shops={shops} />
     </>
   );
 }

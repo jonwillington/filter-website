@@ -1,12 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Sun, Moon, Mail, Instagram } from 'lucide-react';
+import { Sun, Moon, Mail, Instagram, Settings } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
 import { useTheme } from '@/lib/context/ThemeContext';
+import { DevTools } from '../dev/DevTools';
+import { Shop } from '@/lib/types';
 
-export function Footer() {
+interface FooterProps {
+  shops?: Shop[];
+}
+
+export function Footer({ shops = [] }: FooterProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
+  const [showDevTools, setShowDevTools] = useState(false);
   const { effectiveTheme, setThemeMode } = useTheme();
 
   const toggleTheme = () => {
@@ -61,6 +68,19 @@ export function Footer() {
               <Moon className="w-4 h-4" />
             )}
           </button>
+          {process.env.NODE_ENV === 'development' && (
+            <>
+              <span className="text-border">•</span>
+              <button
+                onClick={() => setShowDevTools(!showDevTools)}
+                className="hover:text-accent transition-colors cursor-pointer p-1"
+                aria-label="Dev Tools"
+                title="Dev Tools"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
 
         <a
@@ -76,6 +96,11 @@ export function Footer() {
           />
         </a>
       </footer>
+
+      {/* Dev Tools - positioned above footer */}
+      {process.env.NODE_ENV === 'development' && showDevTools && (
+        <DevTools shops={shops} onClose={() => setShowDevTools(false)} />
+      )}
 
       <LegalModal
         isOpen={legalModal !== null}
