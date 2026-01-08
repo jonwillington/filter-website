@@ -287,6 +287,8 @@ function generateMockBadges(userId: string): UserBadges {
           {
             cityAreaId: 'mock-area-1',
             cityAreaName: cityAreaNames[Math.floor(Math.random() * cityAreaNames.length)],
+            locationId: 'mock-location-1',
+            locationName: cityNames[Math.floor(Math.random() * cityNames.length)],
             reviewCount: Math.floor(Math.random() * 10) + 5, // 5-15 reviews
             earnedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // 0-30 days ago
           },
