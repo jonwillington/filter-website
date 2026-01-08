@@ -83,7 +83,7 @@ export interface CoffeePartner {
   documentId: string;
   name: string;
   logo?: MediaAsset | null;
-  bg_image?: MediaAsset | null;
+  'bg-image'?: MediaAsset | null;
   country?: Country | null;
   story?: string | null;
   website?: string | null;
@@ -97,7 +97,7 @@ export interface Brand {
   description?: string | null;
   story?: string | null;
   logo?: MediaAsset | null;
-  bg_image?: MediaAsset | null;
+  'bg-image'?: MediaAsset | null;
   type?: string | null; // "Roaster", "Cafe", "Chain", etc.
 
   // Social

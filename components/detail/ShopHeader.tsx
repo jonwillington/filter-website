@@ -1,16 +1,12 @@
 'use client';
 
-import { Shop, OpeningHours } from '@/lib/types';
+import { Shop } from '@/lib/types';
 import { Avatar, Chip } from '@heroui/react';
-import { StatusChip } from '@/components/ui';
 import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { getOpeningStatus, getStatusDotColor } from '@/lib/utils/openingHoursUtils';
 
 interface ShopHeaderProps {
   shop: Shop;
-}
-
-function isOpeningHoursObject(hours: unknown): hours is OpeningHours {
-  return typeof hours === 'object' && hours !== null && !Array.isArray(hours);
 }
 
 export function ShopHeader({ shop }: ShopHeaderProps) {
@@ -18,8 +14,8 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
   const heroUrl = getMediaUrl(shop.featured_image);
   const displayName = getShopDisplayName(shop);
 
-  const openingHours = isOpeningHoursObject(shop.opening_hours) ? shop.opening_hours : null;
-  const isOpen = shop.is_open ?? openingHours?.open_now;
+  const openingStatus = getOpeningStatus(shop.opening_hours);
+  const statusDotColor = getStatusDotColor(openingStatus.status);
 
   const areaName = shop.city_area?.name ?? shop.cityArea?.name;
   const cityName = shop.location?.name;
@@ -62,34 +58,38 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
             {displayName}
           </h1>
 
-          {/* Location */}
-          {locationText && (
-            <p className="text-base text-white/80 mt-1">
-              {locationText}
-            </p>
-          )}
+          {/* Location row with status indicator on the right */}
+          <div className="flex items-center justify-between w-full mt-1">
+            {locationText && (
+              <p className="text-base text-white/80">
+                {locationText}
+              </p>
+            )}
 
-          {/* Status chips */}
-          {(isOpen !== undefined || shop.independent || shop.is_chain === false) && (
-            <div className="flex items-center gap-2 mt-3 flex-wrap">
-              {isOpen !== undefined && (
-                <StatusChip status={isOpen ? 'success' : 'danger'}>
-                  {isOpen ? 'Open' : 'Closed'}
-                </StatusChip>
-              )}
+            {/* Status dot and text */}
+            {shop.opening_hours && (
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${statusDotColor}`} />
+                <span className="text-sm text-white/80">
+                  {openingStatus.statusText}
+                </span>
+              </div>
+            )}
+          </div>
 
-              {(shop.independent || shop.is_chain === false) && (
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  classNames={{
-                    base: 'bg-white/20 backdrop-blur-sm border-0',
-                    content: 'text-white text-xs font-medium',
-                  }}
-                >
-                  Independent
-                </Chip>
-              )}
+          {/* Independent chip */}
+          {(shop.independent || shop.is_chain === false) && (
+            <div className="flex items-center gap-2 mt-3">
+              <Chip
+                size="sm"
+                variant="flat"
+                classNames={{
+                  base: 'bg-white/20 backdrop-blur-sm border-0',
+                  content: 'text-white text-xs font-medium',
+                }}
+              >
+                Independent
+              </Chip>
             </div>
           )}
         </div>

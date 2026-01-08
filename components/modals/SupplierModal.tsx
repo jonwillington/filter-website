@@ -67,7 +67,7 @@ export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps)
   if (!supplier) return null;
 
   const logoUrl = getMediaUrl(supplier.logo);
-  const bgImageUrl = getMediaUrl(supplier.bg_image);
+  const bgImageUrl = getMediaUrl(supplier['bg-image']);
   const hasStory = supplier.story && supplier.story.trim().length > 0;
   const hasInstagram = supplier.instagram && supplier.instagram.trim().length > 0;
   const hasWebsite = supplier.website && supplier.website.trim().length > 0;
