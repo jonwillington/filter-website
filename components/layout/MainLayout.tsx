@@ -103,10 +103,9 @@ export function MainLayout({
       const coords = getShopCoords(initialShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        // Only set zoom to 14 if we weren't viewing a shop before
-        // This preserves the zoom level when clicking between nearby shops
+        // Zoom in to shop level to prevent clustering from obscuring the pin
         if (!prevInitialShopRef.current) {
-          setMapZoom(14);
+          setMapZoom(16);
         }
       }
       prevInitialShopRef.current = initialShop;
@@ -141,12 +140,13 @@ export function MainLayout({
     }
   }, [initialShop, initialLocation, shops]); // Update when initialShop changes
 
-  // Update map center when selectedShop changes (for same-location navigation via pushState)
+  // Update map center and zoom when selectedShop changes (for same-location navigation via pushState)
   useEffect(() => {
     if (selectedShop && selectedShop.documentId !== initialShop?.documentId) {
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
+        setMapZoom(16); // Zoom in to shop level to prevent clustering
       }
     }
   }, [selectedShop, initialShop]);
