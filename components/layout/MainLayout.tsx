@@ -70,7 +70,7 @@ export function MainLayout({
   const [isLocationDrawerClosing, setIsLocationDrawerClosing] = useState(false);
 
   const { coordinates, requestLocation, isPermissionBlocked, clearPermissionBlocked } = useGeolocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
 
   // Track desktop/mobile viewport
   useEffect(() => {
@@ -323,11 +323,26 @@ export function MainLayout({
     [shops, selectedLocation]
   );
 
-  // Filter shops based on selected filter (for sidebar)
+  // Filter shops based on user preferences and selected filter (for sidebar)
   const sidebarShops = useMemo(() => {
-    if (shopFilter === 'all') return locationFilteredShops;
+    // First apply user preference for independent shops only
+    const preferIndependent = userProfile?.preferences?.preferIndependentOnly;
+    let filtered = locationFilteredShops;
 
-    return locationFilteredShops.filter((shop) => {
+    if (preferIndependent) {
+      filtered = filtered.filter((shop) => {
+        // Show shop if it's independent (not a chain)
+        // Check both is_chain (false = independent) and independent (true = independent)
+        if (shop.is_chain === true) return false;
+        if (shop.independent === false) return false;
+        return true;
+      });
+    }
+
+    // Then apply the selected filter
+    if (shopFilter === 'all') return filtered;
+
+    return filtered.filter((shop) => {
       const anyShop = shop as any;
       switch (shopFilter) {
         case 'topPicks':
@@ -342,10 +357,28 @@ export function MainLayout({
           return true;
       }
     });
-  }, [locationFilteredShops, shopFilter]);
+  }, [locationFilteredShops, shopFilter, userProfile?.preferences?.preferIndependentOnly]);
 
-  // Map shows filtered shops when filter is active, otherwise all shops
-  const shopsForMap = selectedLocation && shopFilter !== 'all' ? sidebarShops : shops;
+  // Map shows filtered shops when filter is active or user prefers independent only
+  const preferIndependent = userProfile?.preferences?.preferIndependentOnly;
+  const shopsForMap = useMemo(() => {
+    // Apply independent filter to all shops if preference is set
+    let mapShops = shops;
+    if (preferIndependent) {
+      mapShops = shops.filter((shop) => {
+        if (shop.is_chain === true) return false;
+        if (shop.independent === false) return false;
+        return true;
+      });
+    }
+
+    // If location selected and specific filter active, use sidebar filtered shops
+    if (selectedLocation && shopFilter !== 'all') {
+      return sidebarShops;
+    }
+
+    return mapShops;
+  }, [shops, sidebarShops, selectedLocation, shopFilter, preferIndependent]);
 
   // Track filter changes and show loading overlay
   useEffect(() => {
