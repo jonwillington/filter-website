@@ -31,11 +31,6 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
       }
     }
 
-    // If result is just a city or country name (no numbers, short), return empty
-    if (!/\d/.test(result) && result.length < 20 && !/street|st\.|ave|road|rd\.|blvd|lane|way/i.test(result)) {
-      return null;
-    }
-
     return result;
   };
 
