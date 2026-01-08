@@ -6,6 +6,12 @@
 
 ---
 
+## Deployment Platform
+
+This project is deployed via **Cloudflare Pages** linked to GitHub (NOT Vercel). Pushing to `main` triggers automatic builds on Cloudflare Pages.
+
+---
+
 ## UI Design Principles (Airbnb-Inspired)
 
 When making UI changes, follow these content-first design principles. Design should feel effortless — the interface disappears, and content becomes the experience.
