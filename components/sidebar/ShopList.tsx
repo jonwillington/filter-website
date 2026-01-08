@@ -36,18 +36,6 @@ export function ShopList({
     // Increment key when filter changes to trigger re-animation
     setAnimationKey(prev => prev + 1);
   }, [isFiltered]);
-  if (shops.length === 0 && !isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-8 text-center">
-        <div>
-          <p className="text-textSecondary mb-2">No coffee shops found</p>
-          <p className="text-sm text-textSecondary">
-            Try selecting a different location
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Group shops by area, preserving the group info
   const areasWithGroups = useMemo(() => {
@@ -93,6 +81,20 @@ export function ShopList({
 
     return sortedGroups;
   }, [areasWithGroups]);
+
+  // Early return for empty state (after all hooks)
+  if (shops.length === 0 && !isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8 text-center">
+        <div>
+          <p className="text-textSecondary mb-2">No coffee shops found</p>
+          <p className="text-sm text-textSecondary">
+            Try selecting a different location
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // If only one area or filtered, show flat list
   const shouldUseAccordion = areasWithGroups.length > 1 && !isFiltered;
