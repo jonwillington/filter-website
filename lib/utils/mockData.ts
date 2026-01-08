@@ -306,12 +306,14 @@ function generateMockBadges(userId: string): UserBadges {
       : [],
     topContributor: {
       earned: hasTopContributor,
+      reviewCount: hasTopContributor ? Math.floor(Math.random() * 30) + 20 : 0, // 20-50 reviews
       earnedAt: hasTopContributor
         ? new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000)
         : null,
     },
     earlyAdopter: {
       earned: hasEarlyAdopter,
+      signupRank: hasEarlyAdopter ? Math.floor(Math.random() * 500) + 1 : null, // rank 1-500
       earnedAt: hasEarlyAdopter
         ? new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000)
         : null,
