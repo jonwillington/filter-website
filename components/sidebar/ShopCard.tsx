@@ -16,13 +16,27 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
-  // Extract first two parts of address (street + area/district)
+  // Extract just the street reference, removing city/postal code/country
   const getShortAddress = (address: string) => {
     const parts = address.split(',').map(p => p.trim());
-    if (parts.length >= 2) {
-      return `${parts[0]}, ${parts[1]}`;
+
+    // First part is typically the street reference
+    let result = parts[0];
+
+    // Look for floor/level info in subsequent parts and append it
+    for (let i = 1; i < parts.length; i++) {
+      const part = parts[i];
+      if (/floor|level|unit|suite|bldg|building/i.test(part)) {
+        result += `, ${part}`;
+      }
     }
-    return parts[0] || address;
+
+    // If result is just a city or country name (no numbers, short), return empty
+    if (!/\d/.test(result) && result.length < 20 && !/street|st\.|ave|road|rd\.|blvd|lane|way/i.test(result)) {
+      return null;
+    }
+
+    return result;
   };
 
   const shortAddress = shop.address ? getShortAddress(shop.address) : null;
