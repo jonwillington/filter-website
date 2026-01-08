@@ -57,6 +57,7 @@ export interface UserPreferences {
   preferredBrewMethods?: string[];
   preferredTags?: string[];
   preferIndependentOnly?: boolean;
+  preferRoastsOwnBeans?: boolean;
   hiddenBrandIds?: string[];
   personalizationComplete?: boolean;
   preferencesAlertDismissed?: boolean;

@@ -8,8 +8,9 @@ import { WelcomeStats } from './WelcomeStats';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useMemo, ReactNode, useState } from 'react';
-import { Button, Select, SelectItem } from '@heroui/react';
-import { Map } from 'lucide-react';
+import { useTags } from '@/lib/hooks/useTags';
+import { Button, Select, SelectItem, Switch, Tooltip } from '@heroui/react';
+import { Map, SlidersHorizontal, HelpCircle } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
 
 export type ShopFilterType = 'all' | 'topPicks' | 'working' | 'interior' | 'brewing';
@@ -32,6 +33,16 @@ interface SidebarProps {
   onOpenExploreModal: () => void;
   authComponent?: ReactNode;
   onOpenCityGuide?: () => void;
+  applyMyFilters?: boolean;
+  onApplyMyFiltersChange?: (value: boolean) => void;
+  hasUserFilters?: boolean;
+  userPreferences?: {
+    preferIndependentOnly?: boolean;
+    preferRoastsOwnBeans?: boolean;
+    preferredTags?: string[];
+    preferredBrewMethods?: string[];
+  };
+  shopMatchInfo?: Map<string, string[]>;
 }
 
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
@@ -60,8 +71,46 @@ export function Sidebar({
   onOpenExploreModal,
   authComponent,
   onOpenCityGuide,
+  applyMyFilters = false,
+  onApplyMyFiltersChange,
+  hasUserFilters = false,
+  userPreferences,
+  shopMatchInfo,
 }: SidebarProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
+  const { tags } = useTags();
+
+  // Build user filter summary from preferences
+  const userFilterSummary = useMemo(() => {
+    if (!userPreferences) return undefined;
+    const parts: string[] = [];
+
+    if (userPreferences.preferIndependentOnly) {
+      parts.push('Independent only');
+    }
+
+    if (userPreferences.preferRoastsOwnBeans) {
+      parts.push('Roasts own beans');
+    }
+
+    // Format brew methods nicely
+    userPreferences.preferredBrewMethods?.forEach((method) => {
+      const formatted = method === 'v60' ? 'V60'
+        : method === 'aeropress' ? 'AeroPress'
+        : method.charAt(0).toUpperCase() + method.slice(1).replace(/_/g, ' ');
+      parts.push(formatted);
+    });
+
+    // Look up tag labels from tags data
+    userPreferences.preferredTags?.forEach((tagId) => {
+      const tag = tags.find(t => t.id === tagId);
+      if (tag) {
+        parts.push(tag.label);
+      }
+    });
+
+    return parts.length > 0 ? parts.join(', ') : undefined;
+  }, [userPreferences, tags]);
 
   // Count shops for each filter type
   const filterCounts = useMemo(() => {
@@ -111,14 +160,47 @@ export function Sidebar({
       </AnimatedGradientHeader>
 
       {/* Controls section - outside gradient header */}
-      <div className="px-4 py-5 space-y-4 border-b border-border-default bg-background">
+      <div className="px-4 py-5 space-y-3 border-b border-border-default bg-background">
         <LocationCell
           selectedLocation={selectedLocation}
           unsupportedCountry={unsupportedCountry ?? null}
           isAreaUnsupported={isAreaUnsupported}
           onClick={onOpenExploreModal}
         />
-        {shouldShowFilter && (
+        {/* Apply my filters toggle - only show if user has filters set */}
+        {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
+          <div
+            className="flex items-center justify-between p-3 rounded-lg"
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                Apply my filters
+              </span>
+              {userFilterSummary && (
+                <Tooltip
+                  content={userFilterSummary}
+                  placement="bottom"
+                  delay={200}
+                  classNames={{
+                    content: 'text-xs px-3 py-2 bg-[#1A1410] text-[#FAF7F5] max-w-[200px]',
+                  }}
+                >
+                  <HelpCircle className="w-3.5 h-3.5 cursor-help" style={{ color: 'var(--text-secondary)' }} />
+                </Tooltip>
+              )}
+            </div>
+            <Switch
+              isSelected={applyMyFilters}
+              onValueChange={onApplyMyFiltersChange}
+              size="sm"
+              aria-label="Apply my filters"
+            />
+          </div>
+        )}
+        {/* Shop filter dropdown - hide when "apply my filters" is on */}
+        {shouldShowFilter && !applyMyFilters && (
           <Select
             selectedKeys={[shopFilter]}
             onSelectionChange={(keys) => {
@@ -197,7 +279,8 @@ export function Sidebar({
               selectedShop={selectedShop}
               onShopSelect={onShopSelect}
               isLoading={isLoading}
-              isFiltered={shopFilter !== 'all'}
+              isFiltered={applyMyFilters || shopFilter !== 'all'}
+              shopMatchInfo={shopMatchInfo}
             />
             {selectedLocation && filterCounts.all < 5 && (
               <ShortOnShopsAlert locationName={selectedLocation.name} />

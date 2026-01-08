@@ -54,6 +54,7 @@ export function MainLayout({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [shopFilter, setShopFilter] = useState<ShopFilterType>('all');
   const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [applyMyFilters, setApplyMyFilters] = useState(false);
   const prevShopFilterRef = useRef<ShopFilterType>('all');
   const [isExploreMode, setIsExploreMode] = useState(!initialLocation);
   const [isAreaUnsupported, setIsAreaUnsupported] = useState(false);
@@ -343,39 +344,101 @@ export function MainLayout({
     });
   }, []);
 
+  // Helper to get matching filters for a shop
+  const getShopMatches = useCallback((shop: Shop, preferredTags: string[], preferredBrewMethods: string[]): string[] => {
+    const matches: string[] = [];
+    const anyShop = shop as any;
+    const brand = anyShop.brand || {};
+
+    // Check brew methods
+    preferredBrewMethods.forEach(method => {
+      const field = `has_${method}`;
+      if (anyShop[field] === true || brand[field] === true) {
+        // Format method name nicely
+        const formatted = method === 'v60' ? 'V60'
+          : method === 'aeropress' ? 'AeroPress'
+          : method.charAt(0).toUpperCase() + method.slice(1).replace(/_/g, ' ');
+        matches.push(formatted);
+      }
+    });
+
+    // Check tags
+    const shopTags = anyShop.public_tags || [];
+    if (Array.isArray(shopTags)) {
+      const shopTagsLower = shopTags.map((t: string) => t.toLowerCase());
+      preferredTags.forEach(tag => {
+        if (shopTagsLower.includes(tag.toLowerCase())) {
+          // We'll resolve tag labels in ShopCard via the tags lookup
+          matches.push(`tag:${tag}`);
+        }
+      });
+    }
+
+    return matches;
+  }, []);
+
   // Filter shops based on user preferences and selected filter (for sidebar)
-  const sidebarShops = useMemo(() => {
-    const preferences = userProfile?.preferences;
-    const preferIndependent = preferences?.preferIndependentOnly;
-    const preferredTags = preferences?.preferredTags || [];
-    const preferredBrewMethods = preferences?.preferredBrewMethods || [];
-    const hasPreferences = preferredTags.length > 0 || preferredBrewMethods.length > 0;
-
+  // Also calculates match info when applyMyFilters is on
+  const { sidebarShops, shopMatchInfo, totalFilterCount } = useMemo(() => {
     let filtered = locationFilteredShops;
+    const matchInfo = new Map<string, string[]>();
+    let filterCount = 0;
 
-    // Apply independent shops filter
-    if (preferIndependent) {
-      filtered = filtered.filter((shop) => {
-        if (shop.is_chain === true) return false;
-        if (shop.independent === false) return false;
-        return true;
-      });
+    // Only apply user preference filters when "apply my filters" toggle is ON
+    if (applyMyFilters) {
+      const preferences = userProfile?.preferences;
+      const preferIndependent = preferences?.preferIndependentOnly;
+      const preferredTags = preferences?.preferredTags || [];
+      const preferredBrewMethods = preferences?.preferredBrewMethods || [];
+      const hasPreferences = preferredTags.length > 0 || preferredBrewMethods.length > 0;
+
+      // Calculate total filter count (tags + brew methods)
+      filterCount = preferredTags.length + preferredBrewMethods.length;
+
+      // Apply independent shops filter - only keep shops explicitly marked as independent
+      if (preferIndependent) {
+        filtered = filtered.filter((shop) => {
+          // Keep shops that are explicitly independent OR explicitly not a chain
+          return shop.independent === true || shop.is_chain === false;
+        });
+      }
+
+      // Apply roasts own beans filter
+      const preferRoastsOwnBeans = preferences?.preferRoastsOwnBeans;
+      if (preferRoastsOwnBeans) {
+        filtered = filtered.filter((shop) => {
+          const brand = (shop as any).brand;
+          return brand?.roastOwnBeans === true;
+        });
+      }
+
+      // Apply tag and brew method preferences (OR logic - match ANY)
+      // And calculate match info for each shop
+      if (hasPreferences) {
+        filtered = filtered.filter((shop) => {
+          const matches = getShopMatches(shop, preferredTags, preferredBrewMethods);
+          if (matches.length > 0) {
+            matchInfo.set(shop.documentId, matches);
+            return true;
+          }
+          return false;
+        });
+
+        // Sort by match count (most matches first)
+        filtered.sort((a, b) => {
+          const aMatches = matchInfo.get(a.documentId)?.length || 0;
+          const bMatches = matchInfo.get(b.documentId)?.length || 0;
+          return bMatches - aMatches;
+        });
+      }
+
+      return { sidebarShops: filtered, shopMatchInfo: matchInfo, totalFilterCount: filterCount };
     }
 
-    // Apply tag and brew method preferences (OR logic - match ANY)
-    if (hasPreferences) {
-      filtered = filtered.filter((shop) => {
-        const matchesTags = preferredTags.length === 0 || shopMatchesTags(shop, preferredTags);
-        const matchesMethods = preferredBrewMethods.length === 0 || shopMatchesBrewMethods(shop, preferredBrewMethods);
-        // OR logic: match if either tags OR brew methods match
-        return matchesTags || matchesMethods;
-      });
-    }
+    // When "apply my filters" is off, apply the dropdown filter instead
+    if (shopFilter === 'all') return { sidebarShops: filtered, shopMatchInfo: matchInfo, totalFilterCount: 0 };
 
-    // Then apply the selected filter
-    if (shopFilter === 'all') return filtered;
-
-    return filtered.filter((shop) => {
+    const dropdownFiltered = filtered.filter((shop) => {
       const anyShop = shop as any;
       switch (shopFilter) {
         case 'topPicks':
@@ -390,42 +453,52 @@ export function MainLayout({
           return true;
       }
     });
-  }, [locationFilteredShops, shopFilter, userProfile?.preferences]);
 
-  // Map shows filtered shops when filter is active or user has preferences
+    return { sidebarShops: dropdownFiltered, shopMatchInfo: matchInfo, totalFilterCount: 0 };
+  }, [locationFilteredShops, shopFilter, applyMyFilters, userProfile?.preferences, getShopMatches]);
+
+  // Map shows filtered shops when filter is active or "apply my filters" is on
   const shopsForMap = useMemo(() => {
-    const preferences = userProfile?.preferences;
-    const preferIndependent = preferences?.preferIndependentOnly;
-    const preferredTags = preferences?.preferredTags || [];
-    const preferredBrewMethods = preferences?.preferredBrewMethods || [];
-    const hasPreferences = preferredTags.length > 0 || preferredBrewMethods.length > 0;
-
-    // Apply all preference filters to map shops
     let mapShops = shops;
 
-    if (preferIndependent) {
-      mapShops = mapShops.filter((shop) => {
-        if (shop.is_chain === true) return false;
-        if (shop.independent === false) return false;
-        return true;
-      });
+    // Only apply user preference filters when "apply my filters" toggle is ON
+    if (applyMyFilters) {
+      const preferences = userProfile?.preferences;
+      const preferIndependent = preferences?.preferIndependentOnly;
+      const preferredTags = preferences?.preferredTags || [];
+      const preferredBrewMethods = preferences?.preferredBrewMethods || [];
+      const hasPreferences = preferredTags.length > 0 || preferredBrewMethods.length > 0;
+
+      if (preferIndependent) {
+        mapShops = mapShops.filter((shop) => {
+          return shop.independent === true || shop.is_chain === false;
+        });
+      }
+
+      const preferRoastsOwnBeans = preferences?.preferRoastsOwnBeans;
+      if (preferRoastsOwnBeans) {
+        mapShops = mapShops.filter((shop) => {
+          const brand = (shop as any).brand;
+          return brand?.roastOwnBeans === true;
+        });
+      }
+
+      if (hasPreferences) {
+        mapShops = mapShops.filter((shop) => {
+          const matchesTags = preferredTags.length === 0 || shopMatchesTags(shop, preferredTags);
+          const matchesMethods = preferredBrewMethods.length === 0 || shopMatchesBrewMethods(shop, preferredBrewMethods);
+          return matchesTags || matchesMethods;
+        });
+      }
     }
 
-    if (hasPreferences) {
-      mapShops = mapShops.filter((shop) => {
-        const matchesTags = preferredTags.length === 0 || shopMatchesTags(shop, preferredTags);
-        const matchesMethods = preferredBrewMethods.length === 0 || shopMatchesBrewMethods(shop, preferredBrewMethods);
-        return matchesTags || matchesMethods;
-      });
-    }
-
-    // If location selected and specific filter active, use sidebar filtered shops
-    if (selectedLocation && shopFilter !== 'all') {
+    // If location selected and specific dropdown filter active (and "apply my filters" is off), use sidebar filtered shops
+    if (selectedLocation && shopFilter !== 'all' && !applyMyFilters) {
       return sidebarShops;
     }
 
     return mapShops;
-  }, [shops, sidebarShops, selectedLocation, shopFilter, userProfile?.preferences, shopMatchesTags, shopMatchesBrewMethods]);
+  }, [shops, sidebarShops, selectedLocation, shopFilter, applyMyFilters, userProfile?.preferences, shopMatchesTags, shopMatchesBrewMethods]);
 
   // Track filter changes and show loading overlay
   useEffect(() => {
@@ -700,6 +773,16 @@ export function MainLayout({
           onOpenCityGuide={() => setShowMobileCityGuide(true)}
           unsupportedCountry={unsupportedCountry}
           onOpenExploreModal={() => setShowExploreModal(true)}
+          applyMyFilters={applyMyFilters}
+          onApplyMyFiltersChange={setApplyMyFilters}
+          hasUserFilters={!!(
+            userProfile?.preferences?.preferIndependentOnly ||
+            userProfile?.preferences?.preferRoastsOwnBeans ||
+            (userProfile?.preferences?.preferredTags?.length ?? 0) > 0 ||
+            (userProfile?.preferences?.preferredBrewMethods?.length ?? 0) > 0
+          )}
+          userPreferences={userProfile?.preferences ?? undefined}
+          shopMatchInfo={shopMatchInfo}
           authComponent={
             <div className="flex items-center gap-3">
               <Button

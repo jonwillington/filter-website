@@ -12,6 +12,7 @@ interface ShopListProps {
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
   isFiltered?: boolean;
+  shopMatchInfo?: Map<string, string[]>;
 }
 
 interface AreaWithGroup {
@@ -26,6 +27,7 @@ export function ShopList({
   onShopSelect,
   isLoading,
   isFiltered = false,
+  shopMatchInfo,
 }: ShopListProps) {
   // Track filter state to force re-animation when filter changes
   const [animationKey, setAnimationKey] = useState(0);
@@ -97,6 +99,8 @@ export function ShopList({
 
   // Single area or filtered: show flat list
   if (!shouldUseAccordion) {
+    const hasMatchInfo = shopMatchInfo && shopMatchInfo.size > 0;
+
     return (
       <div
         className="transition-opacity duration-300"
@@ -104,7 +108,7 @@ export function ShopList({
       >
         <div className="area-header">
           <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
-            {isFiltered ? `${shops.length} shops` : 'All shops'}
+            {hasMatchInfo ? `${shops.length} matching shops` : isFiltered ? `${shops.length} shops` : 'All shops'}
           </h3>
         </div>
         <div className="py-1">
@@ -126,6 +130,7 @@ export function ShopList({
                   isSelected={selectedShop?.documentId === shop.documentId}
                   onClick={() => onShopSelect(shop)}
                   disabled={isLoading}
+                  matchedFilters={shopMatchInfo?.get(shop.documentId)}
                 />
               </motion.div>
             ))}

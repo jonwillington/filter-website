@@ -1,8 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Shop } from '@/lib/types';
 import { Avatar } from '@heroui/react';
 import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { useTags } from '@/lib/hooks/useTags';
 import Image from 'next/image';
 
 interface ShopCardProps {
@@ -10,9 +12,10 @@ interface ShopCardProps {
   isSelected: boolean;
   onClick: () => void;
   disabled?: boolean;
+  matchedFilters?: string[];
 }
 
-export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCardProps) {
+export function ShopCard({ shop, isSelected, onClick, disabled = false, matchedFilters }: ShopCardProps) {
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
@@ -56,6 +59,20 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
     return false;
   };
 
+  // Resolve matched filter labels (convert tag:id to readable labels)
+  const { tags } = useTags();
+  const resolvedFilters = useMemo(() => {
+    if (!matchedFilters || matchedFilters.length === 0) return [];
+    return matchedFilters.map(filter => {
+      if (filter.startsWith('tag:')) {
+        const tagId = filter.slice(4);
+        const tag = tags.find(t => t.id === tagId);
+        return tag?.label || tagId;
+      }
+      return filter;
+    });
+  }, [matchedFilters, tags]);
+
   return (
     <button
       onClick={disabled ? undefined : onClick}
@@ -95,6 +112,18 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
           <p className="text-xs text-gray-400 dark:text-white/40 truncate">
             {shortAddress}
           </p>
+        )}
+        {resolvedFilters.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {resolvedFilters.map((filter, i) => (
+              <span
+                key={i}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-700/50 text-stone-600 dark:text-stone-300"
+              >
+                {filter}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </button>

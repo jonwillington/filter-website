@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ModalHeader, ModalBody, ModalFooter, Divider, ScrollShadow, Button } from '@heroui/react';
-import { SlidersHorizontal, Check } from 'lucide-react';
+import { SlidersHorizontal, Check, RotateCcw } from 'lucide-react';
 import { ResponsiveModal } from '@/components/ui';
 import { useAuth } from '@/lib/context/AuthContext';
 import { userService } from '@/lib/services/userService';
@@ -24,6 +24,7 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
   const [selectedBrewMethods, setSelectedBrewMethods] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [preferIndependentOnly, setPreferIndependentOnly] = useState(false);
+  const [preferRoastsOwnBeans, setPreferRoastsOwnBeans] = useState(false);
 
   // Track if any changes have been made
   const [hasChanges, setHasChanges] = useState(false);
@@ -34,9 +35,21 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
       setSelectedBrewMethods(new Set(userProfile.preferences.preferredBrewMethods || []));
       setSelectedTags(new Set(userProfile.preferences.preferredTags || []));
       setPreferIndependentOnly(userProfile.preferences.preferIndependentOnly || false);
+      setPreferRoastsOwnBeans(userProfile.preferences.preferRoastsOwnBeans || false);
       setHasChanges(false);
     }
   }, [isOpen, userProfile?.preferences]);
+
+  // Check if there are any filters to reset
+  const hasFilters = selectedBrewMethods.size > 0 || selectedTags.size > 0 || preferIndependentOnly || preferRoastsOwnBeans;
+
+  const handleReset = () => {
+    setSelectedBrewMethods(new Set());
+    setSelectedTags(new Set());
+    setPreferIndependentOnly(false);
+    setPreferRoastsOwnBeans(false);
+    setHasChanges(true);
+  };
 
   const handleSave = async () => {
     if (!user?.uid) return;
@@ -47,6 +60,7 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
         preferredBrewMethods: Array.from(selectedBrewMethods),
         preferredTags: Array.from(selectedTags),
         preferIndependentOnly,
+        preferRoastsOwnBeans,
         personalizationComplete: true,
       });
       await refreshUserProfile();
@@ -121,15 +135,29 @@ export function FilterPreferencesModal({ isOpen, onClose }: FilterPreferencesMod
                 setPreferIndependentOnly(value);
                 setHasChanges(true);
               }}
+              preferRoastsOwnBeans={preferRoastsOwnBeans}
+              onRoastsOwnBeansChange={(value) => {
+                setPreferRoastsOwnBeans(value);
+                setHasChanges(true);
+              }}
             />
           </ScrollShadow>
         </ModalBody>
 
-        <ModalFooter className="px-6 pb-6 pt-4">
+        <ModalFooter className="px-6 pb-6 pt-4 gap-3">
+          <Button
+            variant="flat"
+            size="lg"
+            onPress={handleReset}
+            isDisabled={!hasFilters || isSaving}
+            startContent={<RotateCcw className="w-4 h-4" />}
+          >
+            Reset
+          </Button>
           <Button
             color="primary"
             size="lg"
-            className="w-full"
+            className="flex-1"
             onPress={handleSave}
             isLoading={isSaving}
             isDisabled={!hasChanges}
