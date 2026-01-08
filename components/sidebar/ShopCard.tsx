@@ -16,18 +16,23 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false }: ShopCa
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
-  // Extract just the street reference, removing city/postal code/country
+  // Extract street reference, removing city/postal code/country
   const getShortAddress = (address: string) => {
     const parts = address.split(',').map(p => p.trim());
 
     // First part is typically the street reference
     let result = parts[0];
 
-    // Look for floor/level info in subsequent parts and append it
-    for (let i = 1; i < parts.length; i++) {
-      const part = parts[i];
-      if (/floor|level|unit|suite|bldg|building/i.test(part)) {
-        result += `, ${part}`;
+    // Include second part if it's useful (not a city/postal/country)
+    if (parts.length >= 2) {
+      const second = parts[1];
+      // Skip if it looks like a postal code, city name only, or country
+      const isPostalOrCity = /^\d{4,6}$/.test(second) || // just a postal code
+        /^\w+\s+\d{5,6}$/.test(second) || // city + postal (e.g. "Almaty 050000")
+        /^[A-Z][a-z]+$/.test(second); // single capitalized word (likely city/country)
+
+      if (!isPostalOrCity) {
+        result += `, ${second}`;
       }
     }
 
