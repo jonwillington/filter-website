@@ -1,7 +1,7 @@
 'use client';
 
-import { Chip } from '@heroui/react';
-import { shopTagOptions } from '@/lib/constants/shopTags';
+import { Chip, Spinner } from '@heroui/react';
+import { useTags } from '@/lib/hooks/useTags';
 
 interface ShopTagsSectionProps {
   selectedTags: Set<string>;
@@ -9,12 +9,14 @@ interface ShopTagsSectionProps {
 }
 
 export function ShopTagsSection({ selectedTags, onTagsChange }: ShopTagsSectionProps) {
-  const toggleTag = (key: string) => {
+  const { tags, isLoading } = useTags();
+
+  const toggleTag = (id: string) => {
     const newSelected = new Set(selectedTags);
-    if (newSelected.has(key)) {
-      newSelected.delete(key);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
     } else {
-      newSelected.add(key);
+      newSelected.add(id);
     }
     onTagsChange(newSelected);
   };
@@ -29,25 +31,29 @@ export function ShopTagsSection({ selectedTags, onTagsChange }: ShopTagsSectionP
         Select your preferred shop vibes. We&apos;ll highlight shops that match your style.
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        {shopTagOptions.map((tag) => {
-          const isSelected = selectedTags.has(tag.key);
-          const Icon = tag.icon;
+      {isLoading ? (
+        <div className="flex justify-center py-4">
+          <Spinner size="sm" />
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag) => {
+            const isSelected = selectedTags.has(tag.id);
 
-          return (
-            <Chip
-              key={tag.key}
-              variant={isSelected ? 'solid' : 'bordered'}
-              color={isSelected ? 'primary' : 'default'}
-              className="cursor-pointer transition-all"
-              onClick={() => toggleTag(tag.key)}
-              startContent={<Icon className="w-4 h-4" />}
-            >
-              {tag.label}
-            </Chip>
-          );
-        })}
-      </div>
+            return (
+              <Chip
+                key={tag.id}
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'primary' : 'default'}
+                className="cursor-pointer transition-all"
+                onClick={() => toggleTag(tag.id)}
+              >
+                {tag.label}
+              </Chip>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
