@@ -323,19 +323,52 @@ export function MainLayout({
     [shops, selectedLocation]
   );
 
+  // Helper to check if shop matches user's tag preferences
+  const shopMatchesTags = useCallback((shop: Shop, preferredTags: string[]): boolean => {
+    if (preferredTags.length === 0) return true;
+    const shopTags = (shop as any).public_tags || [];
+    if (!Array.isArray(shopTags) || shopTags.length === 0) return false;
+    const shopTagsLower = shopTags.map((t: string) => t.toLowerCase());
+    return preferredTags.some(tag => shopTagsLower.includes(tag.toLowerCase()));
+  }, []);
+
+  // Helper to check if shop matches user's brew method preferences
+  const shopMatchesBrewMethods = useCallback((shop: Shop, preferredMethods: string[]): boolean => {
+    if (preferredMethods.length === 0) return true;
+    const anyShop = shop as any;
+    const brand = anyShop.brand || {};
+    return preferredMethods.some(method => {
+      const field = `has_${method}`;
+      return anyShop[field] === true || brand[field] === true;
+    });
+  }, []);
+
   // Filter shops based on user preferences and selected filter (for sidebar)
   const sidebarShops = useMemo(() => {
-    // First apply user preference for independent shops only
-    const preferIndependent = userProfile?.preferences?.preferIndependentOnly;
+    const preferences = userProfile?.preferences;
+    const preferIndependent = preferences?.preferIndependentOnly;
+    const preferredTags = preferences?.preferredTags || [];
+    const preferredBrewMethods = preferences?.preferredBrewMethods || [];
+    const hasPreferences = preferredTags.length > 0 || preferredBrewMethods.length > 0;
+
     let filtered = locationFilteredShops;
 
+    // Apply independent shops filter
     if (preferIndependent) {
       filtered = filtered.filter((shop) => {
-        // Show shop if it's independent (not a chain)
-        // Check both is_chain (false = independent) and independent (true = independent)
         if (shop.is_chain === true) return false;
         if (shop.independent === false) return false;
         return true;
+      });
+    }
+
+    // Apply tag and brew method preferences (OR logic - match ANY)
+    if (hasPreferences) {
+      filtered = filtered.filter((shop) => {
+        const matchesTags = preferredTags.length === 0 || shopMatchesTags(shop, preferredTags);
+        const matchesMethods = preferredBrewMethods.length === 0 || shopMatchesBrewMethods(shop, preferredBrewMethods);
+        // OR logic: match if either tags OR brew methods match
+        return matchesTags || matchesMethods;
       });
     }
 
@@ -357,18 +390,32 @@ export function MainLayout({
           return true;
       }
     });
-  }, [locationFilteredShops, shopFilter, userProfile?.preferences?.preferIndependentOnly]);
+  }, [locationFilteredShops, shopFilter, userProfile?.preferences]);
 
-  // Map shows filtered shops when filter is active or user prefers independent only
-  const preferIndependent = userProfile?.preferences?.preferIndependentOnly;
+  // Map shows filtered shops when filter is active or user has preferences
   const shopsForMap = useMemo(() => {
-    // Apply independent filter to all shops if preference is set
+    const preferences = userProfile?.preferences;
+    const preferIndependent = preferences?.preferIndependentOnly;
+    const preferredTags = preferences?.preferredTags || [];
+    const preferredBrewMethods = preferences?.preferredBrewMethods || [];
+    const hasPreferences = preferredTags.length > 0 || preferredBrewMethods.length > 0;
+
+    // Apply all preference filters to map shops
     let mapShops = shops;
+
     if (preferIndependent) {
-      mapShops = shops.filter((shop) => {
+      mapShops = mapShops.filter((shop) => {
         if (shop.is_chain === true) return false;
         if (shop.independent === false) return false;
         return true;
+      });
+    }
+
+    if (hasPreferences) {
+      mapShops = mapShops.filter((shop) => {
+        const matchesTags = preferredTags.length === 0 || shopMatchesTags(shop, preferredTags);
+        const matchesMethods = preferredBrewMethods.length === 0 || shopMatchesBrewMethods(shop, preferredBrewMethods);
+        return matchesTags || matchesMethods;
       });
     }
 
@@ -378,7 +425,7 @@ export function MainLayout({
     }
 
     return mapShops;
-  }, [shops, sidebarShops, selectedLocation, shopFilter, preferIndependent]);
+  }, [shops, sidebarShops, selectedLocation, shopFilter, userProfile?.preferences, shopMatchesTags, shopMatchesBrewMethods]);
 
   // Track filter changes and show loading overlay
   useEffect(() => {
