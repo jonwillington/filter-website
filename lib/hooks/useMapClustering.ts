@@ -284,7 +284,8 @@ export function useMapClustering({
         if (!features.length) return;
 
         const clusterId = features[0].properties?.cluster_id;
-        const source = m.getSource('shops') as mapboxgl.GeoJSONSource;
+        const source = m.getSource?.('shops') as mapboxgl.GeoJSONSource;
+        if (!source) return;
         const geometry = features[0].geometry as GeoJSON.Point;
 
         source.getClusterExpansionZoom(clusterId, (err: Error | null | undefined, expansionZoom: number | null | undefined) => {
@@ -504,8 +505,10 @@ export function useMapClustering({
     if (previousBracket !== currentBracket) {
       wasAboveZoomThreshold.current = currentBracket;
 
-      const m = map;
-      const source = m.getSource('shops') as mapboxgl.GeoJSONSource;
+      // Safety check - map may have been unmounted
+      if (!map || typeof map.getSource !== 'function') return;
+
+      const source = map.getSource('shops') as mapboxgl.GeoJSONSource;
       if (!source) return;
 
       // Clear and recreate all markers with new zoom level
