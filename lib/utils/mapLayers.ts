@@ -8,6 +8,7 @@ export interface CountryLayerConfig {
   countries: Country[];
   displayedShops: Shop[];
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
+  onEmptySupportedCountryClick?: (countryName: string, countryCode: string) => void;
 }
 
 /**
@@ -53,7 +54,7 @@ export function setupCountryLayer(
   map: mapboxgl.Map,
   config: CountryLayerConfig
 ): () => void {
-  const { countries, displayedShops, onUnsupportedCountryClick } = config;
+  const { countries, displayedShops, onUnsupportedCountryClick, onEmptySupportedCountryClick } = config;
 
   console.log('[Country Layer] Setting up with', countries.length, 'countries and', displayedShops.length, 'shops');
   console.log('[Country Layer] Callback provided:', !!onUnsupportedCountryClick);
@@ -61,19 +62,31 @@ export function setupCountryLayer(
   // Remove existing layer and source if they exist
   cleanupCountryLayer(map);
 
-  // Create a mapping of country codes to supported status
-  // A country is supported if:
-  // 1. It's explicitly marked as supported in the database, OR
-  // 2. It has shops (auto-detect based on shop data)
+  // Create sets for country status
+  // A country is supported if it's explicitly marked as supported in the database
+  // A country has shops if any displayed shops are located in it
   const countriesWithShops = new Set(
     displayedShops
       .map((shop) => shop.location?.country?.code || shop.country?.code)
       .filter(Boolean)
   );
 
+  // Countries explicitly marked as supported (regardless of shops)
+  const explicitlySupportedCountries = new Set(
+    countries.filter((c) => c.supported).map((c) => c.code)
+  );
+
+  // All supported countries (explicit + auto-detected from shops)
   const supportedCountries = countries
     .filter((c) => c.supported || countriesWithShops.has(c.code))
     .map((c) => c.code);
+
+  // Supported countries that have NO shops (show "no shops yet" message)
+  const emptySupportedCountries = new Set(
+    countries
+      .filter((c) => c.supported && !countriesWithShops.has(c.code))
+      .map((c) => c.code)
+  );
 
   // Add source first
   map.addSource('country-fills', {
@@ -95,7 +108,7 @@ export function setupCountryLayer(
     },
   });
 
-  // Add click handler for unsupported countries
+  // Add click handler for countries
   const handleClick = (e: mapboxgl.MapLayerMouseEvent) => {
     console.log('[Country Layer] Click detected', e.features);
     if (!e.features || e.features.length === 0) {
@@ -109,22 +122,30 @@ export function setupCountryLayer(
 
     console.log('[Country Layer] Clicked country:', countryName, countryCode);
     console.log('[Country Layer] Supported countries:', supportedCountries);
+    console.log('[Country Layer] Empty supported countries:', Array.from(emptySupportedCountries));
 
+    if (!countryCode) return;
+
+    // Check if this is a supported country with no shops
+    if (emptySupportedCountries.has(countryCode)) {
+      console.log('[Country Layer] Country is supported but has no shops, calling empty handler');
+      onEmptySupportedCountryClick?.(countryName || countryCode, countryCode);
+    }
     // Check if this is an unsupported country
-    // Show modal if country is not in supported list
-    if (countryCode && !supportedCountries.includes(countryCode)) {
+    else if (!supportedCountries.includes(countryCode)) {
       console.log('[Country Layer] Country is unsupported, calling handler');
       onUnsupportedCountryClick?.(countryName || countryCode, countryCode);
     } else {
-      console.log('[Country Layer] Country is supported, not showing modal');
+      console.log('[Country Layer] Country is supported with shops, not showing modal');
     }
   };
 
-  // Change cursor to pointer on unsupported countries
+  // Change cursor to pointer on clickable countries (unsupported or empty supported)
   const handleMouseEnter = (e: mapboxgl.MapLayerMouseEvent) => {
     if (!e.features || e.features.length === 0) return;
     const countryCode = e.features[0].properties?.iso_3166_1;
-    if (countryCode && !supportedCountries.includes(countryCode)) {
+    // Show pointer for unsupported countries OR supported countries with no shops
+    if (countryCode && (!supportedCountries.includes(countryCode) || emptySupportedCountries.has(countryCode))) {
       map.getCanvas().style.cursor = 'pointer';
     }
   };

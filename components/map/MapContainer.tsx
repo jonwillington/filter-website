@@ -21,6 +21,7 @@ interface MapContainerProps {
   countries?: Country[];
   locations?: Location[];
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
+  onEmptySupportedCountryClick?: (countryName: string, countryCode: string) => void;
   userCoordinates?: { lat: number; lng: number } | null;
 }
 
@@ -48,6 +49,7 @@ export function MapContainer({
   countries = [],
   locations = [],
   onUnsupportedCountryClick,
+  onEmptySupportedCountryClick,
   userCoordinates = null,
 }: MapContainerProps) {
   const { effectiveTheme } = useTheme();
@@ -91,6 +93,7 @@ export function MapContainer({
     displayedShops,
     effectiveTheme,
     onUnsupportedCountryClick,
+    onEmptySupportedCountryClick,
     setCountryLayerReady,
   });
 

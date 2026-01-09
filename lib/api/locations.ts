@@ -35,8 +35,46 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
   }
 }
 
-// Fetch unique locations from both city-areas and shops
-// This ensures all locations with shops are available in the selector
+// Fetch all locations directly from Strapi
+async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
+  try {
+    const locations: Location[] = [];
+    let page = 1;
+    let pageCount = 1;
+
+    while (page <= pageCount) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+          },
+          next: { revalidate: 300 },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`Locations API Error: ${response.statusText}`);
+        break;
+      }
+
+      const json = await response.json();
+      locations.push(...(json.data || []));
+
+      pageCount = json.meta?.pagination?.pageCount || 1;
+      page++;
+    }
+
+    return locations;
+  } catch (error) {
+    console.error('Failed to fetch locations from Strapi:', error);
+    return [];
+  }
+}
+
+// Fetch unique locations from Strapi, city-areas, and shops
+// This ensures all locations are available, including coming soon ones
 export async function getAllLocations(): Promise<Location[]> {
   const cacheKey = 'locations:all';
   const cached = getCached<Location[]>(cacheKey);
@@ -45,7 +83,15 @@ export async function getAllLocations(): Promise<Location[]> {
   try {
     const locationMap = new Map<string, Location>();
 
-    // 1. Get locations from city-areas (with full nested data)
+    // 1. Get all locations directly from Strapi (includes comingSoon locations)
+    const strapiLocations = await fetchAllLocationsFromStrapi();
+    for (const loc of strapiLocations) {
+      if (loc.documentId) {
+        locationMap.set(loc.documentId, loc);
+      }
+    }
+
+    // 2. Get locations from city-areas (with full nested data) - may have more complete data
     const cityAreas = await getAllCityAreas();
     for (const cityArea of cityAreas) {
       const loc = cityArea.location;
@@ -54,7 +100,7 @@ export async function getAllLocations(): Promise<Location[]> {
       }
     }
 
-    // 2. Also get locations directly from shops (in case some don't have city-areas)
+    // 3. Also get locations directly from shops (in case some don't have city-areas)
     const shops = await getAllShops();
     for (const shop of shops) {
       // Check direct location reference
@@ -130,6 +176,8 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
         'populate[location][fields][4]=rating_stars',
         'populate[location][fields][5]=headline',
         'populate[location][fields][6]=story',
+        'populate[location][fields][7]=comingSoon',
+        'populate[location][fields][8]=beta',
       ].join('&');
 
       const response = await fetch(

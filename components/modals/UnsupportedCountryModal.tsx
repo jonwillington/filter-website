@@ -9,12 +9,22 @@ interface UnsupportedCountryModalProps {
   countryName: string;
   countryCode?: string;
   onClose: () => void;
+  /** 'coming-soon' for unsupported countries, 'no-shops' for supported countries with no shops */
+  variant?: 'coming-soon' | 'no-shops';
 }
 
-export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onClose }: UnsupportedCountryModalProps) {
+export function UnsupportedCountryModal({
+  isOpen,
+  countryName,
+  countryCode,
+  onClose,
+  variant = 'coming-soon',
+}: UnsupportedCountryModalProps) {
   const flagUrl = countryCode
     ? `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`
     : null;
+
+  const isNoShops = variant === 'no-shops';
 
   return (
     <ResponsiveModal
@@ -41,12 +51,25 @@ export function UnsupportedCountryModal({ isOpen, countryName, countryCode, onCl
             ) : (
               <div className="w-12 h-12 rounded-full bg-surface" />
             )}
-            <h2 className="text-xl font-bold">Coming Soon</h2>
+            <h2 className="text-xl font-bold">
+              {isNoShops ? 'No Recommendations Yet' : 'Coming Soon'}
+            </h2>
           </div>
         </ModalHeader>
         <ModalBody className="pb-6 pt-2">
           <p className="text-text-secondary mb-4">
-            Filter is not yet in <span className="font-semibold text-primary">{countryName}</span> but it is coming soon!
+            {isNoShops ? (
+              <>
+                We haven&apos;t found any good specialty coffee shops in{' '}
+                <span className="font-semibold text-primary">{countryName}</span> yet.
+                Know of one? Let us know!
+              </>
+            ) : (
+              <>
+                Filter is not yet in{' '}
+                <span className="font-semibold text-primary">{countryName}</span> but it is coming soon!
+              </>
+            )}
           </p>
           <Button
             fullWidth

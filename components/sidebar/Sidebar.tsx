@@ -254,12 +254,17 @@ export function Sidebar({
           </div>
         ) : isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8 text-center">
-            <div>
-              <p className="text-lg font-medium text-primary mb-3">Coming Soon</p>
-              <p className="text-text-secondary mb-2">
-                We are not currently live in{' '}
-                <span className="font-semibold">{unsupportedCountry?.name || 'your area'}</span>{' '}
-                but we are coming soon!
+            <div className="flex flex-col items-center">
+              {/* Large flag */}
+              {unsupportedCountry?.code && (
+                <img
+                  src={`https://flagcdn.com/w80/${unsupportedCountry.code.toLowerCase()}.png`}
+                  alt={`${unsupportedCountry.name} flag`}
+                  className="w-16 h-12 object-cover rounded mb-4"
+                />
+              )}
+              <p className="text-xl font-semibold text-primary mb-2">
+                Coming Soon to {unsupportedCountry?.name || 'your area'}!
               </p>
               <p className="text-sm text-text-secondary">
                 Select a city above to explore other locations.

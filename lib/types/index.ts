@@ -46,6 +46,7 @@ export interface Location {
   rating_stars?: number | null;
   inFocus?: boolean;
   beta?: boolean;
+  comingSoon?: boolean;
   story?: string | null;
   headline?: string | null;
   primaryColor?: string;

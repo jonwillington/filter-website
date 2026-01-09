@@ -61,6 +61,8 @@ export function MainLayout({
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
   const [mapZoom, setMapZoom] = useState<number>(2);
   const [unsupportedCountry, setUnsupportedCountry] = useState<{ name: string; code: string } | null>(null);
+  const [showUnsupportedCountryModal, setShowUnsupportedCountryModal] = useState(false);
+  const [emptySupportedCountry, setEmptySupportedCountry] = useState<{ name: string; code: string } | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -681,6 +683,12 @@ export function MainLayout({
   const handleUnsupportedCountryClick = useCallback((countryName: string, countryCode: string) => {
     console.log('[MainLayout] handleUnsupportedCountryClick called:', countryName, countryCode);
     setUnsupportedCountry({ name: countryName, code: countryCode });
+    setShowUnsupportedCountryModal(true); // Show modal for map clicks
+  }, []);
+
+  const handleEmptySupportedCountryClick = useCallback((countryName: string, countryCode: string) => {
+    console.log('[MainLayout] handleEmptySupportedCountryClick called:', countryName, countryCode);
+    setEmptySupportedCountry({ name: countryName, code: countryCode });
   }, []);
 
   return (
@@ -711,10 +719,19 @@ export function MainLayout({
       />
 
       <UnsupportedCountryModal
-        isOpen={!!unsupportedCountry}
+        isOpen={showUnsupportedCountryModal}
         countryName={unsupportedCountry?.name || ''}
         countryCode={unsupportedCountry?.code || ''}
-        onClose={() => setUnsupportedCountry(null)}
+        onClose={() => setShowUnsupportedCountryModal(false)}
+        variant="coming-soon"
+      />
+
+      <UnsupportedCountryModal
+        isOpen={!!emptySupportedCountry}
+        countryName={emptySupportedCountry?.name || ''}
+        countryCode={emptySupportedCountry?.code || ''}
+        onClose={() => setEmptySupportedCountry(null)}
+        variant="no-shops"
       />
 
       <LocationBlockedModal
@@ -851,6 +868,7 @@ export function MainLayout({
           countries={countries}
           locations={locations}
           onUnsupportedCountryClick={handleUnsupportedCountryClick}
+          onEmptySupportedCountryClick={handleEmptySupportedCountryClick}
           userCoordinates={coordinates}
         />
 

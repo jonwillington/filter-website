@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ModalBody, ScrollShadow } from '@heroui/react';
+import { ModalBody, ScrollShadow, Tooltip } from '@heroui/react';
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { Location, Country, Shop } from '@/lib/types';
@@ -35,8 +35,10 @@ const REGION_ORDER = [
 ];
 
 // Get flag URL from country code
-const getFlagUrl = (countryCode: string): string =>
-  `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
+const getFlagUrl = (countryCode: string | undefined): string | null => {
+  if (!countryCode) return null;
+  return `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
+};
 
 interface CountryGroup {
   country: Country;
@@ -71,15 +73,19 @@ export function ExploreModal({
     return countMap;
   }, [allShops]);
 
-  // Create a map of country code -> country (with region) from the countries prop
-  const countryMap = useMemo(() => {
-    const map = new Map<string, Country>();
+  // Create maps of country code and name -> country (with region) from the countries prop
+  const { countryByCode, countryByName } = useMemo(() => {
+    const byCode = new Map<string, Country>();
+    const byName = new Map<string, Country>();
     countries.forEach((c) => {
       if (c.code) {
-        map.set(c.code.toUpperCase(), c);
+        byCode.set(c.code.toUpperCase(), c);
+      }
+      if (c.name) {
+        byName.set(c.name.toLowerCase(), c);
       }
     });
-    return map;
+    return { countryByCode: byCode, countryByName: byName };
   }, [countries]);
 
   // Group locations by region -> country
@@ -91,7 +97,11 @@ export function ExploreModal({
       if (!locationCountry) return;
 
       // Get the full country data from countries prop (which has region object)
-      const fullCountry = countryMap.get(locationCountry.code?.toUpperCase() || '') || locationCountry;
+      // Try by code first, then by name
+      const fullCountry =
+        countryByCode.get(locationCountry.code?.toUpperCase() || '') ||
+        countryByName.get(locationCountry.name?.toLowerCase() || '') ||
+        locationCountry;
 
       // Access region.Name from the country object
       const region = fullCountry.region?.Name || 'Other';
@@ -118,15 +128,20 @@ export function ExploreModal({
           .sort((a, b) => a.country.name.localeCompare(b.country.name))
           .map((group) => ({
             ...group,
-            locations: group.locations.sort((a, b) => a.name.localeCompare(b.name)),
+            locations: group.locations.sort((a, b) => {
+              // Coming soon locations come last
+              if (a.comingSoon && !b.comingSoon) return 1;
+              if (!a.comingSoon && b.comingSoon) return -1;
+              return a.name.localeCompare(b.name);
+            }),
           })),
       }))
       .filter((r) => r.countries.length > 0);
-  }, [locations, countryMap]);
+  }, [locations, countryByCode, countryByName]);
 
-  // Locations sorted by rating for the rating view
+  // Locations sorted by rating for the rating view (excludes coming soon)
   const locationsByRating = useMemo(() => {
-    const filtered = [...locations].filter((loc) => loc.rating_stars != null);
+    const filtered = [...locations].filter((loc) => loc.rating_stars != null && !loc.comingSoon);
     return filtered.sort((a, b) => {
       const diff = (b.rating_stars || 0) - (a.rating_stars || 0);
       return sortDirection === 'best' ? diff : -diff;
@@ -261,16 +276,18 @@ export function ExploreModal({
                                   {regionData.countries.map(({ country, locations: locs }) => (
                                     <div key={country.documentId || country.code}>
                                       <div className="flex items-center gap-1.5 mb-1">
-                                        <div className="w-2.5 h-2.5 rounded-full overflow-hidden flex-shrink-0">
-                                          <Image
-                                            src={getFlagUrl(country.code)}
-                                            alt={country.name}
-                                            width={10}
-                                            height={10}
-                                            className="object-cover w-full h-full"
-                                            unoptimized
-                                          />
-                                        </div>
+                                        {getFlagUrl(country.code) && (
+                                          <div className="w-2.5 h-2.5 rounded-full overflow-hidden flex-shrink-0">
+                                            <Image
+                                              src={getFlagUrl(country.code)!}
+                                              alt={country.name}
+                                              width={10}
+                                              height={10}
+                                              className="object-cover w-full h-full"
+                                              unoptimized
+                                            />
+                                          </div>
+                                        )}
                                         <span className="text-sm text-text-secondary">
                                           {country.name}
                                         </span>
@@ -278,12 +295,22 @@ export function ExploreModal({
                                       <div className="flex flex-wrap gap-x-1 gap-y-0.5">
                                         {locs.map((location, locIdx) => (
                                           <span key={location.documentId} className="inline-flex items-center">
-                                            <button
-                                              onClick={() => handleLocationClick(location)}
-                                              className="text-sm font-medium text-primary hover:text-accent transition-colors"
-                                            >
-                                              {location.name}
-                                            </button>
+                                            {location.comingSoon ? (
+                                              <Tooltip content="Coming soon" placement="top">
+                                                <span
+                                                  className="text-sm font-medium text-text-secondary cursor-default underline decoration-dotted opacity-50"
+                                                >
+                                                  {location.name}
+                                                </span>
+                                              </Tooltip>
+                                            ) : (
+                                              <button
+                                                onClick={() => handleLocationClick(location)}
+                                                className="text-sm font-medium text-primary hover:text-accent transition-colors"
+                                              >
+                                                {location.name}
+                                              </button>
+                                            )}
                                             {locIdx < locs.length - 1 && (
                                               <span className="text-border-default mx-1">·</span>
                                             )}
@@ -314,16 +341,18 @@ export function ExploreModal({
                       {regionCountries.map(({ country, locations: locs }) => (
                         <div key={country.documentId || country.code}>
                           <div className="flex items-center gap-1.5 mb-1">
-                            <div className="w-2.5 h-2.5 rounded-full overflow-hidden flex-shrink-0">
-                              <Image
-                                src={getFlagUrl(country.code)}
-                                alt={country.name}
-                                width={10}
-                                height={10}
-                                className="object-cover w-full h-full"
-                                unoptimized
-                              />
-                            </div>
+                            {getFlagUrl(country.code) && (
+                              <div className="w-2.5 h-2.5 rounded-full overflow-hidden flex-shrink-0">
+                                <Image
+                                  src={getFlagUrl(country.code)!}
+                                  alt={country.name}
+                                  width={10}
+                                  height={10}
+                                  className="object-cover w-full h-full"
+                                  unoptimized
+                                />
+                              </div>
+                            )}
                             <span className="text-sm text-text-secondary">
                               {country.name}
                             </span>
@@ -331,12 +360,22 @@ export function ExploreModal({
                           <div className="flex flex-wrap gap-x-1 gap-y-0.5">
                             {locs.map((location, locIdx) => (
                               <span key={location.documentId} className="inline-flex items-center">
-                                <button
-                                  onClick={() => handleLocationClick(location)}
-                                  className="text-sm font-medium text-primary hover:text-accent transition-colors"
-                                >
-                                  {location.name}
-                                </button>
+                                {location.comingSoon ? (
+                                  <Tooltip content="Coming soon" placement="top">
+                                    <span
+                                      className="text-sm font-medium text-text-secondary cursor-default underline decoration-dotted opacity-50"
+                                    >
+                                      {location.name}
+                                    </span>
+                                  </Tooltip>
+                                ) : (
+                                  <button
+                                    onClick={() => handleLocationClick(location)}
+                                    className="text-sm font-medium text-primary hover:text-accent transition-colors"
+                                  >
+                                    {location.name}
+                                  </button>
+                                )}
                                 {locIdx < locs.length - 1 && (
                                   <span className="text-border-default mx-1">·</span>
                                 )}
@@ -356,25 +395,28 @@ export function ExploreModal({
               <div>
                 {locationsByRating.map((location, index) => {
                   const shopCount = shopCountByLocation.get(location.documentId) || 0;
+                  const isComingSoon = location.comingSoon;
 
-                  return (
-                    <button
-                      key={location.documentId}
-                      onClick={() => handleLocationClick(location)}
-                      className="group w-full flex items-center gap-4 lg:gap-5 py-3 px-4 lg:px-6 transition-colors hover:bg-surface border-b border-border-default last:border-b-0"
-                    >
+                  const rowContent = (
+                    <>
                       {/* Rank number */}
-                      <span className="text-sm font-medium text-border-default w-6 text-right flex-shrink-0">
+                      <span className={cn(
+                        "text-sm font-medium w-6 text-right flex-shrink-0",
+                        isComingSoon ? "text-border-default/50" : "text-border-default"
+                      )}>
                         {index + 1}
                       </span>
 
                       {/* City name and country */}
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-center gap-2">
-                          {location.country && (
-                            <div className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
+                          {location.country && getFlagUrl(location.country.code) && (
+                            <div className={cn(
+                              "w-4 h-4 rounded-full overflow-hidden flex-shrink-0",
+                              isComingSoon && "opacity-50"
+                            )}>
                               <Image
-                                src={getFlagUrl(location.country.code)}
+                                src={getFlagUrl(location.country.code)!}
                                 alt={location.country.name}
                                 width={16}
                                 height={16}
@@ -383,12 +425,25 @@ export function ExploreModal({
                               />
                             </div>
                           )}
-                          <span className="text-base font-medium text-primary group-hover:text-accent transition-colors">
+                          <span className={cn(
+                            "text-base font-medium transition-colors",
+                            isComingSoon
+                              ? "text-text-secondary/60"
+                              : "text-primary group-hover:text-accent"
+                          )}>
                             {location.name}
                           </span>
                           {location.country && (
-                            <span className="text-sm text-text-secondary hidden lg:inline">
+                            <span className={cn(
+                              "text-sm hidden lg:inline",
+                              isComingSoon ? "text-text-secondary/50" : "text-text-secondary"
+                            )}>
                               {location.country.name}
+                            </span>
+                          )}
+                          {isComingSoon && (
+                            <span className="text-xs text-text-secondary/60 italic">
+                              Coming soon
                             </span>
                           )}
                         </div>
@@ -396,21 +451,56 @@ export function ExploreModal({
 
                       {/* Shop count */}
                       <div className="flex-shrink-0 text-right hidden sm:block">
-                        <span className="text-sm text-text-secondary">
+                        <span className={cn(
+                          "text-sm",
+                          isComingSoon ? "text-text-secondary/50" : "text-text-secondary"
+                        )}>
                           {shopCount} {shopCount === 1 ? 'shop' : 'shops'}
                         </span>
                       </div>
 
                       {/* Rating - far right */}
-                      <div className="flex-shrink-0 flex items-start gap-2 pt-0.5">
+                      <div className={cn(
+                        "flex-shrink-0 flex items-start gap-2 pt-0.5",
+                        isComingSoon && "opacity-50"
+                      )}>
                         <StarRating rating={location.rating_stars || 0} size={14} />
-                        <span className="text-sm font-medium text-primary w-8">
+                        <span className={cn(
+                          "text-sm font-medium w-8",
+                          isComingSoon ? "text-text-secondary/60" : "text-primary"
+                        )}>
                           {location.rating_stars?.toFixed(1)}
                         </span>
                       </div>
 
                       {/* Arrow indicator */}
-                      <ChevronRight className="w-4 h-4 text-border-default group-hover:text-accent transition-colors flex-shrink-0" />
+                      <ChevronRight className={cn(
+                        "w-4 h-4 flex-shrink-0 transition-colors",
+                        isComingSoon
+                          ? "text-border-default/50"
+                          : "text-border-default group-hover:text-accent"
+                      )} />
+                    </>
+                  );
+
+                  if (isComingSoon) {
+                    return (
+                      <div
+                        key={location.documentId}
+                        className="w-full flex items-center gap-4 lg:gap-5 py-3 px-4 lg:px-6 border-b border-border-default last:border-b-0 cursor-default"
+                      >
+                        {rowContent}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={location.documentId}
+                      onClick={() => handleLocationClick(location)}
+                      className="group w-full flex items-center gap-4 lg:gap-5 py-3 px-4 lg:px-6 transition-colors hover:bg-surface border-b border-border-default last:border-b-0"
+                    >
+                      {rowContent}
                     </button>
                   );
                 })}

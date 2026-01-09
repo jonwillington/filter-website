@@ -14,6 +14,7 @@ export interface UseMapLayersOptions {
   displayedShops: Shop[];
   effectiveTheme: 'light' | 'dark';
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
+  onEmptySupportedCountryClick?: (countryName: string, countryCode: string) => void;
   setCountryLayerReady: (ready: boolean) => void;
 }
 
@@ -30,13 +31,16 @@ export function useMapLayers({
   countries,
   displayedShops,
   onUnsupportedCountryClick,
+  onEmptySupportedCountryClick,
   setCountryLayerReady,
 }: UseMapLayersOptions): void {
-  // Store callback in ref to avoid effect re-runs when callback changes
+  // Store callbacks in ref to avoid effect re-runs when callbacks change
   const onUnsupportedCountryClickRef = useRef(onUnsupportedCountryClick);
+  const onEmptySupportedCountryClickRef = useRef(onEmptySupportedCountryClick);
   useEffect(() => {
     onUnsupportedCountryClickRef.current = onUnsupportedCountryClick;
-  }, [onUnsupportedCountryClick]);
+    onEmptySupportedCountryClickRef.current = onEmptySupportedCountryClick;
+  }, [onUnsupportedCountryClick, onEmptySupportedCountryClick]);
 
   // Setup country boundaries click detection
   // Only re-run when map, mapReady, or countries change (not displayedShops)
@@ -57,12 +61,15 @@ export function useMapLayers({
       isSetup = true;
 
       try {
-        // Use ref for callback so it always has latest value
+        // Use ref for callbacks so they always have latest value
         cleanupEventHandlers = setupCountryLayer(map, {
           countries,
           displayedShops,
           onUnsupportedCountryClick: (name, code) => {
             onUnsupportedCountryClickRef.current?.(name, code);
+          },
+          onEmptySupportedCountryClick: (name, code) => {
+            onEmptySupportedCountryClickRef.current?.(name, code);
           },
         });
         setCountryLayerReady(true);

@@ -64,14 +64,19 @@ function getCache(): CacheMap {
   return g.__apiCache;
 }
 
-// 30 minutes for build, 5 minutes for runtime
+// 30 minutes for build, 5 minutes for production runtime, 30 seconds for dev
 const BUILD_CACHE_TTL = 30 * 60 * 1000;
 const RUNTIME_CACHE_TTL = 5 * 60 * 1000;
+const DEV_CACHE_TTL = 30 * 1000; // 30 seconds for faster iteration
 
 function getCacheTTL(): number {
   // During build, use longer TTL
-  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
     return BUILD_CACHE_TTL;
+  }
+  // In development, use short TTL for faster iteration
+  if (process.env.NODE_ENV === 'development') {
+    return DEV_CACHE_TTL;
   }
   return RUNTIME_CACHE_TTL;
 }

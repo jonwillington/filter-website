@@ -87,7 +87,9 @@ export function LocationDrawer({
   const backgroundImage = getMediaUrl(currentLocation.background_image);
 
   // Placeholder story for locations without one
-  const placeholderStory = `Discover the best specialty coffee in ${currentLocation.name}. Our curated selection features ${totalShops} carefully chosen cafés, from hidden neighbourhood gems to celebrated roasters.`;
+  const placeholderStory = totalShops > 0
+    ? `Discover the best specialty coffee in ${currentLocation.name}. Our curated selection features ${totalShops} carefully chosen cafés, from hidden neighbourhood gems to celebrated roasters.`
+    : `We're exploring the specialty coffee scene in ${currentLocation.name}. Check back soon for recommendations.`;
   const displayStory = currentLocation.story?.trim() || placeholderStory;
 
   const content = (
@@ -219,6 +221,18 @@ export function LocationDrawer({
               <span className="font-medium">{totalShops}</span>
             </div>
           </div>
+
+          {/* No Shops Message */}
+          {totalShops === 0 && (
+            <div className="bg-surface border border-border-default rounded-lg p-5">
+              <h4 className="text-base font-semibold text-primary mb-2">
+                No recommendations yet
+              </h4>
+              <p className="text-sm text-text-secondary">
+                We haven&apos;t found any good specialty coffee shops in {currentLocation.name} yet. Know of one? Let us know!
+              </p>
+            </div>
+          )}
 
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (
