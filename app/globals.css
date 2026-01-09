@@ -267,8 +267,13 @@ h1, h2 {
   backdrop-filter: blur(20px);
 }
 
+.drawer {
+  scrollbar-width: none; /* Firefox */
+}
+
 .drawer::-webkit-scrollbar {
   width: 6px;
+  background: transparent;
 }
 
 .drawer::-webkit-scrollbar-track {
@@ -276,11 +281,16 @@ h1, h2 {
 }
 
 .drawer::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: transparent;
   border-radius: 3px;
+  transition: background 0.2s ease;
 }
 
-.drawer::-webkit-scrollbar-thumb:hover {
+.drawer:hover::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.drawer:hover::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
 
@@ -369,6 +379,19 @@ h1, h2 {
     transform: translateY(0);
     opacity: 1;
   }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out both;
 }
 
 .stagger-fade-in > *:not(hr):not([role="separator"]) {

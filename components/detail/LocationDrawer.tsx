@@ -102,9 +102,24 @@ export function LocationDrawer({
       />
 
       <div className="drawer-content">
+        {/* Beta Banner - sits at very top, header overlaps with curved corners */}
+        {currentLocation.beta && (
+          <div
+            className="relative px-6 pt-3 pb-6 text-sm text-center text-gray-900 animate-fade-in flex items-center justify-center gap-2 overflow-hidden"
+            style={{ backgroundColor: primaryColor }}
+          >
+            {/* White overlay */}
+            <div className="absolute inset-0 bg-white/90" />
+            <svg className="w-4 h-4 flex-shrink-0 relative" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="relative"><span className="font-medium">This location is in Beta.</span> More shops are being added!</span>
+          </div>
+        )}
+
         {/* Header with contained image */}
         <div
-          className="relative location-drawer-header"
+          className={`relative location-drawer-header ${currentLocation.beta ? 'rounded-t-2xl -mt-3' : ''}`}
           style={{
             backgroundColor: primaryColor,
           }}
@@ -172,32 +187,6 @@ export function LocationDrawer({
 
         {/* Content */}
         <div key={currentLocation.documentId} className="p-6 space-y-6 stagger-fade-in">
-          {/* Beta Banner */}
-          {currentLocation.beta && (
-            <div className="bg-surface border border-border-default rounded-lg p-4 flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                <svg
-                  className="w-5 h-5 text-accent"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-primary mb-1">
-                  This location is in beta
-                </h4>
-                <p className="text-sm text-text-secondary">
-                  More shops are currently being added
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Stats row */}
           <div className="flex items-center gap-6 text-sm">
