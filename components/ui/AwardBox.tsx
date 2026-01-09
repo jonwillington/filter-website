@@ -67,7 +67,7 @@ export function AwardBox({
 
       <div className="flex items-center gap-1.5 mb-0.5">
         <Award size={14} className={textColor} />
-        <h3 className={cn('font-semibold text-sm', textColor)}>
+        <h3 className={cn('font-medium text-sm', textColor)}>
           {title}
         </h3>
       </div>

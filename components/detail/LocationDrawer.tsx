@@ -6,6 +6,7 @@ import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
 import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
+import { Award } from 'lucide-react';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 
@@ -226,7 +227,10 @@ export function LocationDrawer({
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">Top Choices</h3>
+              <div className="flex items-center gap-1.5 mb-3">
+                <Award size={14} className="text-text-secondary" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Top Choices</h3>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 {topRecommendationShops.map((shop, index) => {
                   const imageUrl = getMediaUrl(shop.featured_image);
@@ -236,32 +240,44 @@ export function LocationDrawer({
                     <button
                       key={shop.documentId}
                       onClick={() => onShopSelect(shop)}
-                      className="group relative overflow-hidden bg-surface aspect-[4/3] hover:brightness-110 transition-all duration-300 rounded-xl border border-border-default"
+                      className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-md text-left border border-border-default flex flex-col h-full"
+                      style={{ backgroundColor: primaryColor }}
                     >
-                      {imageUrl && (
-                        <Image
-                          src={imageUrl}
-                          alt={shop.name}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
-                        {logoUrl && (
-                          <div className="w-7 h-7 rounded-md overflow-hidden bg-background mb-2 shadow-sm">
-                            <Image
-                              src={logoUrl}
-                              alt={shop.brand?.name || shop.name}
-                              width={28}
-                              height={28}
-                              className="object-cover"
-                            />
-                          </div>
+                      {/* Image section - grows to fill available space */}
+                      <div className="relative flex-1 min-h-[100px] overflow-hidden">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt={shop.name}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div
+                            className="absolute inset-0"
+                            style={{ backgroundColor: primaryColor, opacity: 0.3 }}
+                          />
                         )}
-                        <h4 className="font-bold text-white text-sm leading-tight line-clamp-2">
-                          {shop.name}
-                        </h4>
+                      </div>
+
+                      {/* Text section with white/tinted background */}
+                      <div className="relative p-3 bg-white/95 dark:bg-black/70">
+                        <div className="flex items-start gap-2">
+                          {logoUrl && (
+                            <div className="w-6 h-6 rounded-md overflow-hidden bg-background flex-shrink-0 shadow-sm">
+                              <Image
+                                src={logoUrl}
+                                alt={shop.brand?.name || shop.name}
+                                width={24}
+                                height={24}
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
+                            {shop.name}
+                          </h4>
+                        </div>
                       </div>
                     </button>
                   );
