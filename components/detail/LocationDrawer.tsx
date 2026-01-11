@@ -240,7 +240,7 @@ export function LocationDrawer({
                     <button
                       key={shop.documentId}
                       onClick={() => onShopSelect(shop)}
-                      className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-md text-left border border-border-default flex flex-col h-full"
+                      className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-md text-left flex flex-col h-full"
                       style={{ backgroundColor: primaryColor }}
                     >
                       {/* Image section - grows to fill available space */}
@@ -258,26 +258,25 @@ export function LocationDrawer({
                             style={{ backgroundColor: primaryColor, opacity: 0.3 }}
                           />
                         )}
+                        {/* Brand logo overlay */}
+                        {logoUrl && (
+                          <div className="absolute bottom-2 left-2 w-8 h-8 rounded-lg overflow-hidden bg-white shadow-md">
+                            <Image
+                              src={logoUrl}
+                              alt={shop.brand?.name || shop.name}
+                              width={32}
+                              height={32}
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Text section with white/tinted background */}
                       <div className="relative p-3 bg-white/95 dark:bg-black/70">
-                        <div className="flex items-start gap-2">
-                          {logoUrl && (
-                            <div className="w-6 h-6 rounded-md overflow-hidden bg-background flex-shrink-0 shadow-sm">
-                              <Image
-                                src={logoUrl}
-                                alt={shop.brand?.name || shop.name}
-                                width={24}
-                                height={24}
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
-                            {shop.name}
-                          </h4>
-                        </div>
+                        <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
+                          {shop.name}
+                        </h4>
                       </div>
                     </button>
                   );
