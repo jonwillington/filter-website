@@ -44,7 +44,7 @@ async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
 
     while (page <= pageCount) {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations?fields[0]=id&fields[1]=documentId&fields[2]=name&fields[3]=slug&fields[4]=rating_stars&fields[5]=rating&fields[6]=primaryColor&fields[7]=secondaryColor&fields[8]=story&fields[9]=headline&fields[10]=coordinates&populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             'Content-Type': 'application/json',

@@ -276,6 +276,7 @@ export function Sidebar({
             locations={locations}
             shops={allShops || shops}
             onShopSelect={onShopSelect}
+            onLocationSelect={onLocationChange}
           />
         ) : (
           <>
