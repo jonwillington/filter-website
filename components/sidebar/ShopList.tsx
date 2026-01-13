@@ -13,10 +13,12 @@ interface ShopListProps {
   isLoading?: boolean;
   isFiltered?: boolean;
   shopMatchInfo?: Map<string, string[]>;
+  onCityAreaExpand?: (cityAreaId: string | null) => void;
 }
 
 interface AreaWithGroup {
   name: string;
+  documentId: string | null;
   group: string | null;
   shops: Shop[];
 }
@@ -28,26 +30,43 @@ export function ShopList({
   isLoading,
   isFiltered = false,
   shopMatchInfo,
+  onCityAreaExpand,
 }: ShopListProps) {
   // Track filter state to force re-animation when filter changes
   const [animationKey, setAnimationKey] = useState(0);
-  
+  // Track which city area is currently expanded (only one at a time)
+  const [expandedAreaId, setExpandedAreaId] = useState<string | null>(null);
+
   useEffect(() => {
     // Increment key when filter changes to trigger re-animation
     setAnimationKey(prev => prev + 1);
   }, [isFiltered]);
 
-  // Group shops by area, preserving the group info
+  // Handle city area expansion - only one at a time
+  const handleAreaExpand = (areaId: string | null, isExpanding: boolean) => {
+    console.log('[ShopList] handleAreaExpand:', { areaId, isExpanding, currentExpandedAreaId: expandedAreaId });
+    if (isExpanding) {
+      setExpandedAreaId(areaId);
+      onCityAreaExpand?.(areaId);
+    } else if (expandedAreaId === areaId) {
+      // Only clear if this area was the expanded one
+      setExpandedAreaId(null);
+      onCityAreaExpand?.(null);
+    }
+  };
+
+  // Group shops by area, preserving the group info and documentId
   const areasWithGroups = useMemo(() => {
     const areaMap = new Map<string, AreaWithGroup>();
 
     shops.forEach((shop) => {
       const cityArea = shop.city_area ?? shop.cityArea;
       const areaName = cityArea?.name ?? 'Other';
+      const documentId = cityArea?.documentId ?? null;
       const group = cityArea?.group ?? null;
 
       if (!areaMap.has(areaName)) {
-        areaMap.set(areaName, { name: areaName, group, shops: [] });
+        areaMap.set(areaName, { name: areaName, documentId, group, shops: [] });
       }
       areaMap.get(areaName)!.shops.push(shop);
     });
@@ -161,12 +180,15 @@ export function ShopList({
             <AreaSection
               key={area.name}
               areaName={area.name}
+              areaDocumentId={area.documentId}
               shops={area.shops}
               selectedShop={selectedShop}
               onShopSelect={onShopSelect}
               isLoading={isLoading}
               isFiltered={isFiltered}
               animationKey={animationKey}
+              isCurrentlyExpanded={expandedAreaId === area.documentId}
+              onAreaExpand={handleAreaExpand}
             />
           ))}
         </div>
@@ -178,34 +200,40 @@ export function ShopList({
 // Collapsible area section component
 function AreaSection({
   areaName,
+  areaDocumentId,
   shops,
   selectedShop,
   onShopSelect,
   isLoading,
   isFiltered = false,
   animationKey,
+  isCurrentlyExpanded,
+  onAreaExpand,
 }: {
   areaName: string;
+  areaDocumentId: string | null;
   shops: Shop[];
   selectedShop: Shop | null;
   onShopSelect: (shop: Shop) => void;
   isLoading?: boolean;
   isFiltered?: boolean;
   animationKey: number;
+  isCurrentlyExpanded: boolean;
+  onAreaExpand: (areaId: string | null, isExpanding: boolean) => void;
 }) {
+  // Use parent-controlled expansion state (only one area can be expanded at a time for map highlighting)
+  // But also expand if this area contains the selected shop or if filtered
   const hasSelectedShop = selectedShop && shops.some(s => s.documentId === selectedShop.documentId);
-  const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
-
-  // Reset manual state when selected shop changes or filter changes, so auto-expand takes over
-  useEffect(() => {
-    setIsManuallyToggled(null);
-  }, [selectedShop?.documentId, isFiltered]);
-
-  // Auto-expand if filtered, if this area contains the selected shop, otherwise use manual state
-  const isExpanded = isManuallyToggled !== null ? isManuallyToggled : (isFiltered || !!hasSelectedShop);
+  const isExpanded = isCurrentlyExpanded || isFiltered || hasSelectedShop;
 
   const toggleExpanded = () => {
-    setIsManuallyToggled(prev => prev !== null ? !prev : !hasSelectedShop);
+    const newExpanded = !isCurrentlyExpanded;
+    console.log('[AreaSection] Toggle:', { areaName, areaDocumentId, newExpanded, wasExpanded: isCurrentlyExpanded });
+
+    // Notify parent about expansion change
+    if (areaDocumentId) {
+      onAreaExpand(areaDocumentId, newExpanded);
+    }
   };
 
   return (

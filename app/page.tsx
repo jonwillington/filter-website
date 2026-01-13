@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations } from '@/lib/api/locations';
+import { getAllLocations, getAllCityAreas } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 
@@ -13,6 +13,9 @@ export default async function HomePage() {
   // Get all countries for map highlighting
   const countries = await getAllCountries();
 
+  // Get all city areas with boundary coordinates for map visualization
+  const cityAreas = await getAllCityAreas();
+
   // Start with no location selected - zoomed out world view
   return (
     <MainLayout
@@ -20,6 +23,7 @@ export default async function HomePage() {
       initialLocation={null}
       shops={allShops}
       countries={countries}
+      cityAreas={cityAreas}
     />
   );
 }

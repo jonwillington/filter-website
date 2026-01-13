@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug, getAllCityAreas } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
@@ -72,6 +72,7 @@ export default async function CityPage({ params }: CityPageProps) {
 
   const allShops = await getAllShops();
   const countries = await getAllCountries();
+  const cityAreas = await getAllCityAreas();
 
   // Count shops in this location
   const locationShops = allShops.filter(shop => shop.location?.documentId === location.documentId);
@@ -112,6 +113,7 @@ export default async function CityPage({ params }: CityPageProps) {
         initialLocation={location}
         shops={allShops}
         countries={countries}
+        cityAreas={cityAreas}
       />
     </>
   );

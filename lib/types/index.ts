@@ -67,6 +67,7 @@ export interface CityArea {
   description?: string | null;
   summary?: string | null;
   featuredImage?: MediaAsset | null;
+  boundary_coordinates?: Array<{ lat: number; lng: number }> | null;
   location?: {
     id?: number;
     documentId?: string;

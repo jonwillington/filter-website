@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug, getAllCityAreas } from '@/lib/api/locations';
 import { getShopBySlug, getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
@@ -117,6 +117,7 @@ export default async function ShopPage({ params }: ShopPageProps) {
 
   const allShops = await getAllShops();
   const countries = await getAllCountries();
+  const cityAreas = await getAllCityAreas();
 
   const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? '';
   const cityName = shop.location?.name ?? '';
@@ -188,6 +189,7 @@ export default async function ShopPage({ params }: ShopPageProps) {
         shops={allShops}
         initialShop={shop}
         countries={countries}
+        cityAreas={cityAreas}
       />
     </>
   );

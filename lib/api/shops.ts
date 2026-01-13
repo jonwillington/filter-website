@@ -48,19 +48,13 @@ const SHOP_POPULATE = [
   // Other shop fields
   'populate[featured_image]=*',
   'populate[gallery]=*',
-  // Populate city_area with all fields including group
-  'populate[city_area][fields][0]=id',
-  'populate[city_area][fields][1]=documentId',
-  'populate[city_area][fields][2]=name',
-  'populate[city_area][fields][3]=slug',
-  'populate[city_area][fields][4]=group',
-  'populate[city_area][fields][5]=description',
-  'populate[city_area][fields][6]=summary',
+  // Populate city_area with all its fields (including JSON field boundary_coordinates)
+  // Then add nested populates for its relations
+  'populate[city_area]=*',
   'populate[city_area][populate][location]=*',
   'populate[city_area][populate][location][populate][country]=*',
   'populate[city_area][populate][location][populate][background_image]=*',
   // Populate direct location with full data
-  'populate[location]=*',
   'populate[location][populate][country]=*',
   'populate[location][populate][background_image]=*',
 ].join('&');
@@ -341,6 +335,13 @@ export async function getAllShops(): Promise<Shop[]> {
 
       const json = await response.json();
       const data = json.data || [];
+      // Debug: Log first shop's city_area to see what fields are returned
+      if (page === 1 && data.length > 0) {
+        const firstWithCityArea = data.find((s: any) => s.city_area);
+        if (firstWithCityArea) {
+          console.log('[Shops API] Sample city_area data:', JSON.stringify(firstWithCityArea.city_area, null, 2));
+        }
+      }
       allShops.push(...data);
 
       pageCount = json.meta?.pagination?.pageCount || 1;

@@ -165,19 +165,10 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
 
     while (page <= pageCount) {
       // Populate location with coordinates and country
-      // Note: Using simpler populate syntax that Strapi accepts reliably
+      // Note: boundary_coordinates is a JSON field, so it's returned automatically
       const populateParams = [
         'populate[location][populate][country]=*',
         'populate[location][populate][background_image]=*',
-        'populate[location][fields][0]=id',
-        'populate[location][fields][1]=documentId',
-        'populate[location][fields][2]=name',
-        'populate[location][fields][3]=coordinates',
-        'populate[location][fields][4]=rating_stars',
-        'populate[location][fields][5]=headline',
-        'populate[location][fields][6]=story',
-        'populate[location][fields][7]=comingSoon',
-        'populate[location][fields][8]=beta',
       ].join('&');
 
       const response = await fetch(

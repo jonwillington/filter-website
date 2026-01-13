@@ -43,6 +43,7 @@ interface SidebarProps {
     preferredBrewMethods?: string[];
   };
   shopMatchInfo?: Map<string, string[]>;
+  onCityAreaExpand?: (cityAreaId: string | null) => void;
 }
 
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
@@ -76,6 +77,7 @@ export function Sidebar({
   hasUserFilters = false,
   userPreferences,
   shopMatchInfo,
+  onCityAreaExpand,
 }: SidebarProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const { tags } = useTags();
@@ -287,6 +289,7 @@ export function Sidebar({
               isLoading={isLoading}
               isFiltered={applyMyFilters || shopFilter !== 'all'}
               shopMatchInfo={shopMatchInfo}
+              onCityAreaExpand={onCityAreaExpand}
             />
             {selectedLocation && filterCounts.all < 5 && (
               <ShortOnShopsAlert locationName={selectedLocation.name} />

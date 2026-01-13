@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug, getCityAreaBySlug } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug, getCityAreaBySlug, getAllCityAreas } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
@@ -87,6 +87,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
 
   const allShops = await getAllShops();
   const countries = await getAllCountries();
+  const cityAreas = await getAllCityAreas();
 
   return (
     <MainLayout
@@ -94,6 +95,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
       initialLocation={location}
       shops={allShops}
       countries={countries}
+      cityAreas={cityAreas}
     />
   );
 }

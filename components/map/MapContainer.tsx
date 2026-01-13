@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Spinner } from '@heroui/react';
-import { Shop, Country, Location } from '@/lib/types';
+import { Shop, Country, Location, CityArea } from '@/lib/types';
 import { useTheme } from '@/lib/context/ThemeContext';
 import { useMapInstance } from '@/lib/hooks/useMapInstance';
 import { useMapLayers } from '@/lib/hooks/useMapLayers';
 import { useMapPosition } from '@/lib/hooks/useMapPosition';
 import { useMapClustering } from '@/lib/hooks/useMapClustering';
 import { useUserLocationMarker } from '@/lib/hooks/useUserLocationMarker';
+import { useCityAreaBoundaries } from '@/lib/hooks/useCityAreaBoundaries';
 
 interface MapContainerProps {
   shops: Shop[];
@@ -23,6 +24,8 @@ interface MapContainerProps {
   onUnsupportedCountryClick?: (countryName: string, countryCode: string) => void;
   onEmptySupportedCountryClick?: (countryName: string, countryCode: string) => void;
   userCoordinates?: { lat: number; lng: number } | null;
+  expandedCityAreaId?: string | null;
+  cityAreas?: CityArea[];
 }
 
 /**
@@ -51,6 +54,8 @@ export function MapContainer({
   onUnsupportedCountryClick,
   onEmptySupportedCountryClick,
   userCoordinates = null,
+  expandedCityAreaId = null,
+  cityAreas = [],
 }: MapContainerProps) {
   const { effectiveTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -123,6 +128,15 @@ export function MapContainer({
     map,
     mapReady,
     coordinates: userCoordinates,
+  });
+
+  // Show city area boundaries when expanded in sidebar
+  useCityAreaBoundaries({
+    map,
+    mapReady,
+    cityAreas,
+    expandedCityAreaId,
+    effectiveTheme,
   });
 
   return (

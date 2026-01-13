@@ -13,7 +13,7 @@ import { Footer } from './Footer';
 import { LoginModal } from '../auth/LoginModal';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Location, Shop, Country } from '@/lib/types';
+import { Location, Shop, Country, CityArea } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
@@ -33,6 +33,7 @@ interface MainLayoutProps {
   shops: Shop[];
   initialShop?: Shop | null;
   countries?: Country[];
+  cityAreas?: CityArea[];
 }
 
 export function MainLayout({
@@ -41,6 +42,7 @@ export function MainLayout({
   shops,
   initialShop = null,
   countries = [],
+  cityAreas: propCityAreas = [],
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -71,6 +73,7 @@ export function MainLayout({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [isLocationDrawerClosing, setIsLocationDrawerClosing] = useState(false);
+  const [expandedCityAreaId, setExpandedCityAreaId] = useState<string | null>(null);
 
   const { coordinates, requestLocation, isPermissionBlocked, clearPermissionBlocked } = useGeolocation();
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -691,6 +694,29 @@ export function MainLayout({
     setEmptySupportedCountry({ name: countryName, code: countryCode });
   }, []);
 
+  const handleCityAreaExpand = useCallback((cityAreaId: string | null) => {
+    console.log('[MainLayout] handleCityAreaExpand:', cityAreaId);
+    setExpandedCityAreaId(cityAreaId);
+  }, []);
+
+  // Filter city areas to only those in the selected location
+  const cityAreas = useMemo(() => {
+    if (!selectedLocation) return [];
+
+    // Filter to city areas that belong to this location
+    const filtered = propCityAreas.filter(
+      (area) => area.location?.documentId === selectedLocation.documentId
+    );
+
+    // Debug: log first city area's full object to see what fields exist
+    if (filtered.length > 0) {
+      console.log('[MainLayout] First city area from prop:', filtered[0]);
+      console.log('[MainLayout] City area keys:', Object.keys(filtered[0]));
+      console.log('[MainLayout] Has boundary_coordinates:', !!filtered[0].boundary_coordinates);
+    }
+    return filtered;
+  }, [propCityAreas, selectedLocation]);
+
   return (
     <>
       <WelcomeModal
@@ -800,6 +826,7 @@ export function MainLayout({
           )}
           userPreferences={userProfile?.preferences ?? undefined}
           shopMatchInfo={shopMatchInfo}
+          onCityAreaExpand={handleCityAreaExpand}
           authComponent={
             <div className="flex items-center gap-3">
               <Button
@@ -870,6 +897,8 @@ export function MainLayout({
           onUnsupportedCountryClick={handleUnsupportedCountryClick}
           onEmptySupportedCountryClick={handleEmptySupportedCountryClick}
           userCoordinates={coordinates}
+          expandedCityAreaId={expandedCityAreaId}
+          cityAreas={cityAreas}
         />
 
         {(selectedShop || (selectedLocation && !isNearbyMode && (showMobileCityGuide || isDesktop)) || isLocationDrawerClosing) && (
