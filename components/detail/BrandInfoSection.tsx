@@ -2,6 +2,7 @@
 
 import { Shop } from '@/lib/types';
 import { Divider } from '@heroui/react';
+import { PropertyRow } from '@/components/ui';
 
 interface BrandInfoSectionProps {
   shop: Shop;
@@ -35,39 +36,42 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
   // Don't render if no brand info to show
   if (!hasEquipment && !hasAwards && !founder) return null;
 
-  // Build equipment text
-  const equipmentText = hasEquipment ? EQUIPMENT_CATEGORIES
-    .filter(cat => ((equipment[cat.key]?.length ?? 0) > 0))
-    .map(cat => `${cat.label}: ${equipment[cat.key]?.join(', ')}`)
-    .join(' • ') : '';
+  // Get equipment categories that have items
+  const equipmentItems = hasEquipment
+    ? EQUIPMENT_CATEGORIES.filter(cat => (equipment[cat.key]?.length ?? 0) > 0)
+    : [];
 
-  // Build awards text (show most recent 2)
-  const awardsText = hasAwards
+  // Get sorted awards (most recent 2)
+  const sortedAwards = hasAwards
     ? awards
-      .sort((a, b) => parseInt(b.year, 10) - parseInt(a.year, 10))
-      .slice(0, 2)
-      .map((award) => `${award.year} ${award.award}`)
-      .join(' • ')
-    : '';
+        .sort((a, b) => parseInt(b.year, 10) - parseInt(a.year, 10))
+        .slice(0, 2)
+    : [];
 
   return (
     <>
       <Divider className="my-5 opacity-30" />
 
       {founder && (
-        <div className="text-xs text-textSecondary mb-3">
+        <div className="text-xs text-text-secondary mb-3">
           Founder: {founder}
         </div>
       )}
 
       {hasEquipment && (
         <div>
-          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
+          <h3 className="text-sm font-semibold text-primary mb-1">
             Equipment
           </h3>
-          <p className="text-sm text-text leading-snug">
-            {equipmentText}
-          </p>
+          <div>
+            {equipmentItems.map(cat => (
+              <PropertyRow
+                key={cat.key}
+                label={cat.label}
+                value={equipment[cat.key]!.join(', ')}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -77,12 +81,18 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
 
       {hasAwards && (
         <div>
-          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-2">
+          <h3 className="text-sm font-semibold text-primary mb-1">
             Awards
           </h3>
-          <p className="text-sm text-text leading-snug">
-            {awardsText}
-          </p>
+          <div>
+            {sortedAwards.map((award, idx) => (
+              <PropertyRow
+                key={idx}
+                label={award.year}
+                value={award.award}
+              />
+            ))}
+          </div>
         </div>
       )}
     </>

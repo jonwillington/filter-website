@@ -11,7 +11,8 @@
     "build:no-prefetch": "next build",
     "build:dev": "SKIP_STATIC_EXPORT=1 next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "trigger-rebuild": "./scripts/trigger-rebuild.sh"
   },
   "dependencies": {
     "@heroui/react": "2.6.14",
