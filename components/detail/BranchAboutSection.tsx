@@ -14,8 +14,9 @@ const MAX_LENGTH = 200;
 export function BranchAboutSection({ shop }: BranchAboutSectionProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Only show for non-independent shops that have their own description
-  if (shop.independent || !shop.brand || !shop.description) return null;
+  // Only show for non-independent brands that have their own branch description
+  const isIndependent = shop.brand?.type?.toLowerCase() === 'independent';
+  if (isIndependent || !shop.brand || !shop.description) return null;
 
   const description = shop.description;
   const isLong = description.length > MAX_LENGTH;

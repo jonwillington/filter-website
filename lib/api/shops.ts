@@ -289,6 +289,8 @@ export async function getAllShops(): Promise<Shop[]> {
           shop.brand = {
             ...fullBrand,
             ...shop.brand,
+            // Ensure type is preserved from fullBrand if not in shop.brand
+            type: shop.brand.type || fullBrand.type,
             // Use shop's nested relations if they exist and are populated, otherwise use fullBrand's
             logo: shopLogo || fullBrand.logo,
             suppliers: shopSuppliers?.length ? shopSuppliers : fullBrand.suppliers,
@@ -371,6 +373,8 @@ export async function getAllShops(): Promise<Shop[]> {
           shop.brand = {
             ...fullBrand,
             ...shop.brand,
+            // Ensure type is preserved from fullBrand if not in shop.brand
+            type: shop.brand.type || fullBrand.type,
             // Use shop's nested relations if they exist and are populated, otherwise use fullBrand's
             logo: shopLogo || fullBrand.logo,
             suppliers: shopSuppliers?.length ? shopSuppliers : fullBrand.suppliers,
