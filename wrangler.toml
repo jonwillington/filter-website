@@ -1,10 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "filter-website"
+main = ".open-next/worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".open-next/cloudflare"
 
-# Redirect to custom domain
-# [[routes]]
-# pattern = "filter-website.pages.dev/*"
-# custom_domain = "filter.coffee"
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
