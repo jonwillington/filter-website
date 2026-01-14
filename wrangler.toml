@@ -6,8 +6,3 @@ compatibility_flags = ["nodejs_compat"]
 
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
-# Custom domain routing
-routes = [
-  { pattern = "filter.coffee", custom_domain = true },
-  { pattern = "www.filter.coffee", custom_domain = true }
-]
