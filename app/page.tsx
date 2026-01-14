@@ -3,6 +3,9 @@ import { getAllLocations, getAllCityAreas } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 
+// Cache pages for 5 minutes, then revalidate in background
+export const revalidate = 300;
+
 export default async function HomePage() {
   // Get locations (internally fetches shops and caches them)
   const locations = await getAllLocations();

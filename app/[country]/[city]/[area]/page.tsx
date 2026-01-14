@@ -6,7 +6,8 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { deslugify, slugify, getMediaUrl } from '@/lib/utils';
 
-export const dynamicParams = false;
+// Cache pages for 5 minutes, then revalidate in background
+export const revalidate = 300;
 
 export async function generateStaticParams() {
   try {

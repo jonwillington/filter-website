@@ -6,7 +6,8 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
 
-export const dynamicParams = false;
+// Cache pages for 5 minutes, then revalidate in background
+export const revalidate = 300;
 
 interface CityPageProps {
   params: Promise<{ country: string; city: string }>;
