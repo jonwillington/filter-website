@@ -51,7 +51,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
         </div>
       )}
 
-      {equipmentItems.length > 0 && (
+      {equipmentItems.length > 0 && equipment && (
         <div>
           <h3 className="text-base font-medium text-primary mb-1">
             Equipment
@@ -61,7 +61,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
               <PropertyRow
                 key={cat.key}
                 label={cat.label}
-                value={equipment[cat.key]!.filter(item => item && item.trim() !== '').join(', ')}
+                value={(equipment[cat.key] ?? []).filter(item => item && item.trim() !== '').join(', ')}
                 showDivider={idx > 0}
               />
             ))}
