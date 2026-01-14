@@ -42,7 +42,7 @@ export function UserPhotosSection({
     <>
       <Divider className="my-5 opacity-30" />
       <div>
-        <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
+        <h3 className="text-base font-medium text-primary mb-3">
           User photos
         </h3>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">

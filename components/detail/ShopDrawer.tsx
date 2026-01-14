@@ -188,7 +188,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {moreFromBrand.length > 0 && currentShop.brand && (
             <div>
               <Divider className="my-5 opacity-30" />
-              <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-4">
+              <h3 className="text-base font-medium text-primary mb-4">
                 More from {currentShop.brand.name}
               </h3>
 

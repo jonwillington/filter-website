@@ -12,7 +12,7 @@ export function RelatedShops({ title, shops, onShopSelect }: RelatedShopsProps) 
 
   return (
     <div>
-      <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider mb-3">
+      <h3 className="text-base font-medium text-primary mb-3">
         {title}
       </h3>
       <div className="space-y-2">

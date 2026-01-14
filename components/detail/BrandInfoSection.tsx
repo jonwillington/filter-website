@@ -23,30 +23,23 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
   const awards = brand?.awards;
   const founder = brand?.founder;
 
-  // Check if equipment has any items
-  const hasEquipment = equipment && (
-    (equipment.grinders?.length ?? 0) > 0 ||
-    (equipment.espresso?.length ?? 0) > 0 ||
-    (equipment.drippers?.length ?? 0) > 0 ||
-    (equipment.roasters?.length ?? 0) > 0
-  );
-
-  const hasAwards = awards && awards.length > 0;
-
-  // Don't render if no brand info to show
-  if (!hasEquipment && !hasAwards && !founder) return null;
-
-  // Get equipment categories that have items
-  const equipmentItems = hasEquipment
-    ? EQUIPMENT_CATEGORIES.filter(cat => (equipment[cat.key]?.length ?? 0) > 0)
+  // Get equipment categories that have specified items (filter out empty/unspecified)
+  const equipmentItems = equipment
+    ? EQUIPMENT_CATEGORIES
+        .filter(cat => (equipment[cat.key]?.length ?? 0) > 0)
+        .filter(cat => equipment[cat.key]!.some(item => item && item.trim() !== ''))
     : [];
 
-  // Get sorted awards (most recent 2)
-  const sortedAwards = hasAwards
+  // Get sorted awards that have a year (most recent 2)
+  const sortedAwards = awards
     ? awards
+        .filter(award => award.year && award.year.trim() !== '')
         .sort((a, b) => parseInt(b.year, 10) - parseInt(a.year, 10))
         .slice(0, 2)
     : [];
+
+  // Don't render if no brand info to show
+  if (equipmentItems.length === 0 && sortedAwards.length === 0 && !founder) return null;
 
   return (
     <>
@@ -58,30 +51,31 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
         </div>
       )}
 
-      {hasEquipment && (
+      {equipmentItems.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-primary mb-1">
+          <h3 className="text-base font-medium text-primary mb-1">
             Equipment
           </h3>
           <div>
-            {equipmentItems.map(cat => (
+            {equipmentItems.map((cat, idx) => (
               <PropertyRow
                 key={cat.key}
                 label={cat.label}
-                value={equipment[cat.key]!.join(', ')}
+                value={equipment[cat.key]!.filter(item => item && item.trim() !== '').join(', ')}
+                showDivider={idx > 0}
               />
             ))}
           </div>
         </div>
       )}
 
-      {hasEquipment && hasAwards && (
+      {equipmentItems.length > 0 && sortedAwards.length > 0 && (
         <Divider className="my-5 opacity-30" />
       )}
 
-      {hasAwards && (
+      {sortedAwards.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-primary mb-1">
+          <h3 className="text-base font-medium text-primary mb-1">
             Awards
           </h3>
           <div>
@@ -90,6 +84,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
                 key={idx}
                 label={award.year}
                 value={award.award}
+                showDivider={idx > 0}
               />
             ))}
           </div>

@@ -229,7 +229,7 @@ export function LocationDrawer({
             <div>
               <div className="flex items-center gap-1.5 mb-3">
                 <Award size={14} className="text-text-secondary" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Top Choices</h3>
+                <h3 className="text-base font-medium text-primary">Top Choices</h3>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {topRecommendationShops.map((shop, index) => {
