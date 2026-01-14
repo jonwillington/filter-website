@@ -143,9 +143,9 @@ export function useCityAreaBoundaries({
       features: outlineFeatures,
     };
 
-    // Target opacities - slightly lighter mask in overview mode
+    // Target opacities - no mask in overview mode (only show when single area expanded)
     const targetMaskOpacity = isOverviewMode
-      ? (effectiveTheme === 'dark' ? 0.25 : 0.18)
+      ? 0
       : (effectiveTheme === 'dark' ? 0.35 : 0.25);
     const targetLineOpacity = isOverviewMode ? 0.4 : 0.7;
     const lineWidth = isOverviewMode ? 1.5 : 2;
