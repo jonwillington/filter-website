@@ -9,37 +9,6 @@ import { deslugify, slugify, getMediaUrl } from '@/lib/utils';
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
 
-export async function generateStaticParams() {
-  try {
-    const shops = await getAllShops();
-
-    const areaParams = new Map<string, { country: string; city: string; area: string }>();
-
-    shops.forEach((shop) => {
-      const countryName = shop.location?.country?.name;
-      const cityName = shop.location?.name;
-      // Use "All" as fallback area if shop has no city_area
-      const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? 'All';
-
-      if (countryName && cityName && areaName) {
-        const key = `${countryName}-${cityName}-${areaName}`;
-        if (!areaParams.has(key)) {
-          areaParams.set(key, {
-            country: slugify(countryName),
-            city: slugify(cityName),
-            area: slugify(areaName),
-          });
-        }
-      }
-    });
-
-    return Array.from(areaParams.values());
-  } catch (error) {
-    console.error('Error in generateStaticParams for area:', error);
-    return [];
-  }
-}
-
 interface AreaPageProps {
   params: Promise<{ country: string; city: string; area: string }>;
 }

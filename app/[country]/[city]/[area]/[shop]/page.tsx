@@ -4,39 +4,10 @@ import { getShopBySlug, getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { slugify, getMediaUrl, getShopSlug } from '@/lib/utils';
+import { slugify, getMediaUrl } from '@/lib/utils';
 
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
-
-export async function generateStaticParams() {
-  try {
-    const shops = await getAllShops();
-
-    return shops
-      .map((shop) => {
-        const countryName = shop.location?.country?.name;
-        const cityName = shop.location?.name;
-        // Use "All" as fallback area if shop has no city_area
-        const areaName = shop.city_area?.name ?? shop.cityArea?.name ?? 'All';
-        const shopSlug = getShopSlug(shop);
-
-        if (countryName && cityName && areaName) {
-          return {
-            country: slugify(countryName),
-            city: slugify(cityName),
-            area: slugify(areaName),
-            shop: shopSlug,
-          };
-        }
-        return null;
-      })
-      .filter((params): params is { country: string; city: string; area: string; shop: string } => params !== null);
-  } catch (error) {
-    console.error('Error in generateStaticParams for shop:', error);
-    return [];
-  }
-}
 
 interface ShopPageProps {
   params: Promise<{ country: string; city: string; area: string; shop: string }>;

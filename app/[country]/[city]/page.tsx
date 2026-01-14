@@ -42,21 +42,6 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   };
 }
 
-export async function generateStaticParams() {
-  try {
-    const locations = await getAllLocations();
-    return locations
-      .filter(location => location.country?.name)
-      .map((location) => ({
-        country: slugify(location.country!.name),
-        city: slugify(location.name),
-      }));
-  } catch (error) {
-    console.error('Error in generateStaticParams for city:', error);
-    return [];
-  }
-}
-
 export default async function CityPage({ params }: CityPageProps) {
   const { country, city } = await params;
   const locations = await getAllLocations();
