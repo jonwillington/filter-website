@@ -35,8 +35,6 @@ jobs:
         env:
           NEXT_PUBLIC_STRAPI_URL: ${{ secrets.NEXT_PUBLIC_STRAPI_URL }}
           NEXT_PUBLIC_STRAPI_TOKEN: ${{ secrets.NEXT_PUBLIC_STRAPI_TOKEN }}
-          NEXT_PUBLIC_STRAPI_URL_PROD: ${{ secrets.NEXT_PUBLIC_STRAPI_URL_PROD }}
-          NEXT_PUBLIC_STRAPI_TOKEN_PROD: ${{ secrets.NEXT_PUBLIC_STRAPI_TOKEN_PROD }}
           NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
 
       - name: Deploy to Cloudflare Pages

@@ -1,23 +1,12 @@
 /**
- * Get Strapi config based on environment
- * Development: local Strapi (http://localhost:1337)
- * Production: cloud Strapi (helpful-oasis)
+ * Get Strapi config from environment variables
+ * Uses NEXT_PUBLIC_STRAPI_URL and NEXT_PUBLIC_STRAPI_TOKEN for all environments
  */
 function getStrapiConfig() {
-  const isProd = process.env.NEXT_PUBLIC_ENV === 'production' ||
-                 process.env.NODE_ENV === 'production';
-
-  if (isProd) {
-    return {
-      url: process.env.NEXT_PUBLIC_STRAPI_URL_PROD || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api',
-      token: process.env.NEXT_PUBLIC_STRAPI_TOKEN_PROD,
-    };
-  } else {
-    return {
-      url: process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337/api',
-      token: process.env.NEXT_PUBLIC_STRAPI_TOKEN,
-    };
-  }
+  return {
+    url: process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337/api',
+    token: process.env.NEXT_PUBLIC_STRAPI_TOKEN,
+  };
 }
 
 const { url: API_BASE_URL, token: API_TOKEN } = getStrapiConfig();
