@@ -1,9 +1,9 @@
 name: Deploy to Cloudflare Pages
 
+# Disabled - using Cloudflare Pages direct build instead
+# GitHub Actions runners have insufficient disk space for static export
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   deploy:

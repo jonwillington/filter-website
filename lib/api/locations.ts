@@ -43,8 +43,9 @@ async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
     let pageCount = 1;
 
     while (page <= pageCount) {
+      // Don't use explicit fields - JSON fields like boundary_coordinates can't be fetched that way in Strapi v5
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations?fields[0]=id&fields[1]=documentId&fields[2]=name&fields[3]=slug&fields[4]=rating_stars&fields[5]=rating&fields[6]=primaryColor&fields[7]=secondaryColor&fields[8]=story&fields[9]=headline&fields[10]=coordinates&populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -188,7 +189,22 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
       }
 
       const json = await response.json();
-      cityAreas.push(...(json.data || []));
+      const pageData = json.data || [];
+
+      // Debug: Log first city area's location data to see what fields are returned
+      if (page === 1 && pageData.length > 0) {
+        const firstWithLocation = pageData.find((ca: CityArea) => ca.location);
+        if (firstWithLocation?.location) {
+          console.log('[getAllCityAreas] Sample location data from API:', {
+            name: firstWithLocation.location.name,
+            keys: Object.keys(firstWithLocation.location),
+            hasBoundaryCoords: !!firstWithLocation.location.boundary_coordinates,
+            hasCoords: !!firstWithLocation.location.coordinates,
+          });
+        }
+      }
+
+      cityAreas.push(...pageData);
 
       pageCount = json.meta?.pagination?.pageCount || 1;
       page++;

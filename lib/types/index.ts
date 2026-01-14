@@ -56,6 +56,7 @@ export interface Location {
   city_areas?: CityArea[];
   country?: Country;
   coordinates?: Array<{ lat: number; lng: number }> | { lat: number; lng: number };
+  boundary_coordinates?: Array<{ lat: number; lng: number }> | null;
 }
 
 export interface CityArea {
@@ -72,6 +73,9 @@ export interface CityArea {
     id?: number;
     documentId?: string;
     name?: string;
+    slug?: string;
+    coordinates?: Array<{ lat: number; lng: number }> | { lat: number; lng: number };
+    boundary_coordinates?: Array<{ lat: number; lng: number }> | null;
     country?: {
       primaryColor?: string;
       secondaryColor?: string;

@@ -200,9 +200,35 @@ export function useCityAreaBoundaries({
     let maskHoleCoords: number[][] | null = null;
 
     if (isOverviewMode) {
-      // In overview mode, don't show mask - just show city area outlines
-      // Location boundaries are typically simple boxes, not detailed polygons
-      maskHoleCoords = null;
+      // Try to get location boundary from the first city area's location
+      const location = displayAreas[0]?.location;
+
+      // Check both boundary_coordinates (new) and coordinates (old) fields
+      const locationBoundary = location?.boundary_coordinates || location?.coordinates;
+
+      console.log('[CityAreaBoundaries] Location data for overview mode:', {
+        locationName: location?.name,
+        locationDocumentId: location?.documentId,
+        allKeys: location ? Object.keys(location) : [],
+        hasBoundaryCoords: !!location?.boundary_coordinates,
+        boundaryCoordsSample: location?.boundary_coordinates?.slice(0, 2),
+        boundaryLength: location?.boundary_coordinates?.length,
+        hasCoords: !!location?.coordinates,
+        coordsLength: Array.isArray(location?.coordinates) ? location.coordinates.length : 'not array',
+        coordsSample: Array.isArray(location?.coordinates) ? location.coordinates.slice(0, 2) : location?.coordinates,
+      });
+
+      // Check if we have boundary data (array with at least 3 points)
+      if (Array.isArray(locationBoundary) && locationBoundary.length >= 3 && 'lat' in locationBoundary[0]) {
+        maskHoleCoords = locationBoundary.map((coord: { lat: number; lng: number }) => [coord.lng, coord.lat]);
+        // Close polygon if needed
+        if (
+          maskHoleCoords[0][0] !== maskHoleCoords[maskHoleCoords.length - 1][0] ||
+          maskHoleCoords[0][1] !== maskHoleCoords[maskHoleCoords.length - 1][1]
+        ) {
+          maskHoleCoords.push(maskHoleCoords[0]);
+        }
+      }
     } else {
       maskHoleCoords = allAreaCoordinates[0];
     }
