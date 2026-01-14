@@ -7,9 +7,10 @@
     "dev:turbo": "next dev --turbo",
     "prefetch": "node scripts/prefetch-data.js",
     "prefetch:prod": "USE_PROD=1 node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
-    "build": "npm run prefetch && next build",
+    "build": "next build",
+    "build:cloudflare": "next build && npx @opennextjs/cloudflare",
     "build:no-prefetch": "next build",
-    "build:dev": "SKIP_STATIC_EXPORT=1 next build",
+    "preview": "wrangler pages dev",
     "start": "next start",
     "lint": "next lint",
     "trigger-rebuild": "./scripts/trigger-rebuild.sh"
@@ -31,6 +32,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.14.8",
     "@types/mapbox-gl": "^3.4.1",
     "@types/node": "^20.17.10",
     "@types/react": "^18.3.17",

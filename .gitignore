@@ -12,6 +12,7 @@
 # next.js
 /.next/
 /out/
+/.open-next/
 
 # pre-fetched data (generated at build time)
 /.data/
