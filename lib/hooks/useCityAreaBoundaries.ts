@@ -38,6 +38,79 @@ function calculateBounds(coordinates: Array<{ lat: number; lng: number }>): mapb
 }
 
 /**
+ * Calculate convex hull of points using Graham scan algorithm
+ * Returns points in counter-clockwise order (suitable for GeoJSON exterior ring)
+ */
+function calculateConvexHull(points: Array<[number, number]>): Array<[number, number]> {
+  if (points.length < 3) return points;
+
+  // Find the bottom-most point (or left-most in case of tie)
+  let start = 0;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i][1] < points[start][1] ||
+        (points[i][1] === points[start][1] && points[i][0] < points[start][0])) {
+      start = i;
+    }
+  }
+
+  // Swap start point to index 0
+  [points[0], points[start]] = [points[start], points[0]];
+  const pivot = points[0];
+
+  // Sort points by polar angle with respect to pivot
+  const sorted = points.slice(1).sort((a, b) => {
+    const angleA = Math.atan2(a[1] - pivot[1], a[0] - pivot[0]);
+    const angleB = Math.atan2(b[1] - pivot[1], b[0] - pivot[0]);
+    if (angleA !== angleB) return angleA - angleB;
+    // If same angle, sort by distance
+    const distA = (a[0] - pivot[0]) ** 2 + (a[1] - pivot[1]) ** 2;
+    const distB = (b[0] - pivot[0]) ** 2 + (b[1] - pivot[1]) ** 2;
+    return distA - distB;
+  });
+
+  // Cross product to determine turn direction
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+
+  // Build hull
+  const hull: Array<[number, number]> = [pivot];
+  for (const point of sorted) {
+    while (hull.length > 1 && cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0) {
+      hull.pop();
+    }
+    hull.push(point);
+  }
+
+  // Close the polygon
+  hull.push(hull[0]);
+  return hull;
+}
+
+/**
+ * Expand a polygon outward from its centroid by a scale factor
+ */
+function expandPolygon(points: Array<[number, number]>, scaleFactor: number): Array<[number, number]> {
+  if (points.length < 3) return points;
+
+  // Calculate centroid (excluding the closing point which duplicates the first)
+  const uniquePoints = points.slice(0, -1);
+  const centroid: [number, number] = [
+    uniquePoints.reduce((sum, p) => sum + p[0], 0) / uniquePoints.length,
+    uniquePoints.reduce((sum, p) => sum + p[1], 0) / uniquePoints.length,
+  ];
+
+  // Scale each point outward from centroid
+  const expanded = uniquePoints.map((point): [number, number] => [
+    centroid[0] + (point[0] - centroid[0]) * scaleFactor,
+    centroid[1] + (point[1] - centroid[1]) * scaleFactor,
+  ]);
+
+  // Close the polygon
+  expanded.push(expanded[0]);
+  return expanded;
+}
+
+/**
  * Hook to manage city area boundary visualization on the map.
  * Darkens the map everywhere EXCEPT the expanded city area to highlight it.
  */
@@ -123,7 +196,26 @@ export function useCityAreaBoundaries({
       [-180, -90],
     ];
 
-    // Create mask with holes for all city areas (darkens everything outside)
+    // Create mask with hole for the area(s)
+    // In overview mode: use convex hull of all points for organic shape
+    // In expanded mode: use the exact polygon shape
+    let maskHole: number[][];
+
+    if (isOverviewMode) {
+      // Collect all boundary points from all areas
+      const allPoints: Array<[number, number]> = [];
+      displayAreas.forEach((area) => {
+        area.boundary_coordinates!.forEach((coord) => {
+          allPoints.push([coord.lng, coord.lat]);
+        });
+      });
+      // Calculate convex hull and expand it to cover more of the city
+      const hull = calculateConvexHull(allPoints);
+      maskHole = expandPolygon(hull, 1.4); // 40% larger to cover surrounding areas
+    } else {
+      maskHole = allAreaCoordinates[0];
+    }
+
     const maskGeojson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: [
@@ -132,7 +224,7 @@ export function useCityAreaBoundaries({
           properties: {},
           geometry: {
             type: 'Polygon',
-            coordinates: [worldBounds, ...allAreaCoordinates],
+            coordinates: [worldBounds, maskHole],
           },
         },
       ],
@@ -143,9 +235,9 @@ export function useCityAreaBoundaries({
       features: outlineFeatures,
     };
 
-    // Target opacities - no mask in overview mode (only show when single area expanded)
+    // Target opacities - lighter mask in overview, stronger when single area expanded
     const targetMaskOpacity = isOverviewMode
-      ? 0
+      ? (effectiveTheme === 'dark' ? 0.25 : 0.18)
       : (effectiveTheme === 'dark' ? 0.35 : 0.25);
     const targetLineOpacity = isOverviewMode ? 0.4 : 0.7;
     const lineWidth = isOverviewMode ? 1.5 : 2;

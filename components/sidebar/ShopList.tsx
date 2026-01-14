@@ -161,7 +161,38 @@ export function ShopList({
     );
   }
 
-  // Multiple areas: show grouped sections
+  // If less than 6 areas, show simple alphabetical list without group headers
+  const useSimpleList = areasWithGroups.length < 6;
+
+  if (useSimpleList) {
+    // Sort areas alphabetically
+    const sortedAreas = [...areasWithGroups].sort((a, b) => a.name.localeCompare(b.name));
+
+    return (
+      <div
+        className="transition-opacity duration-300"
+        style={{ opacity: isLoading ? 0.4 : 1 }}
+      >
+        {sortedAreas.map((area) => (
+          <AreaSection
+            key={area.name}
+            areaName={area.name}
+            areaDocumentId={area.documentId}
+            shops={area.shops}
+            selectedShop={selectedShop}
+            onShopSelect={onShopSelect}
+            isLoading={isLoading}
+            isFiltered={isFiltered}
+            animationKey={animationKey}
+            isCurrentlyExpanded={expandedAreaId === area.documentId}
+            onAreaExpand={handleAreaExpand}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Multiple areas (6+): show grouped sections
   return (
     <div
       className="transition-opacity duration-300"
