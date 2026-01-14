@@ -164,9 +164,9 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
     let pageCount = 1;
 
     while (page <= pageCount) {
-      // Populate location with coordinates and country
-      // Note: boundary_coordinates is a JSON field, so it's returned automatically
+      // Populate location with all fields including coordinates (boundary) and nested relations
       const populateParams = [
+        'populate[location]=*',
         'populate[location][populate][country]=*',
         'populate[location][populate][background_image]=*',
       ].join('&');

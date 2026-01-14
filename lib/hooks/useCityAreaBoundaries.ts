@@ -196,38 +196,31 @@ export function useCityAreaBoundaries({
       [-180, -90],
     ];
 
-    // Create mask with hole for the area(s)
-    // In overview mode: use convex hull of all points for organic shape
-    // In expanded mode: use the exact polygon shape
-    let maskHole: number[][];
+    // Create mask hole - use location boundary in overview, city area boundary when expanded
+    let maskHoleCoords: number[][] | null = null;
 
     if (isOverviewMode) {
-      // Collect all boundary points from all areas
-      const allPoints: Array<[number, number]> = [];
-      displayAreas.forEach((area) => {
-        area.boundary_coordinates!.forEach((coord) => {
-          allPoints.push([coord.lng, coord.lat]);
-        });
-      });
-      // Calculate convex hull and expand it to cover more of the city
-      const hull = calculateConvexHull(allPoints);
-      maskHole = expandPolygon(hull, 1.4); // 40% larger to cover surrounding areas
+      // In overview mode, don't show mask - just show city area outlines
+      // Location boundaries are typically simple boxes, not detailed polygons
+      maskHoleCoords = null;
     } else {
-      maskHole = allAreaCoordinates[0];
+      maskHoleCoords = allAreaCoordinates[0];
     }
 
     const maskGeojson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Polygon',
-            coordinates: [worldBounds, maskHole],
-          },
-        },
-      ],
+      features: maskHoleCoords
+        ? [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'Polygon',
+                coordinates: [worldBounds, maskHoleCoords],
+              },
+            },
+          ]
+        : [],
     };
 
     const outlineGeojson: GeoJSON.FeatureCollection = {
@@ -235,10 +228,13 @@ export function useCityAreaBoundaries({
       features: outlineFeatures,
     };
 
-    // Target opacities - lighter mask in overview, stronger when single area expanded
-    const targetMaskOpacity = isOverviewMode
-      ? (effectiveTheme === 'dark' ? 0.25 : 0.18)
-      : (effectiveTheme === 'dark' ? 0.35 : 0.25);
+    // Target opacities - show mask if we have coordinates (location or city area)
+    const hasMask = maskHoleCoords !== null;
+    const targetMaskOpacity = hasMask
+      ? (isOverviewMode
+          ? (effectiveTheme === 'dark' ? 0.25 : 0.18) // Lighter for location overview
+          : (effectiveTheme === 'dark' ? 0.35 : 0.25)) // Stronger for single city area
+      : 0;
     const targetLineOpacity = isOverviewMode ? 0.4 : 0.7;
     const lineWidth = isOverviewMode ? 1.5 : 2;
 
