@@ -109,9 +109,15 @@ export function useMapInstance({
 
   // Initialize map (only once)
   useEffect(() => {
+    console.log('[useMapInstance] Init effect running', {
+      hasContainer: !!containerRef.current,
+      alreadyInitialized: initializedRef.current,
+    });
+
     if (!containerRef.current || initializedRef.current) return;
     initializedRef.current = true;
 
+    console.log('[useMapInstance] Creating new map...');
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
     currentThemeRef.current = effectiveTheme;
 
@@ -152,8 +158,16 @@ export function useMapInstance({
     });
 
     // When style loads, apply country overlay and mark ready
+    let styleLoadCalled = false;
     const onStyleLoad = () => {
+      if (styleLoadCalled) {
+        console.log('[useMapInstance] onStyleLoad already called, skipping');
+        return;
+      }
+      styleLoadCalled = true;
+      console.log('[useMapInstance] onStyleLoad called!');
       const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes());
+      console.log('[useMapInstance] Country overlay applied:', success);
       setMapReady(true);
       if (success) {
         setCountryLayerReady(true);
@@ -161,12 +175,24 @@ export function useMapInstance({
     };
 
     newMap.on('style.load', onStyleLoad);
+    console.log('[useMapInstance] style.load listener attached');
 
     // Handle race condition: style might already be loaded (from cache)
     // before listener was attached. Check and call manually if so.
-    if (newMap.isStyleLoaded()) {
+    const alreadyLoaded = newMap.isStyleLoaded();
+    console.log('[useMapInstance] Style already loaded?', alreadyLoaded);
+    if (alreadyLoaded) {
       onStyleLoad();
     }
+
+    // Also listen for the general 'load' event as a fallback
+    newMap.on('load', () => {
+      console.log('[useMapInstance] Map load event fired');
+      if (!styleLoadCalled) {
+        console.log('[useMapInstance] Triggering onStyleLoad from load event');
+        onStyleLoad();
+      }
+    });
 
     setMap(newMap);
 
