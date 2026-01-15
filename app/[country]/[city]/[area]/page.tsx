@@ -2,6 +2,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug, getCityAreaBySlug, getAllCityAreas } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
+import { getAllEvents } from '@/lib/api/events';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { deslugify, slugify, getMediaUrl } from '@/lib/utils';
@@ -73,9 +74,12 @@ export default async function AreaPage({ params }: AreaPageProps) {
     notFound();
   }
 
-  const allShops = await getAllShops();
-  const countries = await getAllCountries();
-  const cityAreas = await getAllCityAreas();
+  const [allShops, countries, cityAreas, events] = await Promise.all([
+    getAllShops(),
+    getAllCountries(),
+    getAllCityAreas(),
+    getAllEvents(),
+  ]);
 
   return (
     <MainLayout
@@ -84,6 +88,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
       shops={allShops}
       countries={countries}
       cityAreas={cityAreas}
+      events={events}
     />
   );
 }
