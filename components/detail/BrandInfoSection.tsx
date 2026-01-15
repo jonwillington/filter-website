@@ -33,8 +33,8 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
   // Get sorted awards that have a year (most recent 2)
   const sortedAwards = awards
     ? awards
-        .filter(award => award.year && award.year.trim() !== '')
-        .sort((a, b) => parseInt(b.year, 10) - parseInt(a.year, 10))
+        .filter(award => award.year && String(award.year).trim() !== '')
+        .sort((a, b) => Number(b.year) - Number(a.year))
         .slice(0, 2)
     : [];
 
