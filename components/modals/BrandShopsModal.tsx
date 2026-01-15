@@ -3,7 +3,7 @@
 import { ModalBody, ScrollShadow } from '@heroui/react';
 import { Shop } from '@/lib/types';
 import { ResponsiveModal } from '@/components/ui';
-import { ShopMiniCard } from '@/components/detail/ShopMiniCard';
+import { ShopMiniCard } from '@/components/detail';
 
 interface BrandShopsModalProps {
   isOpen: boolean;

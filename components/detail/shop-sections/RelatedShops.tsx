@@ -1,5 +1,5 @@
 import { Shop } from '@/lib/types';
-import { ShopMiniCard } from './ShopMiniCard';
+import { ShopMiniCard } from '../shared';
 
 interface RelatedShopsProps {
   title: string;

@@ -2,19 +2,20 @@
 
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { Shop } from '@/lib/types';
-import { ShopHeader } from './ShopHeader';
-import { ActionBar } from './ActionBar';
-import { ShopInfo } from './ShopInfo';
-import { AboutSection } from './AboutSection';
-import { AmenityList } from './AmenityList';
-import { BrewMethods } from './BrewMethods';
-import { BeansSection } from './BeansSection';
-import { BrandInfoSection } from './BrandInfoSection';
-import { BranchAboutSection } from './BranchAboutSection';
-import { ShopProperties } from './ShopProperties';
-import { UserPhotosSection } from './UserPhotosSection';
-import { BrandShopCard } from './BrandShopCard';
-import { ShopReviewsSection } from './ShopReviewsSection';
+import {
+  ShopHeader,
+  ShopInfo,
+  AboutSection,
+  AmenityList,
+  BrewMethods,
+  BeansSection,
+  BrandInfoSection,
+  BranchAboutSection,
+  ShopProperties,
+  UserPhotosSection,
+  ShopReviewsSection,
+} from '../shop-sections';
+import { ActionBar, BrandShopCard } from '../shared';
 import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
 import { UserPhotoModal } from '@/components/modals/UserPhotoModal';
 import { Divider } from '@heroui/react';

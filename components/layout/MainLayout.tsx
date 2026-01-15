@@ -10,9 +10,7 @@ const MapContainer = dynamic(
   () => import('../map/MapContainer').then(mod => ({ default: mod.MapContainer })),
   { ssr: false, loading: () => <div className="flex-1 bg-surface animate-pulse" /> }
 );
-import { ShopDrawer } from '../detail/ShopDrawer';
-import { LocationDrawer } from '../detail/LocationDrawer';
-import { UnifiedDrawer } from '../detail/UnifiedDrawer';
+import { ShopDrawer, LocationDrawer, UnifiedDrawer } from '../detail';
 import { Footer } from './Footer';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
