@@ -3,6 +3,85 @@ import { getShopSlug as generateShopSlug } from '../utils';
 import { getCached, setCache, getPrefetched } from './cache';
 import { getAllBrands, Brand } from './brands';
 
+/**
+ * Calculate distance between two coordinates using Haversine formula.
+ * @returns Distance in kilometers
+ */
+function calculateDistance(point1: [number, number], point2: [number, number]): number {
+  const [lng1, lat1] = point1;
+  const [lng2, lat2] = point2;
+
+  const toRad = (deg: number) => deg * Math.PI / 180;
+  const R = 6371; // Earth's radius in km
+
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Get coordinates from a shop for density calculation.
+ */
+function getShopCoordsForDensity(shop: Shop): [number, number] | null {
+  if (shop.coordinates?.lng && shop.coordinates?.lat) {
+    return [shop.coordinates.lng, shop.coordinates.lat];
+  }
+  if (shop.longitude && shop.latitude) {
+    return [shop.longitude, shop.latitude];
+  }
+  return null;
+}
+
+/**
+ * Pre-calculate local density for all shops.
+ * This is O(n²) but runs once on the server, not on every client render.
+ */
+function calculateAllDensities(shops: Shop[], radiusKm: number = 1.5): Map<string, number> {
+  const densities = new Map<string, number>();
+
+  // Build coordinate lookup for efficiency
+  const coordsMap = new Map<string, [number, number]>();
+  for (const shop of shops) {
+    const coords = getShopCoordsForDensity(shop);
+    if (coords) {
+      coordsMap.set(shop.documentId, coords);
+    }
+  }
+
+  // Calculate density for each shop
+  for (const shop of shops) {
+    const coords = coordsMap.get(shop.documentId);
+    if (!coords) {
+      densities.set(shop.documentId, 0);
+      continue;
+    }
+
+    let nearbyCount = 0;
+    // Iterate through all shops to find nearby ones
+    for (const otherShop of shops) {
+      if (otherShop.documentId === shop.documentId) continue;
+
+      const otherCoords = coordsMap.get(otherShop.documentId);
+      if (!otherCoords) continue;
+
+      const distance = calculateDistance(coords, otherCoords);
+      if (distance <= radiusKm) {
+        nearbyCount++;
+      }
+    }
+
+    densities.set(shop.documentId, nearbyCount);
+  }
+
+  return densities;
+}
+
 // Populate params to get all related data including nested city_area.location
 const SHOP_POPULATE = [
   // Explicitly populate all brand fields (Strapi v5 doesn't fully support populate=* for nested relations)
@@ -310,6 +389,12 @@ export async function getAllShops(): Promise<Shop[]> {
       }
     }
 
+    // Pre-calculate local density for all shops (avoids O(n²) on client)
+    const densities = calculateAllDensities(prefetched);
+    for (const shop of prefetched) {
+      shop.localDensity = densities.get(shop.documentId) ?? 0;
+    }
+
     setCache(cacheKey, prefetched);
     return prefetched;
   }
@@ -393,6 +478,12 @@ export async function getAllShops(): Promise<Shop[]> {
           cityArea.group = cityAreaData.group;
         }
       }
+    }
+
+    // Pre-calculate local density for all shops (avoids O(n²) on client)
+    const densities = calculateAllDensities(allShops);
+    for (const shop of allShops) {
+      shop.localDensity = densities.get(shop.documentId) ?? 0;
     }
 
     setCache(cacheKey, allShops);

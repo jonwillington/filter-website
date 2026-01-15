@@ -254,6 +254,9 @@ export interface Shop {
   // Shop details
   architects?: string | null;
   price?: string | null;
+
+  // Pre-calculated for performance (set server-side)
+  localDensity?: number;
 }
 
 export interface NearbyShop {

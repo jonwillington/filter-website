@@ -12,6 +12,15 @@ import { createMarkerElement, updateMarkerStyle } from '../utils/mapMarkers';
 const CLUSTER_RADIUS = 50; // Optimal radius for urban density (40-60 recommended)
 const CLUSTER_MAX_ZOOM = 14; // Continue clustering until street level (14-16 recommended)
 
+// Debounce helper for performance
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: unknown[]) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), ms);
+  }) as T;
+}
+
 export interface UseMapClusteringOptions {
   map: mapboxgl.Map | null;
   mapReady: boolean;
@@ -339,8 +348,8 @@ export function useMapClustering({
         m.getCanvas().style.cursor = '';
       });
 
-      // Update marker visibility based on zoom
-      const updateMarkerVisibility = () => {
+      // Update marker visibility based on zoom (debounced for performance)
+      const updateMarkerVisibilityImmediate = () => {
         const currentMapZoom = m.getZoom();
         const showMarkers = currentMapZoom >= CLUSTER_MAX_ZOOM;
 
@@ -357,6 +366,9 @@ export function useMapClustering({
           }
         });
       };
+
+      // Debounced version for events that fire rapidly
+      const updateMarkerVisibility = debounce(updateMarkerVisibilityImmediate, 50);
 
       // Create all markers upfront
       const createAllMarkers = () => {

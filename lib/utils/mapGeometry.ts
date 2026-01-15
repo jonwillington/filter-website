@@ -36,17 +36,26 @@ export function getShopCoords(shop: Shop): [number, number] | null {
 }
 
 /**
- * Calculate local density for a shop (how many shops are nearby).
- * @param shop - The shop to calculate density for
- * @param allShops - All shops to check against
+ * Get local density for a shop.
+ * Uses pre-calculated value if available (from server), otherwise calculates on demand.
+ * @param shop - The shop to get density for
+ * @param allShops - All shops (only used if pre-calculated value not available)
  * @param radiusKm - Radius in kilometers (default: 1.5km)
  * @returns Number of nearby shops
  */
 export function calculateLocalDensity(
   shop: Shop,
-  allShops: Shop[],
+  allShops?: Shop[],
   radiusKm: number = 1.5
 ): number {
+  // Use pre-calculated density if available (much faster)
+  if (typeof shop.localDensity === 'number') {
+    return shop.localDensity;
+  }
+
+  // Fallback to on-demand calculation (O(n) per shop)
+  if (!allShops) return 0;
+
   const coords = getShopCoords(shop);
   if (!coords) return 0;
 
