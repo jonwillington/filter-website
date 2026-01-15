@@ -161,6 +161,13 @@ export function useMapInstance({
     };
 
     newMap.on('style.load', onStyleLoad);
+
+    // Handle race condition: style might already be loaded (from cache)
+    // before listener was attached. Check and call manually if so.
+    if (newMap.isStyleLoaded()) {
+      onStyleLoad();
+    }
+
     setMap(newMap);
 
     return () => {
