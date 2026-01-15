@@ -29,7 +29,7 @@ export function LocationDrawer({
   useWrapper = true,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [isEventsExpanded, setIsEventsExpanded] = useState(false);
+  const [openAccordion, setOpenAccordion] = useState<'events' | 'topShops' | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
@@ -64,10 +64,10 @@ export function LocationDrawer({
   // Use extracted hook for sticky header opacity
   const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
 
-  // Reset opacity and collapse events accordion when location changes
+  // Reset opacity and collapse accordions when location changes
   useEffect(() => {
     resetOpacity();
-    setIsEventsExpanded(false);
+    setOpenAccordion(null);
   }, [location.documentId, resetOpacity]);
 
   // Use location directly - no internal state needed
@@ -204,9 +204,6 @@ export function LocationDrawer({
                 {currentLocation.country.name}
               </span>
             )}
-            <p className="text-white text-xs leading-snug mt-3">
-              {displayStory}
-            </p>
           </div>
         </div>
 
@@ -236,55 +233,42 @@ export function LocationDrawer({
             </div>
           </div>
 
+          {/* Description */}
+          <p className="text-sm text-text-secondary leading-relaxed">
+            {displayStory}
+          </p>
+
           {/* Upcoming Events */}
           {locationEvents.length > 0 && (
             <div>
-              {locationEvents.length === 1 ? (
-                // Single event - show directly
-                <>
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <Calendar size={14} className="text-text-secondary" />
-                    <h3 className="text-base font-medium text-primary">Upcoming Event</h3>
-                  </div>
-                  <EventCard
-                    event={locationEvents[0]}
-                    onClick={() => setSelectedEvent(locationEvents[0])}
-                    primaryColor={primaryColor}
-                  />
-                </>
-              ) : (
-                // Multiple events - use accordion
-                <>
-                  <button
-                    onClick={() => setIsEventsExpanded(!isEventsExpanded)}
-                    className="w-full flex items-center justify-between py-2 group"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Calendar size={14} className="text-text-secondary" />
-                      <h3 className="text-base font-medium text-primary">
-                        {locationEvents.length} Events
-                      </h3>
-                    </div>
-                    <ChevronDown
-                      size={18}
-                      className={`text-text-secondary transition-transform duration-200 ${
-                        isEventsExpanded ? 'rotate-180' : ''
-                      }`}
+              <button
+                onClick={() => setOpenAccordion(openAccordion === 'events' ? null : 'events')}
+                className="w-full flex items-center justify-between py-2 group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={14} className="text-text-secondary" />
+                  <h3 className="text-base font-medium text-primary">
+                    {locationEvents.length} {locationEvents.length === 1 ? 'Event' : 'Events'}
+                  </h3>
+                </div>
+                <ChevronDown
+                  size={18}
+                  className={`text-text-secondary transition-transform duration-200 ${
+                    openAccordion === 'events' ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {openAccordion === 'events' && (
+                <div className="space-y-1 pt-2">
+                  {locationEvents.map((event) => (
+                    <EventCard
+                      key={event.documentId}
+                      event={event}
+                      onClick={() => setSelectedEvent(event)}
+                      primaryColor={primaryColor}
                     />
-                  </button>
-                  {isEventsExpanded && (
-                    <div className="space-y-1 pt-2">
-                      {locationEvents.map((event) => (
-                        <EventCard
-                          key={event.documentId}
-                          event={event}
-                          onClick={() => setSelectedEvent(event)}
-                          primaryColor={primaryColor}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -304,61 +288,76 @@ export function LocationDrawer({
           {/* Top Choices */}
           {topRecommendationShops.length > 0 && (
             <div>
-              <div className="flex items-center gap-1.5 mb-3">
-                <Award size={14} className="text-text-secondary" />
-                <h3 className="text-base font-medium text-primary">Top Choices</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {topRecommendationShops.map((shop, index) => {
-                  const imageUrl = getMediaUrl(shop.featured_image);
-                  const logoUrl = getMediaUrl(shop.brand?.logo);
+              <button
+                onClick={() => setOpenAccordion(openAccordion === 'topShops' ? null : 'topShops')}
+                className="w-full flex items-center justify-between py-2 group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Award size={14} className="text-text-secondary" />
+                  <h3 className="text-base font-medium text-primary">
+                    {topRecommendationShops.length} Top {topRecommendationShops.length === 1 ? 'Choice' : 'Choices'}
+                  </h3>
+                </div>
+                <ChevronDown
+                  size={18}
+                  className={`text-text-secondary transition-transform duration-200 ${
+                    openAccordion === 'topShops' ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {openAccordion === 'topShops' && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  {topRecommendationShops.map((shop) => {
+                    const imageUrl = getMediaUrl(shop.featured_image);
+                    const logoUrl = getMediaUrl(shop.brand?.logo);
 
-                  return (
-                    <button
-                      key={shop.documentId}
-                      onClick={() => onShopSelect(shop)}
-                      className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-md text-left flex flex-col h-full"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      {/* Image section - grows to fill available space */}
-                      <div className="relative flex-1 min-h-[100px] overflow-hidden">
-                        {imageUrl ? (
-                          <Image
-                            src={imageUrl}
-                            alt={shop.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div
-                            className="absolute inset-0"
-                            style={{ backgroundColor: primaryColor, opacity: 0.3 }}
-                          />
-                        )}
-                        {/* Brand logo overlay */}
-                        {logoUrl && (
-                          <div className="absolute bottom-2 left-2 w-8 h-8 rounded-lg overflow-hidden bg-white shadow-md">
+                    return (
+                      <button
+                        key={shop.documentId}
+                        onClick={() => onShopSelect(shop)}
+                        className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-md text-left flex flex-col h-full"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {/* Image section - grows to fill available space */}
+                        <div className="relative flex-1 min-h-[100px] overflow-hidden">
+                          {imageUrl ? (
                             <Image
-                              src={logoUrl}
-                              alt={shop.brand?.name || shop.name}
-                              width={32}
-                              height={32}
-                              className="object-cover"
+                              src={imageUrl}
+                              alt={shop.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
-                          </div>
-                        )}
-                      </div>
+                          ) : (
+                            <div
+                              className="absolute inset-0"
+                              style={{ backgroundColor: primaryColor, opacity: 0.3 }}
+                            />
+                          )}
+                          {/* Brand logo overlay */}
+                          {logoUrl && (
+                            <div className="absolute bottom-2 left-2 w-8 h-8 rounded-lg overflow-hidden bg-white shadow-md">
+                              <Image
+                                src={logoUrl}
+                                alt={shop.brand?.name || shop.name}
+                                width={32}
+                                height={32}
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Text section with white/tinted background */}
-                      <div className="relative p-3 bg-white/95 dark:bg-black/70">
-                        <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
-                          {shop.name}
-                        </h4>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                        {/* Text section with white/tinted background */}
+                        <div className="relative p-3 bg-white/95 dark:bg-black/70">
+                          <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
+                            {shop.name}
+                          </h4>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

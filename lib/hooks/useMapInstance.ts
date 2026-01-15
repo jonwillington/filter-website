@@ -32,12 +32,18 @@ export interface UseMapInstanceReturn {
 
 /**
  * Apply country highlighting overlay - dims unsupported countries
+ * Returns true if successfully applied, false if style not ready
  */
 function applyCountryOverlay(
   map: mapboxgl.Map,
   theme: 'light' | 'dark',
   supportedCountryCodes: string[]
-): void {
+): boolean {
+  // Safety check: ensure style is fully loaded before modifying sources/layers
+  if (!map.isStyleLoaded()) {
+    return false;
+  }
+
   // Remove existing overlay layers if they exist
   if (map.getLayer('unsupported-country-overlay')) {
     map.removeLayer('unsupported-country-overlay');
@@ -65,6 +71,8 @@ function applyCountryOverlay(
       'fill-color': OVERLAY_COLORS[theme],
     },
   });
+
+  return true;
 }
 
 /**
@@ -145,9 +153,11 @@ export function useMapInstance({
 
     // When style loads, apply country overlay and mark ready
     const onStyleLoad = () => {
-      applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes());
+      const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes());
       setMapReady(true);
-      setCountryLayerReady(true);
+      if (success) {
+        setCountryLayerReady(true);
+      }
     };
 
     newMap.on('style.load', onStyleLoad);
@@ -185,9 +195,11 @@ export function useMapInstance({
     // Use 'once' to handle this specific style load
     map.once('style.load', () => {
       console.log('Style loaded! Theme:', effectiveTheme);
-      applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes());
+      const success = applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes());
       setMapReady(true);
-      setCountryLayerReady(true);
+      if (success) {
+        setCountryLayerReady(true);
+      }
     });
 
     // Change base style
