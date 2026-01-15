@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl';
+import mapboxgl, { MapSourceDataEvent, MapLayerMouseEvent } from 'mapbox-gl';
 import { Shop } from '../types';
 import {
   getShopCoords,
@@ -7,20 +7,10 @@ import {
   getZoomBracket,
 } from '../utils/mapGeometry';
 import { createMarkerElement, updateMarkerStyle } from '../utils/mapMarkers';
-import {
-  CLUSTER_RADIUS,
-  CLUSTER_MAX_ZOOM,
-  buildShopsGeoJSON,
-} from '../utils/mapClusterConfig';
 
-// Debounce helper for performance
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  return ((...args: unknown[]) => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), ms);
-  }) as T;
-}
+// Industry standard clustering parameters (Mapbox/Supercluster best practices)
+const CLUSTER_RADIUS = 50; // Optimal radius for urban density (40-60 recommended)
+const CLUSTER_MAX_ZOOM = 14; // Continue clustering until street level (14-16 recommended)
 
 export interface UseMapClusteringOptions {
   map: mapboxgl.Map | null;
@@ -109,7 +99,33 @@ export function useMapClustering({
       markers.current.clear();
 
       // Create GeoJSON from displayed shops with country color
-      const geojson = buildShopsGeoJSON(shops);
+      const features: GeoJSON.Feature[] = [];
+      shops.forEach((shop) => {
+        const coords = getShopCoords(shop);
+        if (!coords) return;
+
+        const countryColor =
+          shop.location?.country?.primaryColor ||
+          shop.city_area?.location?.country?.primaryColor ||
+          '#8B6F47';
+
+        features.push({
+          type: 'Feature',
+          properties: {
+            id: shop.documentId,
+            countryColor: countryColor,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: coords,
+          },
+        });
+      });
+
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features,
+      };
 
       // Add clustered source with industry-standard configuration
       m.addSource('shops', {
@@ -323,8 +339,8 @@ export function useMapClustering({
         m.getCanvas().style.cursor = '';
       });
 
-      // Update marker visibility based on zoom (debounced for performance)
-      const updateMarkerVisibilityImmediate = () => {
+      // Update marker visibility based on zoom
+      const updateMarkerVisibility = () => {
         const currentMapZoom = m.getZoom();
         const showMarkers = currentMapZoom >= CLUSTER_MAX_ZOOM;
 
@@ -341,9 +357,6 @@ export function useMapClustering({
           }
         });
       };
-
-      // Debounced version for events that fire rapidly
-      const updateMarkerVisibility = debounce(updateMarkerVisibilityImmediate, 50);
 
       // Create all markers upfront
       const createAllMarkers = () => {
