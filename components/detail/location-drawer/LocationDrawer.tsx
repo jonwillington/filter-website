@@ -164,9 +164,9 @@ export function LocationDrawer({
             <CircularCloseButton onPress={onClose} size="md" />
           </div>
 
-          {/* Contained feature image with curved edges */}
+          {/* Contained feature image with location name overlay */}
           <div className="px-6 pb-6">
-            <div className="relative w-full h-[160px] rounded-xl overflow-hidden shadow-lg mb-5">
+            <div className="relative w-full h-[200px] rounded-xl overflow-hidden shadow-lg">
               {backgroundImage ? (
                 <Image
                   src={backgroundImage}
@@ -177,34 +177,44 @@ export function LocationDrawer({
               ) : (
                 <div className="absolute inset-0 bg-white/10" />
               )}
-            </div>
 
-            {/* Location name and country below image */}
-            <h2
-              className="text-white"
-              style={{
-                fontFamily: 'PPNeueYork, serif',
-                fontSize: '28px',
-                fontWeight: 600,
-                letterSpacing: '-0.5px',
-                lineHeight: 1.1,
-              }}
-            >
-              {currentLocation.name}
-            </h2>
-            {currentLocation.country?.name && (
-              <span
-                className="text-white/50 block"
+              {/* Gradient overlay for text contrast */}
+              <div
+                className="absolute inset-0"
                 style={{
-                  fontFamily: 'PPNeueYork, serif',
-                  fontSize: '28px',
-                  letterSpacing: '-0.5px',
-                  lineHeight: 1.1,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, transparent 70%)',
                 }}
-              >
-                {currentLocation.country.name}
-              </span>
-            )}
+              />
+
+              {/* Location name and country inside image */}
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <h2
+                  className="text-white"
+                  style={{
+                    fontFamily: 'PPNeueYork, serif',
+                    fontSize: '28px',
+                    fontWeight: 600,
+                    letterSpacing: '-0.5px',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {currentLocation.name}
+                </h2>
+                {currentLocation.country?.name && (
+                  <span
+                    className="text-white/60 block"
+                    style={{
+                      fontFamily: 'PPNeueYork, serif',
+                      fontSize: '22px',
+                      letterSpacing: '-0.5px',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {currentLocation.country.name}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -312,18 +322,18 @@ export function LocationDrawer({
                           {/* Brand avatar - far left */}
                           {shop.brand && (
                             logoUrl ? (
-                              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
                                 <Image
                                   src={logoUrl}
                                   alt={shop.brand.name}
-                                  width={40}
-                                  height={40}
+                                  width={32}
+                                  height={32}
                                   className="object-cover w-full h-full"
                                 />
                               </div>
                             ) : (
                               <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0"
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0"
                                 style={{ backgroundColor: primaryColor }}
                               >
                                 {shop.brand.name.charAt(0)}
@@ -334,7 +344,7 @@ export function LocationDrawer({
                           {/* Content - middle */}
                           <div className="flex-1 min-w-0">
                             {/* Shop name */}
-                            <h4 className="font-medium text-primary text-base leading-tight line-clamp-2">
+                            <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
                               {displayName}
                             </h4>
 
