@@ -5,8 +5,37 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Character transliteration map for URL-safe slugs
+const TRANSLITERATE_MAP: Record<string, string> = {
+  // Turkish
+  'ı': 'i', 'İ': 'i', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g', 'ç': 'c', 'Ç': 'c', 'ö': 'o', 'Ö': 'o', 'ü': 'u', 'Ü': 'u',
+  // German
+  'ä': 'a', 'Ä': 'a', 'ß': 'ss',
+  // French/Spanish/Portuguese
+  'é': 'e', 'É': 'e', 'è': 'e', 'È': 'e', 'ê': 'e', 'Ê': 'e', 'ë': 'e', 'Ë': 'e',
+  'à': 'a', 'À': 'a', 'â': 'a', 'Â': 'a', 'á': 'a', 'Á': 'a', 'ã': 'a', 'Ã': 'a',
+  'î': 'i', 'Î': 'i', 'ï': 'i', 'Ï': 'i', 'í': 'i', 'Í': 'i',
+  'ô': 'o', 'Ô': 'o', 'ó': 'o', 'Ó': 'o', 'õ': 'o', 'Õ': 'o',
+  'û': 'u', 'Û': 'u', 'ù': 'u', 'Ù': 'u', 'ú': 'u', 'Ú': 'u',
+  'ñ': 'n', 'Ñ': 'n',
+  // Polish
+  'ą': 'a', 'Ą': 'a', 'ć': 'c', 'Ć': 'c', 'ę': 'e', 'Ę': 'e', 'ł': 'l', 'Ł': 'l',
+  'ń': 'n', 'Ń': 'n', 'ś': 's', 'Ś': 's', 'ź': 'z', 'Ź': 'z', 'ż': 'z', 'Ż': 'z',
+  // Czech/Slovak
+  'ř': 'r', 'Ř': 'r', 'ě': 'e', 'Ě': 'e', 'ů': 'u', 'Ů': 'u', 'ý': 'y', 'Ý': 'y',
+  'ž': 'z', 'Ž': 'z', 'č': 'c', 'Č': 'c', 'ď': 'd', 'Ď': 'd', 'ť': 't', 'Ť': 't',
+  // Nordic
+  'å': 'a', 'Å': 'a', 'æ': 'ae', 'Æ': 'ae', 'ø': 'o', 'Ø': 'o',
+  // Other
+  'ÿ': 'y', 'Ÿ': 'y', 'œ': 'oe', 'Œ': 'oe',
+};
+
+function transliterate(text: string): string {
+  return text.split('').map(char => TRANSLITERATE_MAP[char] || char).join('');
+}
+
 export function slugify(text: string): string {
-  return text
+  return transliterate(text)
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^\w-]+/g, '')
