@@ -16,9 +16,11 @@ interface EventCardProps {
   event: Event;
   onClick: () => void;
   primaryColor?: string;
+  variant?: 'default' | 'light';
 }
 
-export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
+export function EventCard({ event, onClick, primaryColor, variant = 'default' }: EventCardProps) {
+  const isLight = variant === 'light';
   const { formattedCountdown, isWithinWeek } = useEventCountdown(event.start_date);
   const dateLabel = getEventDateLabel(event.start_date, event.end_date);
   const timeLabel = formatEventTime(event.start_date);
@@ -31,7 +33,9 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg py-3 group"
+      className={`w-full text-left transition-all duration-200 rounded-lg py-3 group ${
+        isLight ? 'hover:bg-white/5' : 'hover:bg-gray-50 dark:hover:bg-white/5'
+      }`}
     >
       <div className="flex gap-3">
         {/* Content - left side */}
@@ -41,8 +45,10 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
             {/* Today/Tomorrow badge */}
             {(isToday || isTomorrow) && (
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-                style={{ backgroundColor: primaryColor || '#8B6F47' }}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  isLight ? 'bg-white/20 text-white' : 'text-white'
+                }`}
+                style={isLight ? undefined : { backgroundColor: primaryColor || '#8B6F47' }}
               >
                 {isToday ? 'Today' : 'Tomorrow'}
               </span>
@@ -50,7 +56,9 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
 
             {/* Countdown badge (if within a week but not today/tomorrow) */}
             {isWithinWeek && formattedCountdown && !isToday && !isTomorrow && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                isLight ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+              }`}>
                 <Clock size={10} />
                 {formattedCountdown}
               </span>
@@ -58,20 +66,26 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
 
             {/* Free badge */}
             {event.is_free && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                isLight ? 'bg-white/20 text-white' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+              }`}>
                 Free
               </span>
             )}
           </div>
 
           {/* Event name */}
-          <h4 className="font-medium text-primary text-[15px] leading-tight line-clamp-2">
+          <h4 className={`font-medium text-[15px] leading-tight line-clamp-2 ${
+            isLight ? 'text-white' : 'text-primary'
+          }`}>
             {event.name}
           </h4>
 
           {/* Date and location info */}
           <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <div className={`flex items-center gap-1.5 text-xs ${
+              isLight ? 'text-white/60' : 'text-text-secondary'
+            }`}>
               <Calendar size={12} className="flex-shrink-0" />
               <span>
                 {dateLabel} · {timeLabel}
@@ -79,7 +93,9 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
             </div>
 
             {event.physicalLocation && (
-              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+              <div className={`flex items-center gap-1.5 text-xs ${
+                isLight ? 'text-white/60' : 'text-text-secondary'
+              }`}>
                 <MapPin size={12} className="flex-shrink-0" />
                 <span className="line-clamp-1">{event.physicalLocation}</span>
               </div>
@@ -90,7 +106,9 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
           {event.eventHostBrand && (
             <div className="flex items-center gap-2 pt-1">
               {brandLogoUrl ? (
-                <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
+                <div className={`w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ${
+                  isLight ? 'bg-white/10' : 'bg-gray-100 dark:bg-white/10'
+                }`}>
                   <Image
                     src={brandLogoUrl}
                     alt={event.eventHostBrand.name}
@@ -101,13 +119,15 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
                 </div>
               ) : (
                 <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"
-                  style={{ backgroundColor: primaryColor || '#8B6F47' }}
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0 ${
+                    isLight ? 'bg-white/20' : ''
+                  }`}
+                  style={isLight ? undefined : { backgroundColor: primaryColor || '#8B6F47' }}
                 >
                   {event.eventHostBrand.name.charAt(0)}
                 </div>
               )}
-              <span className="text-xs text-text-secondary">
+              <span className={`text-xs ${isLight ? 'text-white/60' : 'text-text-secondary'}`}>
                 {event.eventHostBrand.name}
               </span>
             </div>
@@ -115,7 +135,9 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
         </div>
 
         {/* Image - right side (always show, with placeholder) */}
-        <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/10">
+        <div className={`relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden ${
+          isLight ? 'bg-white/10' : 'bg-gray-100 dark:bg-white/10'
+        }`}>
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -125,7 +147,7 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-gray-300 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-6 h-6 ${isLight ? 'text-white/30' : 'text-gray-300 dark:text-white/20'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>

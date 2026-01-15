@@ -141,6 +141,46 @@ export function LocationDrawer({
     : `We're exploring the specialty coffee scene in ${currentLocation.name}. Check back soon for recommendations.`;
   const displayStory = currentLocation.story?.trim() || placeholderStory;
 
+  // Footer element (absolutely positioned at bottom)
+  const footerElement = countryLocations.length > 1 && onLocationChange && (
+    <div className="absolute bottom-0 left-0 right-0 border-t border-border-default bg-background px-6 py-3 z-10">
+      <div className="grid grid-cols-3 items-center">
+        {/* Previous */}
+        <div className="justify-self-start">
+          {prevLocation && (
+            <button
+              onClick={() => onLocationChange(prevLocation)}
+              className="flex items-center gap-1 text-sm text-text-secondary hover:text-primary transition-colors"
+            >
+              <ChevronLeft size={18} />
+              <span className="max-w-[100px] truncate">{prevLocation.name}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Position indicator */}
+        <span className="text-xs text-text-secondary justify-self-center">
+          {currentIndex + 1} of {countryLocations.length}
+        </span>
+
+        {/* Next */}
+        <div className="justify-self-end">
+          {nextLocation ? (
+            <button
+              onClick={() => onLocationChange(nextLocation)}
+              className="flex items-center gap-1 text-sm text-text-secondary hover:text-primary transition-colors"
+            >
+              <span className="max-w-[100px] truncate">{nextLocation.name}</span>
+              <ChevronRight size={18} />
+            </button>
+          ) : (
+            <span className="text-xs text-text-secondary italic">More cities soon!</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   const content = (
     <>
       {/* Sticky header that fades in on scroll */}
@@ -150,123 +190,108 @@ export function LocationDrawer({
         onClose={onClose}
       />
 
-      <div className="flex flex-col min-h-full">
-      <div className="drawer-content flex-1">
-        {/* Beta Banner - sits at very top, header overlaps with curved corners */}
+      {/* Scrollable content area */}
+      <div className="drawer-content flex-1 overflow-y-auto">
+        {/* Beta Banner */}
         {currentLocation.beta && (
-          <div
-            className="relative px-6 pt-3 pb-6 text-sm text-center text-gray-900 animate-fade-in flex items-center justify-center gap-2 overflow-hidden"
-            style={{ backgroundColor: primaryColor }}
-          >
-            {/* White overlay */}
-            <div className="absolute inset-0 bg-white/90" />
-            <svg className="w-4 h-4 flex-shrink-0 relative" fill="currentColor" viewBox="0 0 20 20">
+          <div className="px-6 pt-3 pb-3 text-sm text-center text-white/90 animate-fade-in flex items-center justify-center gap-2 border-b border-white/10">
+            <svg className="w-4 h-4 flex-shrink-0 text-white/80" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <span className="relative"><span className="font-medium">This location is in Beta.</span> More shops are being added!</span>
+            <span><span className="font-medium">Beta location.</span> More shops coming soon!</span>
           </div>
         )}
 
-        {/* Header with contained image */}
+        {/* Top header row with City Guide and close button */}
         <div
-          className={`relative location-drawer-header ${currentLocation.beta ? 'rounded-t-2xl -mt-3' : ''}`}
+          className="relative flex items-center justify-between px-6 py-4 border-b border-white/10"
           style={{
-            backgroundColor: primaryColor,
+            opacity: 1 - stickyHeaderOpacity,
+            pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
           }}
         >
-          {/* Top header row with City Guide and close button */}
-          <div
-            className="relative flex items-center justify-between px-6 py-4 border-b border-white/10"
-            style={{
-              opacity: 1 - stickyHeaderOpacity,
-              pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
-            }}
-          >
-            <span className="text-xs text-white/70 uppercase tracking-wide font-medium">
-              City Guide
-            </span>
-            <CircularCloseButton onPress={onClose} size="sm" />
-          </div>
-
-          {/* Contained feature image */}
-          <div className="px-6 pt-4 pb-4">
-            <div className="relative w-full h-[140px] rounded-xl overflow-hidden">
-              {backgroundImage ? (
-                <Image
-                  src={backgroundImage}
-                  alt={currentLocation.name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-white/10" />
-              )}
-            </div>
-
-            {/* Location name and country in one row */}
-            <div className="flex items-baseline gap-1.5 mt-4">
-              <h2
-                className="text-white"
-                style={{
-                  fontFamily: 'PPNeueYork, serif',
-                  fontSize: '26px',
-                  fontWeight: 600,
-                  letterSpacing: '-0.5px',
-                  lineHeight: 1.1,
-                }}
-              >
-                {currentLocation.name}
-              </h2>
-              {currentLocation.country?.name && (
-                <>
-                  <span className="text-white/50" style={{ fontSize: '26px' }}>·</span>
-                  <span
-                    className="text-white/50"
-                    style={{
-                      fontFamily: 'PPNeueYork, serif',
-                      fontSize: '26px',
-                      letterSpacing: '-0.5px',
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {currentLocation.country.name}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+          <span className="text-xs text-white/60 uppercase tracking-wide font-medium">
+            City Guide
+          </span>
+          <CircularCloseButton onPress={onClose} size="sm" />
         </div>
 
-        {/* Content */}
-        <div key={currentLocation.documentId} className="p-6 space-y-6 stagger-fade-in">
+        {/* Hero section with image and title */}
+        <div className="px-6 pt-4">
+          {/* Feature image */}
+          <div className="relative w-full h-[160px] rounded-xl overflow-hidden">
+            {backgroundImage ? (
+              <Image
+                src={backgroundImage}
+                alt={currentLocation.name}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-white/10" />
+            )}
+          </div>
+
+          {/* City name - larger editorial typography */}
+          <h2
+            className="text-white mt-5"
+            style={{
+              fontFamily: 'PPNeueYork, serif',
+              fontSize: '38px',
+              fontWeight: 600,
+              letterSpacing: '-1px',
+              lineHeight: 1.0,
+            }}
+          >
+            {currentLocation.name}
+          </h2>
+
+          {/* Country name */}
+          {currentLocation.country?.name && (
+            <p
+              className="text-white/50 mt-1"
+              style={{
+                fontFamily: 'PPNeueYork, serif',
+                fontSize: '24px',
+                letterSpacing: '-0.5px',
+                lineHeight: 1.1,
+              }}
+            >
+              {currentLocation.country.name}
+            </p>
+          )}
+
+          {/* Description */}
+          <p className="text-[13px] text-white/75 leading-snug mt-4">
+            {displayStory}
+          </p>
 
           {/* Stats row */}
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-6 text-sm mt-4 pb-6">
             {/* City Rating */}
             {currentLocation.rating_stars && (
               <div className="flex items-center gap-2">
-                <span className="text-text-secondary">Rating</span>
+                <span className="text-white/60">Rating</span>
                 <StarRating
                   rating={currentLocation.rating_stars}
                   size={14}
                   animate={true}
                   animationDelay={0}
                 />
-                <span className="font-medium">{currentLocation.rating_stars.toFixed(1)}</span>
+                <span className="font-medium text-white">{currentLocation.rating_stars.toFixed(1)}</span>
               </div>
             )}
 
             {/* Total Shops */}
             <div className="flex items-center gap-2">
-              <span className="text-text-secondary">Shops</span>
-              <span className="font-medium">{totalShops}</span>
+              <span className="text-white/60">Shops</span>
+              <span className="font-medium text-white">{totalShops}</span>
             </div>
           </div>
+        </div>
 
-          {/* Description */}
-          <p className="text-[13px] text-primary leading-snug">
-            {displayStory}
-          </p>
+        {/* Content - accordions */}
+        <div key={currentLocation.documentId} className={cn("px-6 pb-6 space-y-4 stagger-fade-in", countryLocations.length > 1 && "pb-16")}>
 
           {/* Upcoming Events */}
           {locationEvents.length > 0 && (
@@ -276,11 +301,11 @@ export function LocationDrawer({
               variant="light"
               className="px-0 gap-0"
               itemClasses={{
-                base: 'bg-surface rounded-xl shadow-none overflow-hidden',
-                title: 'text-base font-medium text-primary',
-                trigger: 'px-4 py-3 data-[open=true]:bg-gray-200 dark:data-[open=true]:bg-white/10 transition-colors',
+                base: 'bg-white/10 rounded-xl shadow-none overflow-hidden',
+                title: 'text-base font-medium text-white',
+                trigger: 'px-4 py-3 data-[open=true]:bg-white/[0.15] transition-colors',
                 content: 'px-4 pb-3 pt-3',
-                indicator: 'text-text-secondary',
+                indicator: 'text-white/60',
               }}
             >
               <AccordionItem
@@ -297,13 +322,14 @@ export function LocationDrawer({
                 }
                 title={`${locationEvents.length} ${locationEvents.length === 1 ? 'Event' : 'Events'}`}
               >
-                <div className="divide-y divide-border-default">
+                <div className="divide-y divide-white/10">
                   {locationEvents.map((event) => (
                     <EventCard
                       key={event.documentId}
                       event={event}
                       onClick={() => setSelectedEvent(event)}
                       primaryColor={primaryColor}
+                      variant="light"
                     />
                   ))}
                 </div>
@@ -319,11 +345,11 @@ export function LocationDrawer({
               variant="light"
               className="px-0 gap-0"
               itemClasses={{
-                base: 'bg-surface rounded-xl shadow-none overflow-hidden',
-                title: 'text-base font-medium text-primary',
-                trigger: 'px-4 py-3 data-[open=true]:bg-gray-200 dark:data-[open=true]:bg-white/10 transition-colors',
+                base: 'bg-white/10 rounded-xl shadow-none overflow-hidden',
+                title: 'text-base font-medium text-white',
+                trigger: 'px-4 py-3 data-[open=true]:bg-white/[0.15] transition-colors',
                 content: 'px-4 pb-3 pt-3',
-                indicator: 'text-text-secondary',
+                indicator: 'text-white/60',
               }}
             >
               <AccordionItem
@@ -340,7 +366,7 @@ export function LocationDrawer({
                 }
                 title={`${topRecommendationShops.length} Top Shop ${topRecommendationShops.length === 1 ? 'Choice' : 'Choices'}`}
               >
-                <div className="divide-y divide-border-default">
+                <div className="divide-y divide-white/10">
                   {topRecommendationShops.map((shop) => {
                     const imageUrl = getMediaUrl(shop.featured_image);
                     const logoUrl = getMediaUrl(shop.brand?.logo);
@@ -358,13 +384,13 @@ export function LocationDrawer({
                       <button
                         key={shop.documentId}
                         onClick={() => onShopSelect(shop)}
-                        className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg py-3 group"
+                        className="w-full text-left transition-all duration-200 hover:bg-white/5 rounded-lg py-3 group"
                       >
                         <div className="flex items-center gap-3">
                           {/* Brand avatar - far left */}
                           {shop.brand && (
                             logoUrl ? (
-                              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
                                 <Image
                                   src={logoUrl}
                                   alt={shop.brand.name}
@@ -374,10 +400,7 @@ export function LocationDrawer({
                                 />
                               </div>
                             ) : (
-                              <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0"
-                                style={{ backgroundColor: primaryColor }}
-                              >
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium bg-white/20 text-white flex-shrink-0">
                                 {shop.brand.name.charAt(0)}
                               </div>
                             )
@@ -386,20 +409,20 @@ export function LocationDrawer({
                           {/* Content - middle */}
                           <div className="flex-1 min-w-0">
                             {/* Shop name */}
-                            <h4 className="font-medium text-primary text-[15px] leading-tight line-clamp-2">
+                            <h4 className="font-medium text-white text-[15px] leading-tight line-clamp-2">
                               {displayName}
                             </h4>
 
                             {/* Location label - city area or short address */}
                             {locationLabel && (
-                              <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">
+                              <p className="text-sm text-white/60 line-clamp-1 mt-0.5">
                                 {locationLabel}
                               </p>
                             )}
                           </div>
 
                           {/* Image - far right (always show, with placeholder) */}
-                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/10">
+                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-white/10">
                             {imageUrl ? (
                               <Image
                                 src={imageUrl}
@@ -409,7 +432,7 @@ export function LocationDrawer({
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <svg className="w-6 h-6 text-gray-300 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-6 h-6 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                               </div>
@@ -426,57 +449,16 @@ export function LocationDrawer({
 
           {/* No Shops Message */}
           {totalShops === 0 && (
-            <div className="bg-surface border border-border-default rounded-lg p-5">
-              <h4 className="text-base font-semibold text-primary mb-2">
+            <div className="bg-white/10 border border-white/20 rounded-lg p-5">
+              <h4 className="text-base font-semibold text-white mb-2">
                 No recommendations yet
               </h4>
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm text-white/70">
                 We haven&apos;t found any good specialty coffee shops in {currentLocation.name} yet. Know of one? Let us know!
               </p>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Location Navigation Footer */}
-      {countryLocations.length > 1 && onLocationChange && (
-        <div className="border-t border-border-default bg-background px-6 py-3">
-          <div className="grid grid-cols-3 items-center">
-            {/* Previous */}
-            <div className="justify-self-start">
-              {prevLocation && (
-                <button
-                  onClick={() => onLocationChange(prevLocation)}
-                  className="flex items-center gap-1 text-sm text-text-secondary hover:text-primary transition-colors"
-                >
-                  <ChevronLeft size={18} />
-                  <span className="max-w-[100px] truncate">{prevLocation.name}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Position indicator */}
-            <span className="text-xs text-text-secondary justify-self-center">
-              {currentIndex + 1} of {countryLocations.length}
-            </span>
-
-            {/* Next */}
-            <div className="justify-self-end">
-              {nextLocation ? (
-                <button
-                  onClick={() => onLocationChange(nextLocation)}
-                  className="flex items-center gap-1 text-sm text-text-secondary hover:text-primary transition-colors"
-                >
-                  <span className="max-w-[100px] truncate">{nextLocation.name}</span>
-                  <ChevronRight size={18} />
-                </button>
-              ) : (
-                <span className="text-xs text-text-secondary italic">More cities soon!</span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       </div>
 
       {/* Event Modal */}
@@ -490,8 +472,26 @@ export function LocationDrawer({
   );
 
   if (useWrapper) {
-    return <div ref={drawerRef} className="drawer">{content}</div>;
+    return (
+      <div
+        ref={drawerRef}
+        className="drawer relative flex-1 flex flex-col"
+        style={{ backgroundColor: primaryColor }}
+      >
+        {content}
+        {footerElement}
+      </div>
+    );
   }
 
-  return <div ref={contentRef}>{content}</div>;
+  return (
+    <div
+      ref={contentRef}
+      className="relative flex-1 flex flex-col"
+      style={{ backgroundColor: primaryColor }}
+    >
+      {content}
+      {footerElement}
+    </div>
+  );
 }

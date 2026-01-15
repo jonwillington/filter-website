@@ -79,7 +79,7 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
         else if (ref) ref.current = node;
       }} className={classNames}>
         <div
-          className="transition-opacity duration-200 ease-in-out"
+          className="transition-opacity duration-200 ease-in-out flex-1 flex flex-col"
           style={{ opacity: isContentTransitioning ? 0 : 1 }}
         >
           {displayedChildren}

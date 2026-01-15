@@ -293,7 +293,7 @@ h1, h2 {
   bottom: 68px; /* 20px from bottom + 48px footer height */
   width: 420px;
   max-width: calc(100vw - 420px - 60px); /* Account for sidebar + gaps */
-  background: white;
+  background: var(--background);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow-y: auto;
@@ -302,6 +302,8 @@ h1, h2 {
   -ms-overflow-style: none;
   scrollbar-width: none;
   scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
 }
 
 .shop-drawer::-webkit-scrollbar {

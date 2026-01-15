@@ -140,6 +140,7 @@ export function useMapClustering({
       });
 
       // Add cluster circle layer with dynamic country colors and zoom-based sizing
+      // Clusters should always be larger than individual markers at each zoom level
       m.addLayer({
         id: 'clusters',
         type: 'circle',
@@ -151,14 +152,14 @@ export function useMapClustering({
             'interpolate',
             ['linear'],
             ['zoom'],
-            0, 5,
-            3, 7,
-            4, 9,
+            0, 6,
+            3, 8,
+            4, 10,
             5, ['step', ['get', 'point_count'], 14, 10, 20, 50, 26, 100, 32],
-            9, ['step', ['get', 'point_count'], 18, 10, 24, 30, 30, 50, 36],
-            12, ['step', ['get', 'point_count'], 14, 5, 18, 10, 22, 20, 26],
-            13, ['step', ['get', 'point_count'], 10, 3, 14, 5, 16, 10, 18],
-            14, ['step', ['get', 'point_count'], 8, 3, 10, 5, 12, 10, 14],
+            9, ['step', ['get', 'point_count'], 16, 10, 22, 30, 28, 50, 34],
+            12, ['step', ['get', 'point_count'], 16, 5, 20, 10, 24, 20, 28],
+            13, ['step', ['get', 'point_count'], 14, 3, 18, 5, 20, 10, 22],
+            14, ['step', ['get', 'point_count'], 14, 3, 16, 5, 18, 10, 20],
             15, 0,
           ],
           'circle-stroke-width': [
@@ -169,7 +170,7 @@ export function useMapClustering({
             4, 2,
             5, 3,
             12, 2.5,
-            14, 1.5,
+            14, 2,
             15, 0,
           ],
           'circle-stroke-color': '#fff',
@@ -191,7 +192,7 @@ export function useMapClustering({
         },
       });
 
-      // Add unclustered points layer
+      // Add unclustered points layer (individual markers - smaller than clusters)
       m.addLayer({
         id: 'unclustered-point',
         type: 'circle',
@@ -203,13 +204,13 @@ export function useMapClustering({
             'interpolate',
             ['linear'],
             ['zoom'],
-            0, 5,
-            3, 7,
-            4, 9,
-            5, 11,
-            9, 14,
-            12, 16,
-            14, 16,
+            0, 4,
+            3, 5,
+            4, 6,
+            5, 8,
+            9, 10,
+            12, 11,
+            14, 11,
             15, 0,
           ],
           'circle-stroke-width': [
@@ -217,9 +218,9 @@ export function useMapClustering({
             ['linear'],
             ['zoom'],
             0, 1.5,
-            5, 2.5,
-            12, 2.5,
-            14, 2.5,
+            5, 2,
+            12, 2,
+            14, 2,
             15, 0,
           ],
           'circle-stroke-color': '#fff',
