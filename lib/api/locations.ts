@@ -179,7 +179,8 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
           },
-          next: { revalidate: 300 },
+          // Response too large for Next.js cache (>2MB), use our own cache instead
+          cache: 'no-store',
         }
       );
 

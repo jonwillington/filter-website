@@ -195,7 +195,8 @@ async function getAllLocationsMap(): Promise<Map<string, Partial<Location>>> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
           },
-          next: { revalidate: 300 },
+          // Response too large for Next.js cache (>2MB), use our own cache instead
+          cache: 'no-store',
         }
       );
 
@@ -327,7 +328,8 @@ export async function getAllShops(): Promise<Shop[]> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
           },
-          next: { revalidate: 300 },
+          // Response too large for Next.js cache (>2MB), use our own cache instead
+          cache: 'no-store',
         }
       );
 
