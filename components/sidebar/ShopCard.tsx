@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Shop } from '@/lib/types';
 import { Avatar } from '@heroui/react';
 import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
@@ -15,7 +15,7 @@ interface ShopCardProps {
   matchedFilters?: string[];
 }
 
-export function ShopCard({ shop, isSelected, onClick, disabled = false, matchedFilters }: ShopCardProps) {
+function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matchedFilters }: ShopCardProps) {
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
 
@@ -129,3 +129,13 @@ export function ShopCard({ shop, isSelected, onClick, disabled = false, matchedF
     </button>
   );
 }
+
+// Memoize to prevent unnecessary re-renders when parent state changes
+export const ShopCard = memo(ShopCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.shop.documentId === nextProps.shop.documentId &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.matchedFilters?.join(',') === nextProps.matchedFilters?.join(',')
+  );
+});

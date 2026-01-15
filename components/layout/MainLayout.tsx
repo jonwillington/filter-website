@@ -13,10 +13,7 @@ const MapContainer = dynamic(
 import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
 import { UnifiedDrawer } from '../detail/UnifiedDrawer';
-import { WelcomeModal } from '../modals/WelcomeModal';
-import { SearchModal } from '../modals/SearchModal';
 import { Footer } from './Footer';
-import { LoginModal } from '../auth/LoginModal';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Location, Shop, Country, CityArea, Event } from '@/lib/types';
@@ -26,12 +23,41 @@ import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
-import { ExploreModal } from '../modals/ExploreModal';
-import { FilterPreferencesModal } from '../modals/FilterPreferencesModal';
-import { SettingsModal } from '../modals/SettingsModal';
-import { UnsupportedCountryModal } from '../modals/UnsupportedCountryModal';
-import { LocationBlockedModal } from '../modals/LocationBlockedModal';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
+
+// Dynamic imports for modals to reduce initial bundle size
+const WelcomeModal = dynamic(
+  () => import('../modals/WelcomeModal').then(mod => ({ default: mod.WelcomeModal })),
+  { ssr: false }
+);
+const SearchModal = dynamic(
+  () => import('../modals/SearchModal').then(mod => ({ default: mod.SearchModal })),
+  { ssr: false }
+);
+const LoginModal = dynamic(
+  () => import('../auth/LoginModal').then(mod => ({ default: mod.LoginModal })),
+  { ssr: false }
+);
+const ExploreModal = dynamic(
+  () => import('../modals/ExploreModal').then(mod => ({ default: mod.ExploreModal })),
+  { ssr: false }
+);
+const FilterPreferencesModal = dynamic(
+  () => import('../modals/FilterPreferencesModal').then(mod => ({ default: mod.FilterPreferencesModal })),
+  { ssr: false }
+);
+const SettingsModal = dynamic(
+  () => import('../modals/SettingsModal').then(mod => ({ default: mod.SettingsModal })),
+  { ssr: false }
+);
+const UnsupportedCountryModal = dynamic(
+  () => import('../modals/UnsupportedCountryModal').then(mod => ({ default: mod.UnsupportedCountryModal })),
+  { ssr: false }
+);
+const LocationBlockedModal = dynamic(
+  () => import('../modals/LocationBlockedModal').then(mod => ({ default: mod.LocationBlockedModal })),
+  { ssr: false }
+);
 
 interface MainLayoutProps {
   locations: Location[];

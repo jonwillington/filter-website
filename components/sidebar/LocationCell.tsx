@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
 import { Location } from '@/lib/types';
@@ -14,7 +15,7 @@ interface LocationCellProps {
 const getFlagUrl = (countryCode: string): string =>
   `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 
-export function LocationCell({
+function LocationCellComponent({
   selectedLocation,
   unsupportedCountry,
   isAreaUnsupported,
@@ -65,3 +66,12 @@ export function LocationCell({
     </button>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export const LocationCell = memo(LocationCellComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.selectedLocation?.documentId === nextProps.selectedLocation?.documentId &&
+    prevProps.unsupportedCountry?.code === nextProps.unsupportedCountry?.code &&
+    prevProps.isAreaUnsupported === nextProps.isAreaUnsupported
+  );
+});

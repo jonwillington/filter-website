@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Shop } from '@/lib/types';
 import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
 
@@ -6,7 +7,7 @@ interface ShopMiniCardProps {
   onClick: () => void;
 }
 
-export function ShopMiniCard({ shop, onClick }: ShopMiniCardProps) {
+function ShopMiniCardComponent({ shop, onClick }: ShopMiniCardProps) {
   const imageUrl = getMediaUrl(shop.featured_image);
   const displayName = getShopDisplayName(shop);
 
@@ -40,3 +41,8 @@ export function ShopMiniCard({ shop, onClick }: ShopMiniCardProps) {
     </button>
   );
 }
+
+// Memoize to prevent unnecessary re-renders in shop lists
+export const ShopMiniCard = memo(ShopMiniCardComponent, (prevProps, nextProps) => {
+  return prevProps.shop.documentId === nextProps.shop.documentId;
+});

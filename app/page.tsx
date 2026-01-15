@@ -7,17 +7,13 @@ import { getAllCountries } from '@/lib/api/countries';
 export const revalidate = 300;
 
 export default async function HomePage() {
-  // Get locations (internally fetches shops and caches them)
-  const locations = await getAllLocations();
-
-  // Get all shops (uses cache from above call)
-  const allShops = await getAllShops();
-
-  // Get all countries for map highlighting
-  const countries = await getAllCountries();
-
-  // Get all city areas with boundary coordinates for map visualization
-  const cityAreas = await getAllCityAreas();
+  // Fetch all data in parallel for faster build times
+  const [locations, allShops, countries, cityAreas] = await Promise.all([
+    getAllLocations(),
+    getAllShops(),
+    getAllCountries(),
+    getAllCityAreas(),
+  ]);
 
   // Start with no location selected - zoomed out world view
   return (
