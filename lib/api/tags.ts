@@ -63,6 +63,8 @@ const FALLBACK_TAGS: Tag[] = [
   { id: 'minimalist', label: 'Minimalist' },
 ].sort((a, b) => a.label.localeCompare(b.label));
 
+import { strapiGetAll } from './strapiClient';
+
 // Simple in-memory cache for client-side
 let cachedTags: Tag[] | null = null;
 
@@ -71,26 +73,14 @@ export async function getAllTags(): Promise<Tag[]> {
   if (cachedTags) return cachedTags;
 
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/tags?pagination[pageSize]=200`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-        },
-      }
-    );
+    const rawTags = await strapiGetAll<StrapiTagEntry>('/tags', undefined, {
+      revalidate: 300,
+    });
 
-    if (!response.ok) {
-      console.error('[tags] API Error:', response.statusText);
-      return FALLBACK_TAGS;
-    }
-
-    const json = await response.json();
-    const tags: Tag[] = (json.data || [])
-      .map((entry: StrapiTagEntry) => normalizeTag(entry))
-      .filter((tag: Tag | null): tag is Tag => Boolean(tag))
-      .sort((a: Tag, b: Tag) => a.label.localeCompare(b.label));
+    const tags: Tag[] = rawTags
+      .map((entry) => normalizeTag(entry))
+      .filter((tag): tag is Tag => Boolean(tag))
+      .sort((a, b) => a.label.localeCompare(b.label));
 
     if (tags.length > 0) {
       cachedTags = tags;
