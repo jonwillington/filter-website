@@ -18,7 +18,7 @@ interface ShopListProps {
 
 interface AreaWithGroup {
   name: string;
-  documentId: string | null;
+  documentId: string;
   group: string | null;
   shops: Shop[];
 }
@@ -43,11 +43,12 @@ export function ShopList({
   }, [isFiltered]);
 
   // Handle city area expansion - only one at a time
-  const handleAreaExpand = (areaId: string | null, isExpanding: boolean) => {
+  const handleAreaExpand = (areaId: string, isExpanding: boolean) => {
     console.log('[ShopList] handleAreaExpand:', { areaId, isExpanding, currentExpandedAreaId: expandedAreaId });
     if (isExpanding) {
       setExpandedAreaId(areaId);
-      onCityAreaExpand?.(areaId);
+      // Don't highlight map boundary for "Other" (shops without a city area)
+      onCityAreaExpand?.(areaId === '__other__' ? null : areaId);
     } else if (expandedAreaId === areaId) {
       // Only clear if this area was the expanded one
       setExpandedAreaId(null);
@@ -62,7 +63,8 @@ export function ShopList({
     shops.forEach((shop) => {
       const cityArea = shop.city_area ?? shop.cityArea;
       const areaName = cityArea?.name ?? 'Other';
-      const documentId = cityArea?.documentId ?? null;
+      // Use a special identifier for "Other" so it can be toggled like other areas
+      const documentId = cityArea?.documentId ?? '__other__';
       const group = cityArea?.group ?? null;
 
       if (!areaMap.has(areaName)) {
@@ -121,17 +123,21 @@ export function ShopList({
   // Single area or filtered: show flat list
   if (!shouldUseAccordion) {
     const hasMatchInfo = shopMatchInfo && shopMatchInfo.size > 0;
+    // Only show header when filtered or has match info, not for plain "All shops"
+    const showHeader = hasMatchInfo || isFiltered;
 
     return (
       <div
         className="transition-opacity duration-300"
         style={{ opacity: isLoading ? 0.4 : 1 }}
       >
-        <div className="area-header">
-          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
-            {hasMatchInfo ? `${shops.length} matching shops` : isFiltered ? `${shops.length} shops` : 'All shops'}
-          </h3>
-        </div>
+        {showHeader && (
+          <div className="area-header">
+            <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
+              {hasMatchInfo ? `${shops.length} matching shops` : `${shops.length} shops`}
+            </h3>
+          </div>
+        )}
         <div className="py-1">
           <AnimatePresence mode="popLayout" initial={false}>
             {shops.map((shop, index) => (
@@ -242,7 +248,7 @@ function AreaSection({
   onAreaExpand,
 }: {
   areaName: string;
-  areaDocumentId: string | null;
+  areaDocumentId: string;
   shops: Shop[];
   selectedShop: Shop | null;
   onShopSelect: (shop: Shop) => void;
@@ -250,7 +256,7 @@ function AreaSection({
   isFiltered?: boolean;
   animationKey: number;
   isCurrentlyExpanded: boolean;
-  onAreaExpand: (areaId: string | null, isExpanding: boolean) => void;
+  onAreaExpand: (areaId: string, isExpanding: boolean) => void;
 }) {
   // Use parent-controlled expansion state (only one area can be expanded at a time for map highlighting)
   // But also expand if this area contains the selected shop or if filtered
@@ -262,9 +268,7 @@ function AreaSection({
     console.log('[AreaSection] Toggle:', { areaName, areaDocumentId, newExpanded, wasExpanded: isCurrentlyExpanded });
 
     // Notify parent about expansion change
-    if (areaDocumentId) {
-      onAreaExpand(areaDocumentId, newExpanded);
-    }
+    onAreaExpand(areaDocumentId, newExpanded);
   };
 
   return (

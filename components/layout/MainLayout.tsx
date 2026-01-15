@@ -104,6 +104,8 @@ export function MainLayout({
   const prevInitialShopRef = useRef<Shop | null>(null);
   // Track previous initialLocation to prevent duplicate map animations
   const prevInitialLocationRef = useRef<Location | null>(null);
+  // Track location ID when navigating via handleLocationChange to skip redundant recalculation
+  const navigationLocationIdRef = useRef<string | null>(null);
 
   // Helper to get shop coordinates (uses imported utility)
   const getShopCoords = (shop: Shop): { lng: number; lat: number } | null => {
@@ -127,6 +129,12 @@ export function MainLayout({
     } else if (initialLocation && shops.length > 0) {
       // Only update map if location actually changed
       if (prevInitialLocationRef.current?.documentId !== initialLocation.documentId) {
+        // Skip recalculation if handleLocationChange already set the coordinates
+        if (navigationLocationIdRef.current === initialLocation.documentId) {
+          navigationLocationIdRef.current = null;
+          prevInitialLocationRef.current = initialLocation;
+          return;
+        }
         const locationShops = shops.filter(s =>
           s.location?.documentId === initialLocation.documentId ||
           s.city_area?.location?.documentId === initialLocation.documentId
@@ -308,23 +316,38 @@ export function MainLayout({
       // Set location state first to ensure consistency
       setSelectedLocation(location);
 
-      // Navigate to the location page
-      setTimeout(() => {
-        if (location) {
-          const countrySlug = slugify(location.country?.name ?? '');
-          const citySlug = slugify(location.name);
-          router.push(`/${countrySlug}/${citySlug}`);
-        } else {
-          router.push('/');
+      // Immediately set map center from location coordinates for instant map movement
+      if (location?.coordinates) {
+        const coords = Array.isArray(location.coordinates)
+          ? location.coordinates[0]
+          : location.coordinates;
+        if (coords && 'lat' in coords && 'lng' in coords) {
+          // Mark that we're navigating to this location so the effect doesn't override
+          navigationLocationIdRef.current = location.documentId;
+          setMapCenter([coords.lng, coords.lat]);
+          setMapZoom(12);
         }
+      } else if (!location) {
+        // Explore mode - world view
+        setMapCenter([0, 20]);
+        setMapZoom(2);
+      }
 
-        // Set a timeout fallback to ensure loading doesn't take too long
-        // Map's onTransitionComplete will clear this if it finishes first
-        loadingTimeoutRef.current = setTimeout(() => {
-          setIsLoading(false);
-          loadingTimeoutRef.current = null;
-        }, 2500); // Maximum 2.5 seconds after location data changes
-      }, 300);
+      // Navigate to the location page immediately (no delay)
+      if (location) {
+        const countrySlug = slugify(location.country?.name ?? '');
+        const citySlug = slugify(location.name);
+        router.push(`/${countrySlug}/${citySlug}`);
+      } else {
+        router.push('/');
+      }
+
+      // Set a timeout fallback to ensure loading doesn't take too long
+      // Map's onTransitionComplete will clear this if it finishes first
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        loadingTimeoutRef.current = null;
+      }, 2000); // Maximum 2 seconds
     },
     [router]
   );
@@ -738,6 +761,7 @@ export function MainLayout({
         locations={locations}
         countries={countries}
         allShops={shops}
+        events={events}
         onLocationSelect={(location) => {
           handleLocationChange(location);
           setShowExploreModal(false);

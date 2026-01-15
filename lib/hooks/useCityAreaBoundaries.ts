@@ -125,16 +125,27 @@ export function useCityAreaBoundaries({
 
   useEffect(() => {
     if (!map || !mapReady) {
+      console.log('[CityAreaBoundaries] Early return: map or mapReady not available', { map: !!map, mapReady });
       return;
     }
+
+    console.log('[CityAreaBoundaries] Running effect:', {
+      expandedCityAreaId,
+      cityAreasCount: cityAreas.length,
+      cityAreaIds: cityAreas.map(a => a.documentId),
+    });
 
     // Get city areas with valid boundaries
     const areasWithBoundaries = cityAreas.filter(
       (area) => area.boundary_coordinates && area.boundary_coordinates.length >= 3
     );
 
+    console.log('[CityAreaBoundaries] Areas with boundaries:', areasWithBoundaries.length,
+      areasWithBoundaries.map(a => ({ id: a.documentId, name: a.name })));
+
     // No boundaries to show at all
     if (areasWithBoundaries.length === 0) {
+      console.log('[CityAreaBoundaries] No areas with boundaries, cleaning up');
       fadeOutAndCleanup(map);
       currentExpandedIdRef.current = null;
       return;
@@ -144,6 +155,8 @@ export function useCityAreaBoundaries({
     const expandedArea = expandedCityAreaId
       ? areasWithBoundaries.find((area) => area.documentId === expandedCityAreaId)
       : null;
+
+    console.log('[CityAreaBoundaries] Expanded area found:', expandedArea?.name ?? 'none (overview mode)');
 
     const isOverviewMode = !expandedArea;
     const displayAreas = expandedArea ? [expandedArea] : areasWithBoundaries;
@@ -307,11 +320,18 @@ export function useCityAreaBoundaries({
 
       // Trigger fade-in
       requestAnimationFrame(() => {
-        if (map.getLayer(CITY_AREA_MASK_LAYER_ID)) {
-          map.setPaintProperty(CITY_AREA_MASK_LAYER_ID, 'fill-opacity', targetMaskOpacity);
-        }
-        if (map.getLayer(CITY_AREA_LINE_LAYER_ID)) {
-          map.setPaintProperty(CITY_AREA_LINE_LAYER_ID, 'line-opacity', targetLineOpacity);
+        // Safety check: map may have been destroyed before this frame executes
+        if (!map) return;
+
+        try {
+          if (map.getLayer(CITY_AREA_MASK_LAYER_ID)) {
+            map.setPaintProperty(CITY_AREA_MASK_LAYER_ID, 'fill-opacity', targetMaskOpacity);
+          }
+          if (map.getLayer(CITY_AREA_LINE_LAYER_ID)) {
+            map.setPaintProperty(CITY_AREA_LINE_LAYER_ID, 'line-opacity', targetLineOpacity);
+          }
+        } catch {
+          // Ignore errors if map was destroyed during animation frame
         }
       });
 

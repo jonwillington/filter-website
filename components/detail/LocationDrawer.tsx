@@ -6,7 +6,7 @@ import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
 import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
-import { Award, Calendar } from 'lucide-react';
+import { Award, Calendar, ChevronDown } from 'lucide-react';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { EventCard, EventModal } from '@/components/events';
@@ -29,6 +29,7 @@ export function LocationDrawer({
   useWrapper = true,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isEventsExpanded, setIsEventsExpanded] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
@@ -63,9 +64,10 @@ export function LocationDrawer({
   // Use extracted hook for sticky header opacity
   const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
 
-  // Reset opacity when location changes
+  // Reset opacity and collapse events accordion when location changes
   useEffect(() => {
     resetOpacity();
+    setIsEventsExpanded(false);
   }, [location.documentId, resetOpacity]);
 
   // Use location directly - no internal state needed
@@ -82,6 +84,24 @@ export function LocationDrawer({
     () => filterShopsByLocation(allShops, currentLocation).length,
     [allShops, currentLocation]
   );
+
+  // Filter events for current location (only future events, sorted by date)
+  const locationEvents = useMemo(() => {
+    const now = new Date();
+    return events
+      .filter((event) => {
+        // Filter by city/location
+        if (event.city?.documentId !== currentLocation.documentId) {
+          return false;
+        }
+        // Only include future events
+        const startDate = new Date(event.start_date);
+        return startDate >= now;
+      })
+      .sort((a, b) => {
+        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      });
+  }, [events, currentLocation.documentId]);
 
   // Cascade color priority: location-level → country-level → default
   const primaryColor =
@@ -217,22 +237,55 @@ export function LocationDrawer({
           </div>
 
           {/* Upcoming Events */}
-          {events.length > 0 && (
+          {locationEvents.length > 0 && (
             <div>
-              <div className="flex items-center gap-1.5 mb-3">
-                <Calendar size={14} className="text-text-secondary" />
-                <h3 className="text-base font-medium text-primary">Upcoming Events</h3>
-              </div>
-              <div className="space-y-3">
-                {events.map((event) => (
+              {locationEvents.length === 1 ? (
+                // Single event - show directly
+                <>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Calendar size={14} className="text-text-secondary" />
+                    <h3 className="text-base font-medium text-primary">Upcoming Event</h3>
+                  </div>
                   <EventCard
-                    key={event.documentId}
-                    event={event}
-                    onClick={() => setSelectedEvent(event)}
+                    event={locationEvents[0]}
+                    onClick={() => setSelectedEvent(locationEvents[0])}
                     primaryColor={primaryColor}
                   />
-                ))}
-              </div>
+                </>
+              ) : (
+                // Multiple events - use accordion
+                <>
+                  <button
+                    onClick={() => setIsEventsExpanded(!isEventsExpanded)}
+                    className="w-full flex items-center justify-between py-2 group"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={14} className="text-text-secondary" />
+                      <h3 className="text-base font-medium text-primary">
+                        {locationEvents.length} Events
+                      </h3>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      className={`text-text-secondary transition-transform duration-200 ${
+                        isEventsExpanded ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {isEventsExpanded && (
+                    <div className="space-y-1 pt-2">
+                      {locationEvents.map((event) => (
+                        <EventCard
+                          key={event.documentId}
+                          event={event}
+                          onClick={() => setSelectedEvent(event)}
+                          primaryColor={primaryColor}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 

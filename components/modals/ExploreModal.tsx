@@ -2,15 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import { ModalBody, ScrollShadow, Tooltip } from '@heroui/react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Calendar } from 'lucide-react';
 import Image from 'next/image';
-import { Location, Country, Shop } from '@/lib/types';
+import { Location, Country, Shop, Event } from '@/lib/types';
 import { ResponsiveModal, ModalAnnouncementBanner, CircularCloseButton } from '@/components/ui';
 import { Check } from 'lucide-react';
 import { StarRating } from '@/components/ui/StarRating';
-import { cn } from '@/lib/utils';
+import { EventModal } from '@/components/events';
+import { cn, getMediaUrl } from '@/lib/utils';
+import { formatEventTime } from '@/lib/utils/eventDateUtils';
+import { format } from 'date-fns';
 
-type ViewMode = 'region' | 'rating';
+type ViewMode = 'region' | 'rating' | 'events';
 type SortDirection = 'best' | 'worst';
 
 interface ExploreModalProps {
@@ -19,6 +22,7 @@ interface ExploreModalProps {
   locations: Location[];
   countries?: Country[];
   allShops?: Shop[];
+  events?: Event[];
   onLocationSelect: (location: Location) => void;
 }
 
@@ -56,10 +60,12 @@ export function ExploreModal({
   locations,
   countries = [],
   allShops = [],
+  events = [],
   onLocationSelect,
 }: ExploreModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('region');
   const [sortDirection, setSortDirection] = useState<SortDirection>('best');
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Create a map of location documentId -> shop count
   const shopCountByLocation = useMemo(() => {
@@ -148,6 +154,20 @@ export function ExploreModal({
     });
   }, [locations, sortDirection]);
 
+  // Events for current year, sorted chronologically
+  const eventsThisYear = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return events
+      .filter((event) => {
+        const eventYear = new Date(event.start_date).getFullYear();
+        return eventYear === currentYear;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+      );
+  }, [events]);
+
   const handleLocationClick = (location: Location) => {
     onLocationSelect(location);
     onClose();
@@ -207,6 +227,17 @@ export function ExploreModal({
               >
                 By rating
               </button>
+              <button
+                onClick={() => setViewMode('events')}
+                className={cn(
+                  'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
+                  viewMode === 'events'
+                    ? 'bg-contrastBlock text-contrastText'
+                    : 'bg-surface text-text-secondary hover:bg-border-default'
+                )}
+              >
+                Events
+              </button>
             </div>
 
             {/* Sort options - only visible in rating view */}
@@ -243,7 +274,7 @@ export function ExploreModal({
 
       <ModalBody className="p-0">
         <ScrollShadow className="max-h-[75vh]">
-          {viewMode === 'region' ? (
+          {viewMode === 'region' && (
             <>
               {/* Desktop: 3-column grid with row-aligned regions */}
               <div className="hidden lg:block py-6 px-8">
@@ -389,7 +420,9 @@ export function ExploreModal({
                 ))}
               </div>
             </>
-          ) : (
+          )}
+
+          {viewMode === 'rating' && (
             /* Rating view - table-like layout */
             <div className="py-2">
               <div>
@@ -507,9 +540,104 @@ export function ExploreModal({
               </div>
             </div>
           )}
+
+          {viewMode === 'events' && (
+            <div className="py-2">
+              {eventsThisYear.length === 0 ? (
+                <div className="text-center py-12 text-text-secondary">
+                  No events scheduled for {new Date().getFullYear()}
+                </div>
+              ) : (
+                <div>
+                  {eventsThisYear.map((event) => {
+                    const imageUrl = getMediaUrl(event.image);
+                    const startDate = new Date(event.start_date);
+                    const monthLabel = format(startDate, 'MMM').toUpperCase();
+                    const dayLabel = format(startDate, 'd');
+                    const timeLabel = formatEventTime(event.start_date);
+                    const eventCity = event.city;
+                    const countryCode = eventCity?.country?.code;
+
+                    return (
+                      <button
+                        key={event.documentId}
+                        onClick={() => setSelectedEvent(event)}
+                        className="group w-full flex items-center gap-4 py-3 px-4 lg:px-6 transition-colors hover:bg-surface border-b border-border-default last:border-b-0"
+                      >
+                        {/* Date column - calendar style */}
+                        <div className="w-12 flex-shrink-0 text-center">
+                          <div className="text-xs font-medium text-accent uppercase tracking-wide">
+                            {monthLabel}
+                          </div>
+                          <div className="text-2xl font-semibold text-primary leading-tight">
+                            {dayLabel}
+                          </div>
+                        </div>
+
+                        {/* Event details */}
+                        <div className="flex-1 min-w-0 text-left">
+                          <h4 className="font-medium text-primary text-base leading-tight line-clamp-2 group-hover:text-accent transition-colors">
+                            {event.name}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1 text-sm text-text-secondary">
+                            <span>{timeLabel}</span>
+                          </div>
+                          {eventCity && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {countryCode && getFlagUrl(countryCode) && (
+                                <div className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
+                                  <Image
+                                    src={getFlagUrl(countryCode)!}
+                                    alt={eventCity.country?.name || ''}
+                                    width={16}
+                                    height={16}
+                                    className="object-cover w-full h-full"
+                                    unoptimized
+                                  />
+                                </div>
+                              )}
+                              <span className="text-sm text-text-secondary">
+                                {eventCity.name}
+                                {eventCity.country && `, ${eventCity.country.name}`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Event image - right side (banner format) */}
+                        <div className="relative w-24 h-14 lg:w-32 lg:h-20 flex-shrink-0 rounded-lg overflow-hidden bg-surface">
+                          {imageUrl ? (
+                            <Image
+                              src={imageUrl}
+                              alt={event.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Calendar className="w-6 h-6 text-text-secondary" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Arrow indicator */}
+                        <ChevronRight className="w-4 h-4 flex-shrink-0 text-border-default group-hover:text-accent transition-colors" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </ScrollShadow>
       </ModalBody>
       </div>
+
+      <EventModal
+        event={selectedEvent}
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </ResponsiveModal>
   );
 }
