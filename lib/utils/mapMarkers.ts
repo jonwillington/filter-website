@@ -29,6 +29,7 @@ export function getMarkerThemeConfig(effectiveTheme: 'light' | 'dark'): MarkerTh
 // Density and zoom thresholds for marker display
 const HIGH_DENSITY_THRESHOLD = 30;
 const ZOOM_THRESHOLD = 15; // Below this zoom, always use simple markers
+const TEXT_ZOOM_THRESHOLD = 16.5; // Below this zoom, hide text labels (logo only)
 const LOGO_ZOOM_THRESHOLD = 17; // Above this zoom, show logos even in high density areas
 
 /**
@@ -121,13 +122,14 @@ function createSimpleMarkerElement(
 }
 
 /**
- * Create a detailed marker element with logo and text label
+ * Create a detailed marker element with logo and optional text label
  */
 function createDetailedMarkerElement(
   shop: Shop,
   isSelected: boolean,
   fadeIn: boolean,
-  themeConfig: MarkerThemeConfig
+  themeConfig: MarkerThemeConfig,
+  showLabel: boolean = true
 ): HTMLDivElement {
   const { labelBg, labelText, shimmerGradient } = themeConfig;
   const logoUrl = getMediaUrl(shop.brand?.logo);
@@ -138,6 +140,7 @@ function createDetailedMarkerElement(
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     cursor: pointer;
     opacity: ${fadeIn ? '0' : '1'};
     transition: opacity 0.2s ease;
@@ -192,30 +195,32 @@ function createDetailedMarkerElement(
     `;
   }
 
-  // Create text label
-  const textLabel = document.createElement('div');
-  const brandName = shop.brand?.name || shop.name;
-  const locationName = shop.location?.name || '';
-  textLabel.textContent = `${brandName} · ${locationName}`;
-  textLabel.style.cssText = `
-    background: ${labelBg};
-    color: ${labelText};
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 8px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    margin-top: 4px;
-    max-width: 120px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: center;
-    line-height: 1.3;
-  `;
-
   container.appendChild(logoEl);
-  container.appendChild(textLabel);
+
+  // Create text label only if showLabel is true
+  if (showLabel) {
+    const textLabel = document.createElement('div');
+    const brandName = shop.brand?.name || shop.name;
+    const locationName = shop.location?.name || '';
+    textLabel.textContent = `${brandName} · ${locationName}`;
+    textLabel.style.cssText = `
+      background: ${labelBg};
+      color: ${labelText};
+      font-size: 10px;
+      font-weight: 400;
+      padding: 2px 6px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      margin-top: 3px;
+      max-width: 90px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      line-height: 1.2;
+    `;
+    container.appendChild(textLabel);
+  }
 
   if (isSelected) {
     container.style.transform = 'scale(1.1)';
@@ -258,7 +263,9 @@ export function createMarkerElement(
     return createSimpleMarkerElement(shop, isSelected, fadeIn, zoomLevel);
   } else {
     const themeConfig = getMarkerThemeConfig(effectiveTheme);
-    return createDetailedMarkerElement(shop, isSelected, fadeIn, themeConfig);
+    // Only show text label when zoomed in past TEXT_ZOOM_THRESHOLD
+    const showLabel = zoomLevel >= TEXT_ZOOM_THRESHOLD;
+    return createDetailedMarkerElement(shop, isSelected, fadeIn, themeConfig, showLabel);
   }
 }
 

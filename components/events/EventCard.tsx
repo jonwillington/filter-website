@@ -31,7 +31,7 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg py-2 group"
+      className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg py-3 group"
     >
       <div className="flex gap-3">
         {/* Content - left side */}

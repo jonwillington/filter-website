@@ -136,7 +136,7 @@ export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalP
               <Divider className="bg-border-default" />
               <div>
                 <h3 className="text-sm font-medium text-primary mb-2">About</h3>
-                <p className="text-sm text-text-secondary whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-primary whitespace-pre-wrap leading-relaxed">
                   {event.description}
                 </p>
               </div>
