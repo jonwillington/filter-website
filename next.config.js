@@ -21,7 +21,6 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ['mapbox-gl'],
 }
 
 module.exports = nextConfig

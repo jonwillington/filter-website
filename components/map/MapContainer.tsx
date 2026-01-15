@@ -1,5 +1,6 @@
 'use client';
 
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef, useState } from 'react';
 import { Spinner } from '@heroui/react';
 import { Shop, Country, Location, CityArea } from '@/lib/types';
