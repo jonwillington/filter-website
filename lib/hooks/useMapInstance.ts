@@ -33,14 +33,17 @@ export interface UseMapInstanceReturn {
 /**
  * Apply country highlighting overlay - dims unsupported countries
  * Returns true if successfully applied, false if style not ready
+ * @param skipStyleCheck - set to true when called from style.load callback (where isStyleLoaded() can be unreliable)
  */
 function applyCountryOverlay(
   map: mapboxgl.Map,
   theme: 'light' | 'dark',
-  supportedCountryCodes: string[]
+  supportedCountryCodes: string[],
+  skipStyleCheck = false
 ): boolean {
   // Safety check: ensure style is fully loaded before modifying sources/layers
-  if (!map.isStyleLoaded()) {
+  // Skip this check when called from style.load callback (Mapbox quirk: isStyleLoaded can return false in callback)
+  if (!skipStyleCheck && !map.isStyleLoaded()) {
     return false;
   }
 
@@ -166,7 +169,7 @@ export function useMapInstance({
       }
       styleLoadCalled = true;
       console.log('[useMapInstance] onStyleLoad called!');
-      const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes());
+      const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes(), true);
       console.log('[useMapInstance] Country overlay applied:', success);
       setMapReady(true);
       if (success) {
@@ -228,7 +231,7 @@ export function useMapInstance({
     // Use 'once' to handle this specific style load
     map.once('style.load', () => {
       console.log('Style loaded! Theme:', effectiveTheme);
-      const success = applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes());
+      const success = applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes(), true);
       setMapReady(true);
       if (success) {
         setCountryLayerReady(true);
