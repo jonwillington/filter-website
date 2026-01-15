@@ -10,7 +10,7 @@ import {
   orderBy,
   serverTimestamp,
   Timestamp,
-} from 'firebase/firestore';
+} from 'firebase/firestore/lite';
 import { db } from '../config/firebase';
 import { Review } from '../types/auth';
 import { getMockReviews } from '../utils/mockData';

@@ -5,7 +5,7 @@ import {
   setPersistence,
   Auth
 } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore/lite';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 interface FirebaseConfig {

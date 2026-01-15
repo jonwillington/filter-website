@@ -9,7 +9,7 @@ import {
   where,
   serverTimestamp,
   Timestamp,
-} from 'firebase/firestore';
+} from 'firebase/firestore/lite';
 import { db } from '../config/firebase';
 import { Favorite } from '../types/auth';
 

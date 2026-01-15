@@ -7,7 +7,7 @@ import {
   Timestamp,
   deleteDoc,
   deleteField,
-} from 'firebase/firestore';
+} from 'firebase/firestore/lite';
 import { db } from '../config/firebase';
 import { UserProfile, UserPreferences, AICachedSummary } from '../types/auth';
 

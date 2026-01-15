@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, Timestamp } from 'firebase/firestore/lite';
 import { db } from '@/lib/config/firebase';
 import { UserBadges } from '@/lib/types/auth';
 import { getMockBadges } from '@/lib/utils/mockData';
