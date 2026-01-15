@@ -14,6 +14,7 @@ import { ShopDrawer, LocationDrawer, UnifiedDrawer } from '../detail';
 import { Footer } from './Footer';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
+import { useShopData } from '@/lib/context/ShopDataContext';
 import { Location, Shop, Country, CityArea, Event } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
@@ -78,6 +79,31 @@ export function MainLayout({
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+
+  // Use cached shop data for stable reference (prevents map marker recreation on navigation)
+  const shopData = useShopData();
+  const hasHydratedRef = useRef(false);
+
+  // Hydrate the shop data context with server-side props (only once)
+  useEffect(() => {
+    if (!hasHydratedRef.current && shops.length > 0) {
+      shopData.hydrate({
+        shops,
+        locations,
+        countries,
+        cityAreas: propCityAreas,
+        events,
+      });
+      hasHydratedRef.current = true;
+    }
+  }, [shops, locations, countries, propCityAreas, events, shopData]);
+
+  // Use cached data if available, otherwise fall back to props
+  const cachedShops = shopData.isHydrated && shopData.shops.length > 0 ? shopData.shops : shops;
+  const cachedLocations = shopData.isHydrated && shopData.locations.length > 0 ? shopData.locations : locations;
+  const cachedCountries = shopData.isHydrated && shopData.countries.length > 0 ? shopData.countries : countries;
+  const cachedCityAreas = shopData.isHydrated && shopData.cityAreas.length > 0 ? shopData.cityAreas : propCityAreas;
+  const cachedEvents = shopData.isHydrated && shopData.events.length > 0 ? shopData.events : events;
 
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(initialLocation);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(initialShop);
@@ -379,9 +405,10 @@ export function MainLayout({
   // Note: hasCityAreaRecommendation is imported from @/lib/utils
 
   // Filter shops for sidebar based on selected location (uses imported utility)
+  // Use cachedShops for stable reference (prevents marker recreation on navigation)
   const locationFilteredShops = useMemo(
-    () => filterShopsByLocation(shops, selectedLocation),
-    [shops, selectedLocation]
+    () => filterShopsByLocation(cachedShops, selectedLocation),
+    [cachedShops, selectedLocation]
   );
 
   // Helper to check if shop matches user's tag preferences
@@ -518,8 +545,9 @@ export function MainLayout({
   }, [locationFilteredShops, shopFilter, applyMyFilters, userProfile?.preferences, getShopMatches]);
 
   // Map shows filtered shops when filter is active or "apply my filters" is on
+  // Use cachedShops for stable reference (prevents marker recreation on navigation)
   const shopsForMap = useMemo(() => {
-    let mapShops = shops;
+    let mapShops = cachedShops;
 
     // Only apply user preference filters when "apply my filters" toggle is ON
     if (applyMyFilters) {
@@ -558,7 +586,7 @@ export function MainLayout({
     }
 
     return mapShops;
-  }, [shops, sidebarShops, selectedLocation, shopFilter, applyMyFilters, userProfile?.preferences, shopMatchesTags, shopMatchesBrewMethods]);
+  }, [cachedShops, sidebarShops, selectedLocation, shopFilter, applyMyFilters, userProfile?.preferences, shopMatchesTags, shopMatchesBrewMethods]);
 
   // Track filter changes and show loading overlay
   useEffect(() => {
@@ -755,11 +783,12 @@ export function MainLayout({
   }, []);
 
   // Filter city areas to only those in the selected location
+  // Use cachedCityAreas for stable reference
   const cityAreas = useMemo(() => {
     if (!selectedLocation) return [];
 
     // Filter to city areas that belong to this location
-    const filtered = propCityAreas.filter(
+    const filtered = cachedCityAreas.filter(
       (area) => area.location?.documentId === selectedLocation.documentId
     );
 
@@ -770,7 +799,7 @@ export function MainLayout({
       console.log('[MainLayout] Has boundary_coordinates:', !!filtered[0].boundary_coordinates);
     }
     return filtered;
-  }, [propCityAreas, selectedLocation]);
+  }, [cachedCityAreas, selectedLocation]);
 
   return (
     <>
@@ -782,10 +811,10 @@ export function MainLayout({
       <ExploreModal
         isOpen={showExploreModal}
         onClose={() => setShowExploreModal(false)}
-        locations={locations}
-        countries={countries}
-        allShops={shops}
-        events={events}
+        locations={cachedLocations}
+        countries={cachedCountries}
+        allShops={cachedShops}
+        events={cachedEvents}
         onLocationSelect={(location) => {
           handleLocationChange(location);
           setShowExploreModal(false);
@@ -824,8 +853,8 @@ export function MainLayout({
       <SearchModal
         isOpen={showSearchModal}
         onClose={() => setShowSearchModal(false)}
-        locations={locations}
-        shops={shops}
+        locations={cachedLocations}
+        shops={cachedShops}
       />
 
       <FilterPreferencesModal
@@ -856,8 +885,8 @@ export function MainLayout({
 
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>
         <Sidebar
-          locations={locations}
-          countries={countries}
+          locations={cachedLocations}
+          countries={cachedCountries}
           selectedLocation={selectedLocation}
           onLocationChange={handleLocationChange}
           shops={sidebarShops}
@@ -948,13 +977,13 @@ export function MainLayout({
           zoom={mapZoom}
           isLoading={isLoading || isFilterLoading}
           onTransitionComplete={handleMapTransitionComplete}
-          countries={countries}
-          locations={locations}
+          countries={cachedCountries}
+          locations={cachedLocations}
           onUnsupportedCountryClick={handleUnsupportedCountryClick}
           onEmptySupportedCountryClick={handleEmptySupportedCountryClick}
           userCoordinates={coordinates}
           expandedCityAreaId={expandedCityAreaId}
-          cityAreas={cityAreas}
+          cityAreas={cachedCityAreas}
         />
 
         {(selectedShop || (selectedLocation && !isNearbyMode && (showMobileCityGuide || isDesktop)) || isLocationDrawerClosing) && (
@@ -967,7 +996,7 @@ export function MainLayout({
               <ShopDrawer
                 key="shop-drawer"
                 shop={selectedShop}
-                allShops={shops}
+                allShops={cachedShops}
                 onClose={handleCloseDrawer}
                 onShopSelect={handleShopSelect}
                 onOpenLoginModal={() => setShowLoginModal(true)}
@@ -979,8 +1008,8 @@ export function MainLayout({
               <LocationDrawer
                 key="location-drawer"
                 location={selectedLocation}
-                allShops={shops}
-                events={events}
+                allShops={cachedShops}
+                events={cachedEvents}
                 onClose={() => {
                   // Start exit animation
                   setIsLocationDrawerClosing(true);
