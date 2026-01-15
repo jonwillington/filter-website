@@ -22,7 +22,7 @@ export async function generateStaticParams() {
       return {
         country: slugify(countryName),
         city: citySlug,
-        area: slugify(area.name),
+        area: area.slug || slugify(area.name),
       };
     });
 }

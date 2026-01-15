@@ -15,18 +15,17 @@ export async function generateStaticParams() {
 
   return allShops
     .filter((shop) => {
-      // Need location with country, and city_area for the area segment
+      // Need location with country name
       const location = shop.location;
-      const cityArea = shop.city_area || shop.cityArea;
-      return location?.country?.name && location?.name && cityArea?.name;
+      return location?.country?.name && location?.name;
     })
     .map((shop) => {
       const location = shop.location!;
-      const cityArea = (shop.city_area || shop.cityArea)!;
+      const cityArea = shop.city_area || shop.cityArea;
       return {
         country: slugify(location.country!.name),
         city: location.slug || slugify(location.name),
-        area: slugify(cityArea.name),
+        area: cityArea?.slug || (cityArea?.name ? slugify(cityArea.name) : 'all'),
         shop: shop.slug || slugify(shop.name),
       };
     });
