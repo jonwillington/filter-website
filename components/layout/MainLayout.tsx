@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Sidebar, ShopFilterType } from '../sidebar/Sidebar';
-import { MapContainer } from '../map/MapContainer';
+
+// Dynamic import to prevent mapbox-gl from being bundled server-side (uses eval)
+const MapContainer = dynamic(
+  () => import('../map/MapContainer').then(mod => ({ default: mod.MapContainer })),
+  { ssr: false, loading: () => <div className="flex-1 bg-surface animate-pulse" /> }
+);
 import { ShopDrawer } from '../detail/ShopDrawer';
 import { LocationDrawer } from '../detail/LocationDrawer';
 import { UnifiedDrawer } from '../detail/UnifiedDrawer';
