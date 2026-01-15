@@ -256,12 +256,10 @@ h1, h2 {
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  overflow-y: auto;
-  overflow-y: overlay; /* Overlay scrollbar on content, doesn't take space */
+  overflow-y: scroll;
   animation: slideIn 0.3s ease-out;
   z-index: 2000;
   backdrop-filter: blur(20px);
-  scrollbar-width: none; /* Firefox - hidden by default */
 }
 
 .dark .drawer {
@@ -269,36 +267,14 @@ h1, h2 {
   backdrop-filter: blur(20px);
 }
 
+/* Hide scrollbar but keep functionality */
+.drawer {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 .drawer::-webkit-scrollbar {
-  width: 0;
-  background: transparent;
-}
-
-.drawer:hover::-webkit-scrollbar {
-  width: 6px;
-}
-
-.drawer::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.drawer::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 0.2s ease;
-}
-
-.drawer:hover::-webkit-scrollbar-thumb {
-  background: var(--border);
-}
-
-.drawer:hover::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
-}
-
-.drawer:hover {
-  scrollbar-width: thin; /* Firefox - show scrollbar on hover */
-  scrollbar-color: var(--border) transparent;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Premium color transitions for city changes - oh so beautiful */
