@@ -1,5 +1,7 @@
 // Core types adapted from filter-expo
 
+export type { Event } from './event';
+
 export interface MediaFormat {
   url?: string;
   width?: number;

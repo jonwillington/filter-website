@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { Location, Shop } from '@/lib/types';
+import { Location, Shop, Event } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
 import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
-import { Award } from 'lucide-react';
+import { Award, Calendar } from 'lucide-react';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
+import { EventCard, EventModal } from '@/components/events';
 
 interface LocationDrawerProps {
   location: Location;
   allShops: Shop[];
+  events?: Event[];
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
   useWrapper?: boolean;
@@ -21,10 +23,12 @@ interface LocationDrawerProps {
 export function LocationDrawer({
   location,
   allShops,
+  events = [],
   onClose,
   onShopSelect,
   useWrapper = true,
 }: LocationDrawerProps) {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
@@ -212,6 +216,26 @@ export function LocationDrawer({
             </div>
           </div>
 
+          {/* Upcoming Events */}
+          {events.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-3">
+                <Calendar size={14} className="text-text-secondary" />
+                <h3 className="text-base font-medium text-primary">Upcoming Events</h3>
+              </div>
+              <div className="space-y-3">
+                {events.map((event) => (
+                  <EventCard
+                    key={event.documentId}
+                    event={event}
+                    onClick={() => setSelectedEvent(event)}
+                    primaryColor={primaryColor}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* No Shops Message */}
           {totalShops === 0 && (
             <div className="bg-surface border border-border-default rounded-lg p-5">
@@ -286,6 +310,14 @@ export function LocationDrawer({
           )}
         </div>
       </div>
+
+      {/* Event Modal */}
+      <EventModal
+        event={selectedEvent}
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        primaryColor={primaryColor}
+      />
     </>
   );
 

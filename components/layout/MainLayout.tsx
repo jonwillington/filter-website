@@ -19,7 +19,7 @@ import { Footer } from './Footer';
 import { LoginModal } from '../auth/LoginModal';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Location, Shop, Country, CityArea } from '@/lib/types';
+import { Location, Shop, Country, CityArea, Event } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
@@ -40,6 +40,7 @@ interface MainLayoutProps {
   initialShop?: Shop | null;
   countries?: Country[];
   cityAreas?: CityArea[];
+  events?: Event[];
 }
 
 export function MainLayout({
@@ -49,6 +50,7 @@ export function MainLayout({
   initialShop = null,
   countries = [],
   cityAreas: propCityAreas = [],
+  events = [],
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -930,6 +932,7 @@ export function MainLayout({
                 key="location-drawer"
                 location={selectedLocation}
                 allShops={shops}
+                events={events}
                 onClose={() => {
                   // Start exit animation
                   setIsLocationDrawerClosing(true);
