@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Location, Shop, Event } from '@/lib/types';
-import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
 import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
 import { Accordion, AccordionItem } from '@heroui/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { EventCard, EventModal } from '@/components/events';
@@ -18,6 +19,8 @@ interface LocationDrawerProps {
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
   useWrapper?: boolean;
+  allLocations?: Location[];
+  onLocationChange?: (location: Location) => void;
 }
 
 export function LocationDrawer({
@@ -27,6 +30,8 @@ export function LocationDrawer({
   onClose,
   onShopSelect,
   useWrapper = true,
+  allLocations = [],
+  onLocationChange,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['topShops']));
@@ -103,6 +108,25 @@ export function LocationDrawer({
       });
   }, [events, currentLocation.documentId]);
 
+  // Filter locations in same country (sorted alphabetically)
+  const countryLocations = useMemo(() => {
+    if (!currentLocation.country?.documentId || !allLocations.length) return [];
+    return allLocations
+      .filter(loc =>
+        loc.country?.documentId === currentLocation.country?.documentId &&
+        !loc.comingSoon
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allLocations, currentLocation.country?.documentId]);
+
+  // Find current position in country locations
+  const currentIndex = countryLocations.findIndex(
+    loc => loc.documentId === currentLocation.documentId
+  );
+  const prevLocation = currentIndex > 0 ? countryLocations[currentIndex - 1] : null;
+  const nextLocation = currentIndex < countryLocations.length - 1
+    ? countryLocations[currentIndex + 1] : null;
+
   // Cascade color priority: location-level → country-level → default
   const primaryColor =
     currentLocation.primaryColor ||
@@ -126,7 +150,8 @@ export function LocationDrawer({
         onClose={onClose}
       />
 
-      <div className="drawer-content">
+      <div className="flex flex-col min-h-full">
+      <div className="drawer-content flex-1">
         {/* Beta Banner - sits at very top, header overlaps with curved corners */}
         {currentLocation.beta && (
           <div
@@ -151,7 +176,7 @@ export function LocationDrawer({
         >
           {/* Top header row with City Guide and close button */}
           <div
-            className="relative flex items-center justify-between px-6 py-4"
+            className="relative flex items-center justify-between px-6 py-4 border-b border-white/10"
             style={{
               opacity: 1 - stickyHeaderOpacity,
               pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
@@ -160,12 +185,12 @@ export function LocationDrawer({
             <span className="text-xs text-white/70 uppercase tracking-wide font-medium">
               City Guide
             </span>
-            <CircularCloseButton onPress={onClose} size="md" />
+            <CircularCloseButton onPress={onClose} size="sm" />
           </div>
 
           {/* Contained feature image */}
-          <div className="px-6 pb-4">
-            <div className="relative w-full h-[140px] rounded-xl overflow-hidden shadow-lg">
+          <div className="px-6 pt-4 pb-4">
+            <div className="relative w-full h-[140px] rounded-xl overflow-hidden">
               {backgroundImage ? (
                 <Image
                   src={backgroundImage}
@@ -179,7 +204,7 @@ export function LocationDrawer({
             </div>
 
             {/* Location name and country in one row */}
-            <div className="flex items-baseline gap-2 mt-4">
+            <div className="flex items-baseline gap-1.5 mt-4">
               <h2
                 className="text-white"
                 style={{
@@ -361,7 +386,7 @@ export function LocationDrawer({
                           {/* Content - middle */}
                           <div className="flex-1 min-w-0">
                             {/* Shop name */}
-                            <h4 className="font-medium text-primary text-base leading-tight line-clamp-2">
+                            <h4 className="font-medium text-primary text-[15px] leading-tight line-clamp-2">
                               {displayName}
                             </h4>
 
@@ -411,6 +436,47 @@ export function LocationDrawer({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Location Navigation Footer */}
+      {countryLocations.length > 1 && onLocationChange && (
+        <div className="border-t border-border-default bg-background px-6 py-3">
+          <div className="grid grid-cols-3 items-center">
+            {/* Previous */}
+            <div className="justify-self-start">
+              {prevLocation && (
+                <button
+                  onClick={() => onLocationChange(prevLocation)}
+                  className="flex items-center gap-1 text-sm text-text-secondary hover:text-primary transition-colors"
+                >
+                  <ChevronLeft size={18} />
+                  <span className="max-w-[100px] truncate">{prevLocation.name}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Position indicator */}
+            <span className="text-xs text-text-secondary justify-self-center">
+              {currentIndex + 1} of {countryLocations.length}
+            </span>
+
+            {/* Next */}
+            <div className="justify-self-end">
+              {nextLocation ? (
+                <button
+                  onClick={() => onLocationChange(nextLocation)}
+                  className="flex items-center gap-1 text-sm text-text-secondary hover:text-primary transition-colors"
+                >
+                  <span className="max-w-[100px] truncate">{nextLocation.name}</span>
+                  <ChevronRight size={18} />
+                </button>
+              ) : (
+                <span className="text-xs text-text-secondary italic">More cities soon!</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Event Modal */}

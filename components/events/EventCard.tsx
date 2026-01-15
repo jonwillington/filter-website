@@ -65,7 +65,7 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
           </div>
 
           {/* Event name */}
-          <h4 className="font-medium text-primary text-sm leading-tight line-clamp-2">
+          <h4 className="font-medium text-primary text-[15px] leading-tight line-clamp-2">
             {event.name}
           </h4>
 

@@ -1109,6 +1109,8 @@ export function MainLayout({
                 }}
                 onShopSelect={handleShopSelect}
                 useWrapper={false}
+                allLocations={cachedLocations}
+                onLocationChange={handleLocationChange}
               />
             ) : null}
           </UnifiedDrawer>

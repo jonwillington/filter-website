@@ -131,7 +131,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         ) : (
           <div />
         )}
-        <CircularCloseButton onPress={onClose} size="md" />
+        <CircularCloseButton onPress={onClose} size="sm" />
       </div>
 
       {/* Content */}
