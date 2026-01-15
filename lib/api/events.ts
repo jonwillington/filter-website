@@ -43,7 +43,7 @@ export async function getAllEvents(): Promise<Event[]> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
           },
-          next: { revalidate: 300 },
+          cache: 'no-store',
         }
       );
 
