@@ -8,7 +8,7 @@
     "prefetch": "node scripts/prefetch-data.js",
     "prefetch:prod": "USE_PROD=1 node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
     "build": "next build",
-    "build:cloudflare": "npx @opennextjs/cloudflare build && mkdir -p .open-next/deploy && cp -r .open-next/assets/* .open-next/deploy/ && cp .open-next/worker.js .open-next/deploy/_worker.js && cp -r .open-next/cloudflare .open-next/deploy/ && cp -r .open-next/middleware .open-next/deploy/ && cp -r .open-next/server-functions .open-next/deploy/ && cp -r .open-next/.build .open-next/deploy/",
+    "build:cloudflare": "npx @opennextjs/cloudflare build && cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/ && cp -r .open-next/middleware .open-next/assets/ && cp -r .open-next/server-functions .open-next/assets/ && cp -r .open-next/.build .open-next/assets/",
     "build:no-prefetch": "next build",
     "preview": "wrangler pages dev",
     "start": "next start",
