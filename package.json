@@ -8,7 +8,7 @@
     "prefetch": "node scripts/prefetch-data.js",
     "prefetch:prod": "USE_PROD=1 node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
     "build": "next build",
-    "build:cloudflare": "npx @opennextjs/cloudflare build",
+    "build:cloudflare": "npx @opennextjs/cloudflare build && cp -r .open-next/assets/* .open-next/cloudflare/ && cp .open-next/worker.js .open-next/cloudflare/_worker.js",
     "build:no-prefetch": "next build",
     "preview": "wrangler pages dev",
     "start": "next start",
