@@ -9,6 +9,29 @@ import { slugify, getMediaUrl } from '@/lib/utils';
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
 
+// Pre-render all shop pages at build time
+export async function generateStaticParams() {
+  const allShops = await getAllShops();
+
+  return allShops
+    .filter((shop) => {
+      // Need location with country, and city_area for the area segment
+      const location = shop.location;
+      const cityArea = shop.city_area || shop.cityArea;
+      return location?.country?.name && location?.name && cityArea?.name;
+    })
+    .map((shop) => {
+      const location = shop.location!;
+      const cityArea = (shop.city_area || shop.cityArea)!;
+      return {
+        country: slugify(location.country!.name),
+        city: location.slug || slugify(location.name),
+        area: slugify(cityArea.name),
+        shop: shop.slug || slugify(shop.name),
+      };
+    });
+}
+
 interface ShopPageProps {
   params: Promise<{ country: string; city: string; area: string; shop: string }>;
 }

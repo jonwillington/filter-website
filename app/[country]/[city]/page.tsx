@@ -10,6 +10,18 @@ import { slugify } from '@/lib/utils';
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
 
+// Pre-render all city pages at build time
+export async function generateStaticParams() {
+  const locations = await getAllLocations();
+
+  return locations
+    .filter((location) => location.country?.name) // Only locations with a country
+    .map((location) => ({
+      country: slugify(location.country!.name),
+      city: location.slug || slugify(location.name),
+    }));
+}
+
 interface CityPageProps {
   params: Promise<{ country: string; city: string }>;
 }

@@ -9,6 +9,24 @@ import { deslugify, slugify, getMediaUrl } from '@/lib/utils';
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
 
+// Pre-render all area pages at build time
+export async function generateStaticParams() {
+  const cityAreas = await getAllCityAreas();
+
+  return cityAreas
+    .filter((area) => area.location?.country?.name && area.location?.name)
+    .map((area) => {
+      const location = area.location!;
+      const countryName = location.country!.name!;
+      const citySlug = location.slug || slugify(location.name!);
+      return {
+        country: slugify(countryName),
+        city: citySlug,
+        area: slugify(area.name),
+      };
+    });
+}
+
 interface AreaPageProps {
   params: Promise<{ country: string; city: string; area: string }>;
 }
