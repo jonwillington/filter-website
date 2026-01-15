@@ -264,10 +264,10 @@ export function MainLayout({
           setTimeout(() => {
             setSelectedLocation(matchedLocation);
 
-            // Navigate to the location page
+            // Update URL without server round-trip (shallow routing)
             const countrySlug = slugify(matchedLocation.country?.name ?? '');
             const citySlug = slugify(matchedLocation.name);
-            router.push(`/${countrySlug}/${citySlug}`);
+            window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
           }, 300);
         } else {
           // Area detected but location not in our list
@@ -328,6 +328,86 @@ export function MainLayout({
     }
   }, [isPermissionBlocked, isLoading]);
 
+  // Handle browser back/forward navigation (popstate)
+  // Since we use shallow routing (pushState), we need to sync state when URL changes
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const segments = path.split('/').filter(Boolean);
+
+      if (segments.length === 0) {
+        // Root path - explore mode
+        setSelectedLocation(null);
+        setSelectedShop(null);
+        setIsExploreMode(true);
+        setIsNearbyMode(false);
+        setMapCenter([0, 20]);
+        setMapZoom(2);
+        return;
+      }
+
+      // Try to match location from URL: /{country}/{city}
+      if (segments.length >= 2) {
+        const [countrySlug, citySlug] = segments;
+        const matchedLocation = cachedLocations.find(
+          (loc) =>
+            slugify(loc.country?.name ?? '') === countrySlug &&
+            slugify(loc.name) === citySlug
+        );
+
+        if (matchedLocation) {
+          setSelectedLocation(matchedLocation);
+          setIsExploreMode(false);
+          setIsNearbyMode(false);
+
+          // If 4 segments, try to match shop: /{country}/{city}/{area}/{shop}
+          if (segments.length >= 4) {
+            const shopSlug = segments[3];
+            const matchedShop = cachedShops.find(
+              (shop) =>
+                getShopSlug(shop) === shopSlug &&
+                (shop.location?.documentId === matchedLocation.documentId ||
+                  shop.city_area?.location?.documentId === matchedLocation.documentId)
+            );
+
+            if (matchedShop) {
+              setSelectedShop(matchedShop);
+              const coords = getShopCoordinates(matchedShop);
+              if (coords) {
+                setMapCenter([coords[0], coords[1]]);
+                setMapZoom(16);
+              }
+              return;
+            }
+          }
+
+          // Location only - clear shop, center on location
+          setSelectedShop(null);
+          setShopHistory([]);
+          const locationShops = cachedShops.filter(
+            (s) =>
+              s.location?.documentId === matchedLocation.documentId ||
+              s.city_area?.location?.documentId === matchedLocation.documentId
+          );
+          const validShops = locationShops.filter((s) => getShopCoordinates(s));
+          if (validShops.length > 0) {
+            const avgLng =
+              validShops.reduce((sum, s) => sum + (getShopCoordinates(s)?.[0] ?? 0), 0) /
+              validShops.length;
+            const avgLat =
+              validShops.reduce((sum, s) => sum + (getShopCoordinates(s)?.[1] ?? 0), 0) /
+              validShops.length;
+            setMapCenter([avgLng, avgLat]);
+            setMapZoom(12);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [cachedLocations, cachedShops]);
+
   // Sync state with props - only update if the ID actually changed
   // This prevents double-renders when navigating between shops
   useEffect(() => {
@@ -383,13 +463,14 @@ export function MainLayout({
         setMapZoom(2);
       }
 
-      // Navigate to the location page immediately (no delay)
+      // Update URL without server round-trip (shallow routing)
+      // State is already updated above, so just sync the URL
       if (location) {
         const countrySlug = slugify(location.country?.name ?? '');
         const citySlug = slugify(location.name);
-        router.push(`/${countrySlug}/${citySlug}`);
+        window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
       } else {
-        router.push('/');
+        window.history.pushState(null, '', '/');
       }
 
       // Set a timeout fallback to ensure loading doesn't take too long
@@ -639,14 +720,8 @@ export function MainLayout({
 
       if (countrySlug && citySlug && areaSlug && shopSlug) {
         const newUrl = `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`;
-
-        // Use history.pushState for same-location navigation to avoid remounting
-        // This updates the URL without triggering Next.js page navigation
-        if (isSameLocation && selectedShop) {
-          window.history.pushState({}, '', newUrl);
-        } else {
-          router.push(newUrl, { scroll: false });
-        }
+        // Always use shallow routing to avoid server round-trip
+        window.history.pushState({}, '', newUrl);
       }
     },
     [router, selectedLocation, selectedShop]
@@ -656,13 +731,13 @@ export function MainLayout({
     setSelectedShop(null);
     setShopHistory([]); // Clear history when closing drawer
 
-    // Stay on the city view when closing a shop drawer
+    // Stay on the city view when closing a shop drawer (shallow URL update)
     if (selectedLocation) {
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
       const citySlug = slugify(selectedLocation.name);
-      router.push(`/${countrySlug}/${citySlug}`, { scroll: false });
+      window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
     }
-  }, [router, selectedLocation]);
+  }, [selectedLocation]);
 
   // Handle going back - either to previous shop or to location drawer
   const handleShopBack = useCallback(() => {
