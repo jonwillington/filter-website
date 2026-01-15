@@ -38,7 +38,7 @@ export function BrandShopsModal({
       }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-gray-200 dark:border-white/10">
+      <div className="sticky top-0 z-10 bg-background border-b border-border-default">
         <div className="px-6 py-5 flex items-center gap-3">
           {brandLogo ? (
             <img
@@ -66,7 +66,7 @@ export function BrandShopsModal({
 
       <ModalBody className="p-0">
         <ScrollShadow className="max-h-[70vh]">
-          <div className="divide-y divide-gray-200 dark:divide-white/10">
+          <div className="divide-y divide-border-default">
             {shops.map((shop) => (
               <ShopMiniCard
                 key={shop.documentId}

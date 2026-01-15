@@ -110,7 +110,7 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
           )}
         </div>
       ) : (
-        <div className="text-center py-8 rounded-lg border border-gray-200 dark:border-white/10">
+        <div className="text-center py-8 rounded-lg border border-border-default">
           <Image
             src="/empty_beans.png"
             alt="Coffee beans illustration"

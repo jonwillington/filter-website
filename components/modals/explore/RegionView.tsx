@@ -27,8 +27,8 @@ export function RegionView({ groupedData, onLocationSelect }: RegionViewProps) {
             <div
               key={rowIndex}
               className={cn(
-                'grid grid-cols-3 divide-x divide-gray-200 dark:divide-white/10',
-                rowIndex > 0 && 'mt-8 pt-8 border-t border-gray-200 dark:border-white/10'
+                'grid grid-cols-3 divide-x divide-border-default',
+                rowIndex > 0 && 'mt-8 pt-8 border-t border-border-default'
               )}
             >
               {/* Render 3 columns, with empty placeholder if fewer regions */}

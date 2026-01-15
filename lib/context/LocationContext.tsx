@@ -167,16 +167,31 @@ export function LocationProvider({
       setIsExploreMode(false);
       setSelectedLocation(location);
 
-      if (location?.coordinates) {
-        const coords = Array.isArray(location.coordinates)
-          ? location.coordinates[0]
-          : location.coordinates;
-        if (coords && 'lat' in coords && 'lng' in coords) {
+      // Calculate map center from shop positions (same as initial page load)
+      if (location) {
+        const locationShops = allShops.filter(s =>
+          s.location?.documentId === location.documentId ||
+          s.city_area?.location?.documentId === location.documentId
+        );
+        const validShops = locationShops.filter((s) => getShopCoords(s));
+
+        if (validShops.length > 0) {
+          const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
+          const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
           navigationLocationIdRef.current = location.documentId;
-          setMapCenter([coords.lng, coords.lat]);
+          setMapCenter([avgLng, avgLat]);
           setMapZoom(12);
+        } else if (location.coordinates) {
+          // Fallback to location coordinates if no shops
+          const coords = Array.isArray(location.coordinates) ? location.coordinates[0] : location.coordinates;
+          if (coords && 'lat' in coords && 'lng' in coords) {
+            navigationLocationIdRef.current = location.documentId;
+            setMapCenter([coords.lng, coords.lat]);
+            setMapZoom(12);
+          }
         }
-      } else if (!location) {
+      } else {
+        // Explore mode - world view
         setMapCenter([0, 20]);
         setMapZoom(2);
       }
@@ -194,7 +209,7 @@ export function LocationProvider({
         loadingTimeoutRef.current = null;
       }, 2000);
     },
-    [router]
+    [router, getShopCoords]
   );
 
   const handleShopSelect = useCallback(

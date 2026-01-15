@@ -45,7 +45,7 @@
   --secondary: #4A3B2E;
   --text: #1A1A1A;
   --text-secondary: #9A9A9A;
-  --border: #E5DDD5;
+  --border: #E8E8E8;
   --error: #DC2626;
   --success: #16A34A;
   --warning: #D97706;
@@ -271,6 +271,7 @@ h1, h2 {
 .drawer {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
+  scrollbar-gutter: stable;
 }
 
 .drawer::-webkit-scrollbar {
@@ -298,6 +299,13 @@ h1, h2 {
   overflow-y: auto;
   z-index: 2000;
   backdrop-filter: blur(20px);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scrollbar-gutter: stable;
+}
+
+.shop-drawer::-webkit-scrollbar {
+  display: none;
 }
 
 .shop-drawer.entering {

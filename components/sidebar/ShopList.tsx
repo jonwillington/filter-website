@@ -167,8 +167,8 @@ export function ShopList({
     );
   }
 
-  // If less than 6 areas, show simple alphabetical list without group headers
-  const useSimpleList = areasWithGroups.length < 6;
+  // If fewer than 10 areas, show simple alphabetical list without group headers
+  const useSimpleList = areasWithGroups.length < 10;
 
   if (useSimpleList) {
     // Sort areas alphabetically
@@ -272,7 +272,7 @@ function AreaSection({
   };
 
   return (
-    <div className="border-b border-gray-200 dark:border-white/5 last:border-b-0">
+    <div className="border-b border-border-default last:border-b-0">
       <button
         onClick={toggleExpanded}
         className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"

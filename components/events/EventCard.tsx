@@ -31,7 +31,7 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg p-2 -mx-2 group"
+      className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg py-2 group"
     >
       <div className="flex gap-3">
         {/* Content - left side */}
@@ -70,17 +70,17 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
           </h4>
 
           {/* Date and location info */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <Calendar size={14} className="flex-shrink-0" />
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+              <Calendar size={12} className="flex-shrink-0" />
               <span>
                 {dateLabel} · {timeLabel}
               </span>
             </div>
 
             {event.physicalLocation && (
-              <div className="flex items-center gap-2 text-sm text-text-secondary">
-                <MapPin size={14} className="flex-shrink-0" />
+              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                <MapPin size={12} className="flex-shrink-0" />
                 <span className="line-clamp-1">{event.physicalLocation}</span>
               </div>
             )}
@@ -114,17 +114,23 @@ export function EventCard({ event, onClick, primaryColor }: EventCardProps) {
           )}
         </div>
 
-        {/* Image - right side */}
-        {imageUrl && (
-          <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
+        {/* Image - right side (always show, with placeholder) */}
+        <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/10">
+          {imageUrl ? (
             <Image
               src={imageUrl}
               alt={event.name}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
-          </div>
-        )}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-300 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          )}
+        </div>
       </div>
     </button>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Location, Shop, Event } from '@/lib/types';
-import { getMediaUrl } from '@/lib/utils';
+import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
 import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
@@ -30,7 +30,7 @@ export function LocationDrawer({
   useWrapper = true,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['topShops']));
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
@@ -65,10 +65,10 @@ export function LocationDrawer({
   // Use extracted hook for sticky header opacity
   const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
 
-  // Reset opacity and collapse accordions when location changes
+  // Reset opacity and reset accordions when location changes (keep topShops open)
   useEffect(() => {
     resetOpacity();
-    setExpandedKeys(new Set());
+    setExpandedKeys(new Set(['topShops']));
   }, [location.documentId, resetOpacity]);
 
   // Use location directly - no internal state needed
@@ -244,13 +244,13 @@ export function LocationDrawer({
             <Accordion
               selectedKeys={expandedKeys}
               onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
-              variant="splitted"
-              className="px-0"
+              variant="light"
+              className="px-0 gap-0"
               itemClasses={{
-                base: 'bg-surface rounded-xl shadow-none',
+                base: 'bg-surface rounded-xl shadow-none overflow-hidden',
                 title: 'text-base font-medium text-primary',
-                trigger: 'px-2 py-2.5',
-                content: 'px-2 pb-2 pt-0',
+                trigger: 'px-4 py-3 data-[open=true]:bg-gray-100 dark:data-[open=true]:bg-white/5 transition-colors',
+                content: 'px-4 pb-3 pt-3',
                 indicator: 'text-text-secondary',
               }}
             >
@@ -279,13 +279,13 @@ export function LocationDrawer({
             <Accordion
               selectedKeys={expandedKeys}
               onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
-              variant="splitted"
-              className="px-0 mt-2"
+              variant="light"
+              className="px-0 gap-0"
               itemClasses={{
-                base: 'bg-surface rounded-xl shadow-none',
+                base: 'bg-surface rounded-xl shadow-none overflow-hidden',
                 title: 'text-base font-medium text-primary',
-                trigger: 'px-2 py-2.5',
-                content: 'px-2 pb-2 pt-0',
+                trigger: 'px-4 py-3 data-[open=true]:bg-gray-100 dark:data-[open=true]:bg-white/5 transition-colors',
+                content: 'px-4 pb-3 pt-3',
                 indicator: 'text-text-secondary',
               }}
             >
@@ -300,67 +300,69 @@ export function LocationDrawer({
                     const imageUrl = getMediaUrl(shop.featured_image);
                     const logoUrl = getMediaUrl(shop.brand?.logo);
                     const neighborhoodName = shop.city_area?.name;
+                    const displayName = getShopDisplayName(shop);
 
                     return (
                       <button
                         key={shop.documentId}
                         onClick={() => onShopSelect(shop)}
-                        className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg p-2 -mx-2 group"
+                        className="w-full text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg py-2 group"
                       >
-                        <div className="flex gap-3">
-                          {/* Content - left side */}
-                          <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-3">
+                          {/* Brand avatar - far left */}
+                          {shop.brand && (
+                            logoUrl ? (
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
+                                <Image
+                                  src={logoUrl}
+                                  alt={shop.brand.name}
+                                  width={40}
+                                  height={40}
+                                  className="object-cover w-full h-full"
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0"
+                                style={{ backgroundColor: primaryColor }}
+                              >
+                                {shop.brand.name.charAt(0)}
+                              </div>
+                            )
+                          )}
+
+                          {/* Content - middle */}
+                          <div className="flex-1 min-w-0">
                             {/* Shop name */}
                             <h4 className="font-medium text-primary text-base leading-tight line-clamp-2">
-                              {shop.name}
+                              {displayName}
                             </h4>
 
-                            {/* Neighborhood */}
+                            {/* Neighborhood - reduced gap */}
                             {neighborhoodName && (
-                              <p className="text-sm text-text-secondary line-clamp-1">
+                              <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">
                                 {neighborhoodName}
                               </p>
                             )}
-
-                            {/* Brand */}
-                            {shop.brand && (
-                              <div className="flex items-center gap-2 pt-0.5">
-                                {logoUrl ? (
-                                  <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
-                                    <Image
-                                      src={logoUrl}
-                                      alt={shop.brand.name}
-                                      width={20}
-                                      height={20}
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div
-                                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"
-                                    style={{ backgroundColor: primaryColor }}
-                                  >
-                                    {shop.brand.name.charAt(0)}
-                                  </div>
-                                )}
-                                <span className="text-xs text-text-secondary">
-                                  {shop.brand.name}
-                                </span>
-                              </div>
-                            )}
                           </div>
 
-                          {/* Image - right side */}
-                          {imageUrl && (
-                            <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
+                          {/* Image - far right (always show, with placeholder) */}
+                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/10">
+                            {imageUrl ? (
                               <Image
                                 src={imageUrl}
-                                alt={shop.name}
+                                alt={displayName}
                                 fill
                                 className="object-cover group-hover:scale-105 transition-transform duration-300"
                               />
-                            </div>
-                          )}
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-gray-300 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );

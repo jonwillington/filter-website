@@ -17,7 +17,7 @@ interface StickyDrawerHeaderProps {
 export function StickyDrawerHeader({ title, opacity, onClose, onBack, backLabel }: StickyDrawerHeaderProps) {
   return (
     <div
-      className="sticky top-0 left-0 right-0 z-30 bg-background border-b border-gray-200 dark:border-white/10 px-4 py-2 flex items-center justify-between h-14 -mb-14"
+      className="sticky top-0 left-0 right-0 z-30 bg-background border-b border-border-default px-4 py-2 flex items-center justify-between h-14 -mb-14"
       style={{
         opacity,
         pointerEvents: opacity > 0.5 ? 'auto' : 'none',

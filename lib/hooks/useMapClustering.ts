@@ -576,22 +576,11 @@ export function useMapClustering({
       }
     }
 
-    // Style new selected marker
+    // Style new selected marker (position handled by useMapPosition)
     if (selectedShop && markers.current.has(selectedShop.documentId)) {
       const marker = markers.current.get(selectedShop.documentId);
       if (marker) {
         updateMarkerStyle(marker.getElement(), true, selectedShop);
-
-        // Fly to selected shop
-        const coords = getShopCoords(selectedShop);
-        if (coords) {
-          map.flyTo({
-            center: coords,
-            zoom: Math.max(map.getZoom() || 14, 14),
-            duration: 800,
-            padding: { left: 200, right: 0, top: 0, bottom: 0 },
-          });
-        }
       }
     }
 
