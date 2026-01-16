@@ -108,9 +108,11 @@ export function useMapClustering({
     const setupClustering = () => {
       // Safety check - ensure map is still valid
       if (!m || !m.getStyle()) {
-        console.warn('Map not ready for clustering setup');
+        console.warn('[Clustering] Map not ready for setup, will retry');
         return;
       }
+
+      console.log('[Clustering] Setting up with', shops.length, 'shops');
 
       // Remove existing source and layers if they exist
       try {
@@ -155,10 +157,7 @@ export function useMapClustering({
         features,
       };
 
-      // Log for debugging
-      if (features.length === 0) {
-        console.warn('No shop features to display on map');
-      }
+      console.log('[Clustering] Created GeoJSON with', features.length, 'features');
 
       // Add clustered source with industry-standard configuration
       try {
@@ -312,8 +311,9 @@ export function useMapClustering({
           ],
         },
       });
+        console.log('[Clustering] Layers added successfully');
       } catch (e) {
-        console.error('Error adding map layers:', e);
+        console.error('[Clustering] Error adding map layers:', e);
         return;
       }
 
@@ -500,7 +500,7 @@ export function useMapClustering({
         m.resize();
       }, 100);
 
-      // Cleanup function
+      // Cleanup function - remove ALL event listeners we added
       return () => {
         clearTimeout(ensureMarkersTimeout);
         m.off('dragstart', handleDragStart);
@@ -509,34 +509,55 @@ export function useMapClustering({
         m.off('zoomend', handleZoomEnd);
         m.off('sourcedata', handleSourceData);
         m.off('idle', handleIdle);
+
+        // Remove layer-specific click handlers
+        // Note: We can't easily remove anonymous handlers, but removing the layers
+        // will effectively disable them. The cleanup in the effect will remove layers.
       };
     };
 
-    // Wait for style to be fully loaded before setting up clustering
+    // Run setup with retry logic to handle timing issues during map animations
     let cleanup: (() => void) | undefined;
+    let retryTimeout: NodeJS.Timeout | undefined;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
-    if (m.isStyleLoaded()) {
+    const attemptSetup = () => {
+      // Try to run setup
       cleanup = setupClustering();
-    } else {
-      const onStyleLoad = () => {
-        cleanup = setupClustering();
-      };
-      m.once('style.load', onStyleLoad);
 
-      m.once('idle', () => {
-        if (!cleanup && m.isStyleLoaded()) {
-          cleanup = setupClustering();
-        }
-      });
+      // If setup returned undefined (failed), retry after a delay
+      if (!cleanup && retryCount < MAX_RETRIES) {
+        retryCount++;
+        retryTimeout = setTimeout(() => {
+          if (m && m.getStyle()) {
+            cleanup = setupClustering();
+          }
+        }, 100 * retryCount); // Increasing delay: 100ms, 200ms, 300ms
+      }
+    };
 
-      return () => {
-        m.off('style.load', onStyleLoad);
-        cleanup?.();
-      };
-    }
+    // Small delay to let map animations settle when shops change
+    const initialTimeout = setTimeout(attemptSetup, 50);
 
     return () => {
+      clearTimeout(initialTimeout);
+      if (retryTimeout) clearTimeout(retryTimeout);
       cleanup?.();
+
+      // Also clean up layers and source on unmount/re-run
+      try {
+        if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
+        if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
+        if (m.getLayer('clusters')) m.removeLayer('clusters');
+        if (m.getSource('shops')) m.removeSource('shops');
+      } catch {
+        // Ignore errors during cleanup
+      }
+
+      // Clear markers
+      markers.current.forEach((marker) => marker.remove());
+      markers.current.clear();
     };
   }, [shops, createMarkerElementForShop, mapReady, map, effectiveTheme]);
 
