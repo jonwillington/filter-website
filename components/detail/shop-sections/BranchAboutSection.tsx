@@ -14,7 +14,7 @@ export function BranchAboutSection({ shop }: BranchAboutSectionProps) {
     <>
       <Divider className="my-5 opacity-30" />
       <div>
-        <h3 className="text-base font-semibold text-primary mb-3">
+        <h3 className="text-lg font-semibold text-primary mb-3">
           About This Branch
         </h3>
         <p className="text-sm text-text leading-snug whitespace-pre-line">

@@ -27,7 +27,7 @@ export function AmenityList({ shop }: AmenityListProps) {
     <>
       <Divider className="my-5 opacity-30" />
       <div>
-      <h3 className="text-base font-semibold text-primary mb-3">
+      <h3 className="text-lg font-semibold text-primary mb-3">
         Amenities
       </h3>
       <div className="flex flex-wrap gap-2">

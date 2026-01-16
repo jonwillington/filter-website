@@ -110,9 +110,9 @@ export function BeansSection({ shop }: BeansSectionProps) {
     <>
       <Divider className="my-5 opacity-30" />
       <div className="space-y-4">
-      {/* Coffee Roasting header */}
-      <h3 className="text-base font-semibold text-primary mb-2">
-        Coffee Roasting
+      {/* Roasting header */}
+      <h3 className="text-lg font-semibold text-primary mb-2">
+        Roasting
       </h3>
 
       {/* In-house roasting badge */}

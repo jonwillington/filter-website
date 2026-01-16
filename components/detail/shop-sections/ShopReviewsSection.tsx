@@ -65,7 +65,7 @@ export function ShopReviewsSection({ shop, onOpenLoginModal }: ShopReviewsSectio
       <Divider className="my-5 opacity-30" />
       <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-primary">
+        <h3 className="text-lg font-semibold text-primary">
           Reviews
         </h3>
         <Button
