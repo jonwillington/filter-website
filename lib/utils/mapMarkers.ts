@@ -31,6 +31,7 @@ const HIGH_DENSITY_THRESHOLD = 30;
 const ZOOM_THRESHOLD = 15; // Below this zoom, always use simple markers
 const TEXT_ZOOM_THRESHOLD = 16.5; // Below this zoom, hide text labels (logo only)
 const LOGO_ZOOM_THRESHOLD = 17; // Above this zoom, show logos even in high density areas
+const LOGO_BADGE_ZOOM = 15; // Zoom level at which logo badges start appearing
 
 /**
  * Ensures the shimmer animation style is added to the document
@@ -309,4 +310,116 @@ export function updateMarkerStyle(
 
   el.style.zIndex = isSelected ? '10' : '1';
   el.className = `shop-marker${isSelected ? ' selected' : ''}`;
+}
+
+/**
+ * Create a logo badge marker element.
+ * This is a small floating logo that appears above the Mapbox circle marker.
+ * Only shows if the shop has a brand logo.
+ */
+export function createLogoBadgeElement(
+  shop: Shop,
+  isSelected: boolean,
+  effectiveTheme: 'light' | 'dark',
+  options: {
+    fadeIn?: boolean;
+    zoomLevel?: number;
+  } = {}
+): HTMLDivElement | null {
+  const { fadeIn = false, zoomLevel = 16 } = options;
+  const logoUrl = getMediaUrl(shop.brand?.logo);
+
+  const themeConfig = getMarkerThemeConfig(effectiveTheme);
+  const { labelBg, shimmerGradient } = themeConfig;
+
+  // Size based on zoom level - significantly larger than circle markers to cover them
+  const size = zoomLevel >= 17 ? 48 : zoomLevel >= 16 ? 44 : 40;
+
+  const el = document.createElement('div');
+  el.className = `logo-badge${isSelected ? ' selected' : ''}`;
+
+  // If no logo, show pink placeholder (useful for dev/testing)
+  if (!logoUrl) {
+    el.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50%;
+      border: 2px solid ${isSelected ? '#8B6F47' : 'white'};
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      cursor: pointer;
+      opacity: ${fadeIn ? '0' : '1'};
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+      transform: ${isSelected ? 'scale(1.15)' : 'scale(1)'};
+      position: absolute;
+      background: #FF69B4;
+    `;
+    el.style.zIndex = isSelected ? '10' : '1';
+
+    if (fadeIn) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.opacity = '1';
+        });
+      });
+    }
+
+    return el;
+  }
+
+  el.style.cssText = `
+    width: ${size}px;
+    height: ${size}px;
+    border-radius: 50%;
+    border: 2px solid ${isSelected ? '#8B6F47' : 'white'};
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    cursor: pointer;
+    opacity: ${fadeIn ? '0' : '1'};
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+    transform: ${isSelected ? 'scale(1.15)' : 'scale(1)'};
+    position: absolute;
+    background: ${shimmerGradient};
+    background-size: 200% 200%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  `;
+  el.style.zIndex = isSelected ? '10' : '1';
+
+  ensureShimmerStyle();
+
+  // Preload image and swap when ready
+  const img = new Image();
+  img.onload = () => {
+    el.style.backgroundImage = `url(${logoUrl})`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.style.backgroundColor = labelBg;
+    el.style.background = `url(${logoUrl}) center/cover ${labelBg}`;
+    el.style.animation = 'none';
+  };
+  img.src = logoUrl;
+
+  // Fade in after a brief delay if fadeIn is true
+  if (fadeIn) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.opacity = '1';
+      });
+    });
+  }
+
+  return el;
+}
+
+/**
+ * Update logo badge styling when selection changes.
+ */
+export function updateLogoBadgeStyle(
+  el: HTMLElement,
+  isSelected: boolean
+): void {
+  el.style.borderColor = isSelected ? '#8B6F47' : 'white';
+  el.style.transform = isSelected ? 'scale(1.15)' : 'scale(1)';
+  el.style.zIndex = isSelected ? '10' : '1';
+  el.className = `logo-badge${isSelected ? ' selected' : ''}`;
 }

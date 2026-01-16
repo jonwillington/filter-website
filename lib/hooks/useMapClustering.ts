@@ -1,12 +1,11 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import mapboxgl, { MapSourceDataEvent, MapLayerMouseEvent } from 'mapbox-gl';
 import { Shop } from '../types';
 import {
   getShopCoords,
-  calculateLocalDensity,
   getZoomBracket,
 } from '../utils/mapGeometry';
-import { createMarkerElement, updateMarkerStyle } from '../utils/mapMarkers';
+import { createLogoBadgeElement, updateLogoBadgeStyle } from '../utils/mapMarkers';
 
 // Industry standard clustering parameters (Mapbox/Supercluster best practices)
 const CLUSTER_RADIUS = 50; // Optimal radius for urban density (40-60 recommended)
@@ -42,8 +41,8 @@ export function useMapClustering({
   onTransitionComplete,
   isLoading,
 }: UseMapClusteringOptions): void {
-  // Refs for markers and state tracking
-  const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  // Refs for logo badges and state tracking
+  const logoBadges = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const selectedMarkerRef = useRef<string | null>(null);
   const isZooming = useRef<boolean>(false);
   const isDragging = useRef<boolean>(false);
@@ -51,6 +50,8 @@ export function useMapClustering({
   const hasCalledTransitionComplete = useRef<boolean>(false);
   const wasAboveZoomThreshold = useRef(getZoomBracket(currentZoom));
   const previousShopIdsRef = useRef<string>('');
+  const badgeShowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isProgrammaticMove = useRef<boolean>(false);
 
   // Store callbacks in refs to avoid re-running setup when they change
   const onShopSelectRef = useRef(onShopSelect);
@@ -69,17 +70,8 @@ export function useMapClustering({
     }
   }, [isLoading]);
 
-  // Create marker element helper bound to current theme
-  const createMarkerElementForShop = useCallback(
-    (shop: Shop, isSelected: boolean, fadeIn: boolean, density: number, zoomLevel: number) => {
-      return createMarkerElement(shop, isSelected, effectiveTheme, {
-        fadeIn,
-        density,
-        zoomLevel,
-      });
-    },
-    [effectiveTheme]
-  );
+  // Zoom threshold for showing logo badges (above circle markers)
+  const LOGO_BADGE_ZOOM = 15;
 
   // Setup clustering source and layers
   // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
@@ -91,7 +83,7 @@ export function useMapClustering({
     const shopsChanged = currentShopIds !== previousShopIdsRef.current;
     previousShopIdsRef.current = currentShopIds;
 
-    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'markerCount:', markers.current.size);
+    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'badgeCount:', logoBadges.current.size);
 
     const m = map;
 
@@ -102,15 +94,13 @@ export function useMapClustering({
         return;
       }
 
-      // Only recreate layers/markers if shops actually changed or first run
-      // Check source existence rather than markers.current.size because handleIdle
-      // can temporarily clear markers during zoom bracket changes
+      // Only recreate layers/badges if shops actually changed or first run
       const sourceExists = !!m.getSource('shops');
-      const needsMarkerRecreation = shopsChanged || !sourceExists;
+      const needsRecreation = shopsChanged || !sourceExists;
 
-      console.log('[setupClustering] sourceExists:', sourceExists, 'needsMarkerRecreation:', needsMarkerRecreation);
+      console.log('[setupClustering] sourceExists:', sourceExists, 'needsRecreation:', needsRecreation);
 
-      if (needsMarkerRecreation) {
+      if (needsRecreation) {
         console.log('[Clustering] Setting up with', shops.length, 'shops');
 
         // Remove existing source and layers if they exist
@@ -123,15 +113,15 @@ export function useMapClustering({
           console.warn('Error removing existing layers:', e);
         }
 
-        // Clear existing markers
-        markers.current.forEach((marker) => marker.remove());
-        markers.current.clear();
+        // Clear existing logo badges
+        logoBadges.current.forEach((marker) => marker.remove());
+        logoBadges.current.clear();
       } else {
-        console.log('[Clustering] Skipping marker recreation (shops unchanged), refreshing listeners only');
+        console.log('[Clustering] Skipping recreation (shops unchanged), refreshing listeners only');
       }
 
-      // Only create layers and markers if shops actually changed
-      if (needsMarkerRecreation) {
+      // Only create layers if shops actually changed
+      if (needsRecreation) {
         // Create GeoJSON from displayed shops with country color
         const features: GeoJSON.Feature[] = [];
         shops.forEach((shop) => {
@@ -197,7 +187,9 @@ export function useMapClustering({
                 12, ['step', ['get', 'point_count'], 16, 5, 20, 10, 24, 20, 28],
                 13, ['step', ['get', 'point_count'], 14, 3, 18, 5, 20, 10, 22],
                 14, ['step', ['get', 'point_count'], 14, 3, 16, 5, 18, 10, 20],
-                15, 0,
+                // Keep clusters visible but smaller at high zoom
+                16, ['step', ['get', 'point_count'], 10, 3, 12, 5, 14, 10, 16],
+                18, ['step', ['get', 'point_count'], 8, 3, 10, 5, 12, 10, 14],
               ],
               'circle-stroke-width': [
                 'interpolate',
@@ -208,7 +200,7 @@ export function useMapClustering({
                 5, 3,
                 12, 2.5,
                 14, 2,
-                15, 0,
+                16, 1.5,
               ],
               'circle-stroke-color': '#fff',
               'circle-opacity': [
@@ -220,8 +212,9 @@ export function useMapClustering({
                 5, 0.9,
                 11, 0.9,
                 13, 0.85,
-                14, 0.5,
-                15, 0,
+                14, 0.9,
+                // Stay visible at high zoom
+                18, 0.9,
               ],
               'circle-color-transition': { duration: 0 },
               'circle-radius-transition': { duration: 0 },
@@ -247,8 +240,10 @@ export function useMapClustering({
                 5, 8,
                 9, 10,
                 12, 11,
-                14, 11,
-                15, 0,
+                14, 12,
+                // Stay visible at high zoom
+                16, 14,
+                18, 16,
               ],
               'circle-stroke-width': [
                 'interpolate',
@@ -257,8 +252,8 @@ export function useMapClustering({
                 0, 1.5,
                 5, 2,
                 12, 2,
-                14, 2,
-                15, 0,
+                14, 2.5,
+                16, 3,
               ],
               'circle-stroke-color': '#fff',
               'circle-opacity': [
@@ -269,8 +264,9 @@ export function useMapClustering({
                 5, 0.9,
                 11, 0.9,
                 13, 0.9,
-                14, 0.7,
-                15, 0,
+                14, 0.9,
+                // Stay visible at high zoom
+                18, 0.9,
               ],
             },
           });
@@ -371,6 +367,8 @@ export function useMapClustering({
         const shopId = features[0].properties?.id;
         const shop = shops.find((s) => s.documentId === shopId);
         if (shop) {
+          // Mark as programmatic move so badges stay visible
+          isProgrammaticMove.current = true;
           onShopSelectRef.current(shop);
           const geometry = features[0].geometry as GeoJSON.Point;
           const currentMapZoom = m.getZoom();
@@ -406,30 +404,56 @@ export function useMapClustering({
         m.on('mouseleave', 'unclustered-point', handleUnclusteredLeave);
       }
 
-      // Update marker visibility based on zoom
-      const updateMarkerVisibility = () => {
+      // Update logo badge visibility based on zoom and movement state
+      const updateBadgeVisibility = (forceHide: boolean = false) => {
         const currentMapZoom = m.getZoom();
-        const showMarkers = currentMapZoom >= CLUSTER_MAX_ZOOM;
-        console.log('[updateMarkerVisibility] zoom:', currentMapZoom.toFixed(2), 'showMarkers:', showMarkers, 'count:', markers.current.size);
+        const shouldShow = !forceHide && currentMapZoom >= LOGO_BADGE_ZOOM && !isZooming.current && !isDragging.current;
+        console.log('[updateBadgeVisibility] zoom:', currentMapZoom.toFixed(2), 'shouldShow:', shouldShow, 'programmatic:', isProgrammaticMove.current);
 
-        markers.current.forEach((marker) => {
-          const el = marker.getElement();
-          if (showMarkers) {
-            el.style.display = '';
-            el.style.opacity = '1';
-            el.style.pointerEvents = '';
-          } else {
-            el.style.display = 'none';
+        // Cancel any pending show
+        if (badgeShowTimeoutRef.current) {
+          clearTimeout(badgeShowTimeoutRef.current);
+          badgeShowTimeoutRef.current = null;
+        }
+
+        if (shouldShow) {
+          // Shorter delay for programmatic moves (shop-to-shop), longer for user movement
+          const delay = isProgrammaticMove.current ? 50 : 150;
+          badgeShowTimeoutRef.current = setTimeout(() => {
+            logoBadges.current.forEach((marker) => {
+              const el = marker.getElement();
+              // First make visible but transparent
+              el.style.display = '';
+              el.style.opacity = '0';
+              el.style.pointerEvents = '';
+              // Then fade in after a frame (allows CSS transition to work)
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  el.style.opacity = '1';
+                });
+              });
+            });
+          }, delay);
+        } else {
+          // Fade out gracefully
+          logoBadges.current.forEach((marker) => {
+            const el = marker.getElement();
             el.style.opacity = '0';
             el.style.pointerEvents = 'none';
-          }
-        });
+            // Hide after fade out transition completes (matches 0.5s CSS transition)
+            setTimeout(() => {
+              if (el.style.opacity === '0') {
+                el.style.display = 'none';
+              }
+            }, 500);
+          });
+        }
       };
 
-      // Create all markers upfront
-      const createAllMarkers = () => {
+      // Create logo badges for shops that have brand logos
+      const createAllLogoBadges = () => {
         const mapZoom = m.getZoom();
-        const existingCount = markers.current.size;
+        const existingCount = logoBadges.current.size;
         let createdCount = 0;
 
         shops.forEach((shop) => {
@@ -437,12 +461,17 @@ export function useMapClustering({
           const coords = getShopCoords(shop);
           if (!coords) return;
 
-          if (markers.current.has(id)) return;
-          createdCount++;
+          if (logoBadges.current.has(id)) return;
 
           const isSelected = id === selectedMarkerRef.current;
-          const density = calculateLocalDensity(shop, shops);
-          const el = createMarkerElementForShop(shop, isSelected, false, density, mapZoom);
+          const el = createLogoBadgeElement(shop, isSelected, effectiveTheme, {
+            fadeIn: false,
+            zoomLevel: mapZoom,
+          });
+
+          // Skip if no badge was created
+          if (!el) return;
+          createdCount++;
 
           el.style.display = 'none';
           el.style.opacity = '0';
@@ -456,16 +485,47 @@ export function useMapClustering({
 
           el.addEventListener('click', (e: MouseEvent) => {
             e.stopPropagation();
-            console.log('[Marker Click] Shop:', shop.documentId);
+            console.log('[Logo Badge Click] Shop:', shop.documentId);
+            // Mark as programmatic move so badges stay visible
+            isProgrammaticMove.current = true;
             onShopSelectRef.current(shop);
           });
 
-          markers.current.set(id, marker);
+          logoBadges.current.set(id, marker);
         });
-        console.log('[createAllMarkers] existing:', existingCount, 'created:', createdCount, 'total:', markers.current.size);
+        console.log('[createAllLogoBadges] existing:', existingCount, 'created:', createdCount, 'total:', logoBadges.current.size);
       };
 
+      // Track if badges are currently hidden due to movement
+      let badgesHiddenForMovement = false;
+
       // Event handlers
+      const hideBadgesForMovement = () => {
+        if (!badgesHiddenForMovement) {
+          badgesHiddenForMovement = true;
+          // Cancel any pending show
+          if (badgeShowTimeoutRef.current) {
+            clearTimeout(badgeShowTimeoutRef.current);
+            badgeShowTimeoutRef.current = null;
+          }
+          // Hide immediately
+          logoBadges.current.forEach((marker) => {
+            const el = marker.getElement();
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+            el.style.display = 'none';
+          });
+        }
+      };
+
+      const handleMoveStart = () => {
+        hideBadgesForMovement();
+      };
+
+      const handleMove = () => {
+        hideBadgesForMovement();
+      };
+
       const handleDragStart = () => {
         isDragging.current = true;
       };
@@ -480,12 +540,11 @@ export function useMapClustering({
 
       const handleZoomEnd = () => {
         isZooming.current = false;
-        updateMarkerVisibility();
       };
 
       const handleSourceData = (e: mapboxgl.MapSourceDataEvent) => {
         if (e.sourceId === 'shops' && e.isSourceLoaded) {
-          updateMarkerVisibility();
+          updateBadgeVisibility();
         }
       };
 
@@ -495,15 +554,18 @@ export function useMapClustering({
           const currentBracket = getZoomBracket(currentMapZoom);
           const previousBracket = wasAboveZoomThreshold.current;
 
-          console.log('[handleIdle] zoom:', currentMapZoom.toFixed(2), 'bracket:', currentBracket, 'prevBracket:', previousBracket, 'markerCount:', markers.current.size);
+          console.log('[handleIdle] zoom:', currentMapZoom.toFixed(2), 'bracket:', currentBracket, 'prevBracket:', previousBracket, 'badgeCount:', logoBadges.current.size);
 
-          // Track bracket changes but DON'T recreate markers - just update visibility
-          // This prevents the visual glitches caused by destroying/recreating 500+ markers
+          // Track bracket changes
           if (previousBracket !== currentBracket) {
-            console.log('[handleIdle] Bracket changed from', previousBracket, 'to', currentBracket, '- updating visibility only');
+            console.log('[handleIdle] Bracket changed from', previousBracket, 'to', currentBracket);
             wasAboveZoomThreshold.current = currentBracket;
           }
-          updateMarkerVisibility();
+
+          // Reset movement flags and show badges
+          badgesHiddenForMovement = false;
+          isProgrammaticMove.current = false;
+          updateBadgeVisibility();
 
           if (
             isTransitioning.current &&
@@ -520,6 +582,8 @@ export function useMapClustering({
       };
 
       // Add event listeners
+      m.on('movestart', handleMoveStart);
+      m.on('move', handleMove);
       m.on('dragstart', handleDragStart);
       m.on('dragend', handleDragEnd);
       m.on('zoomstart', handleZoomStart);
@@ -527,23 +591,27 @@ export function useMapClustering({
       m.on('sourcedata', handleSourceData);
       m.on('idle', handleIdle);
 
-      // Create all markers and update visibility based on zoom
-      createAllMarkers();
-      updateMarkerVisibility();
+      // Create logo badges and update visibility based on zoom
+      createAllLogoBadges();
+      updateBadgeVisibility();
 
-      // Force map resize to ensure markers render correctly
+      // Force map resize to ensure rendering
       m.resize();
 
-      // Also update marker visibility after a short delay (fixes timing issues)
+      // Also update visibility after a short delay (fixes timing issues)
       const ensureMarkersTimeout = setTimeout(() => {
-        updateMarkerVisibility();
+        updateBadgeVisibility();
         m.resize();
       }, 100);
 
       // Cleanup function - remove ALL event listeners we added
       return () => {
-        console.log('[Cleanup] Removing event listeners, markerCount:', markers.current.size);
+        console.log('[Cleanup] Removing event listeners, badgeCount:', logoBadges.current.size);
         clearTimeout(ensureMarkersTimeout);
+        if (badgeShowTimeoutRef.current) {
+          clearTimeout(badgeShowTimeoutRef.current);
+          badgeShowTimeoutRef.current = null;
+        }
 
         // Safety check - map might be destroyed during cleanup
         if (!m || !m.getStyle()) {
@@ -551,6 +619,8 @@ export function useMapClustering({
           return;
         }
 
+        m.off('movestart', handleMoveStart);
+        m.off('move', handleMove);
         m.off('dragstart', handleDragStart);
         m.off('dragend', handleDragEnd);
         m.off('zoomstart', handleZoomStart);
@@ -602,32 +672,31 @@ export function useMapClustering({
       // Note: Don't remove layers here - they should persist until setupClustering
       // runs again with new data. Removing them here causes a flash.
     };
-  }, [shops, createMarkerElementForShop, mapReady, map, effectiveTheme]);
+  }, [shops, mapReady, map, effectiveTheme]);
 
-  // Note: Zoom bracket changes for marker style updates are now handled in handleIdle
-  // This avoids the debounce cancellation issues that occurred with a separate effect
-
-  // Update selected marker styling
+  // Update selected logo badge styling
   useEffect(() => {
     if (!map) return;
 
-    // Reset previous selected marker
-    if (selectedMarkerRef.current && markers.current.has(selectedMarkerRef.current)) {
-      const marker = markers.current.get(selectedMarkerRef.current);
-      const prevShop = shops.find((s) => s.documentId === selectedMarkerRef.current);
-      if (marker) {
-        updateMarkerStyle(marker.getElement(), false, prevShop);
-      }
-    }
+    const selectedId = selectedShop?.documentId || null;
 
-    // Style new selected marker (position handled by useMapPosition)
-    if (selectedShop && markers.current.has(selectedShop.documentId)) {
-      const marker = markers.current.get(selectedShop.documentId);
-      if (marker) {
-        updateMarkerStyle(marker.getElement(), true, selectedShop);
-      }
-    }
+    // Update all badges - selected one gets highlight, others get grayscale
+    logoBadges.current.forEach((marker, id) => {
+      const el = marker.getElement();
+      const isSelected = id === selectedId;
 
-    selectedMarkerRef.current = selectedShop?.documentId || null;
-  }, [selectedShop, shops, map]);
+      updateLogoBadgeStyle(el, isSelected);
+
+      // Apply grayscale to non-selected badges when something is selected
+      if (selectedId) {
+        el.style.filter = isSelected ? 'none' : 'grayscale(1)';
+        el.style.opacity = isSelected ? '1' : '0.7';
+      } else {
+        el.style.filter = 'none';
+        el.style.opacity = '1';
+      }
+    });
+
+    selectedMarkerRef.current = selectedId;
+  }, [selectedShop, map]);
 }
