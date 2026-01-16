@@ -73,7 +73,7 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
     size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none px-4 py-2 h-auto',
+      base: 'bg-gray-100 dark:bg-white/15 border-none px-3 py-2 h-auto',
       content: 'text-text text-sm',
     }}
     {...props}
@@ -91,8 +91,8 @@ export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'st
     size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none px-4 py-2 h-auto',
-      content: 'text-text text-sm font-medium',
+      base: 'bg-gray-100 dark:bg-white/15 border-none px-3 py-2 h-auto',
+      content: 'text-text text-sm',
     }}
     {...props}
   >
