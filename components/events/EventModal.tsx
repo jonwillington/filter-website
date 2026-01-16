@@ -1,9 +1,11 @@
 'use client';
 
+import { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { ModalBody, Button, Divider } from '@heroui/react';
 import { Event } from '@/lib/types';
 import { ResponsiveModal } from '@/components/ui/ResponsiveModal';
+import { StickyDrawerHeader } from '@/components/ui';
 import { getMediaUrl } from '@/lib/utils';
 import {
   getEventDateLabel,
@@ -12,6 +14,7 @@ import {
   isEventTomorrow,
 } from '@/lib/utils/eventDateUtils';
 import { useEventCountdown } from '@/lib/hooks/useEventCountdown';
+import { useStickyHeaderOpacity } from '@/lib/hooks';
 import {
   Calendar,
   MapPin,
@@ -30,9 +33,21 @@ interface EventModalProps {
 }
 
 export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { opacity: stickyHeaderOpacity, resetOpacity } = useStickyHeaderOpacity(scrollRef);
+
+  // All hooks must be called before any early returns
+  const { formattedCountdown, isWithinWeek } = useEventCountdown(event?.start_date ?? '');
+
+  // Reset scroll position when event changes
+  useEffect(() => {
+    if (event) {
+      resetOpacity();
+    }
+  }, [event?.documentId, resetOpacity]);
+
   if (!event) return null;
 
-  const { formattedCountdown, isWithinWeek } = useEventCountdown(event.start_date);
   const dateLabel = getEventDateLabel(event.start_date, event.end_date);
   const timeLabel = formatEventTime(event.start_date);
   const isToday = isEventToday(event.start_date);
@@ -41,6 +56,7 @@ export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalP
   const imageUrl = getMediaUrl(event.image);
   const brandLogoUrl = getMediaUrl(event.eventHostBrand?.logo);
   const accentColor = primaryColor || '#8B6F47';
+  const hasWebsite = !!event.website;
 
   return (
     <ResponsiveModal
@@ -51,7 +67,15 @@ export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalP
         base: 'bg-background',
       }}
     >
-      <ModalBody className="p-0 overflow-y-auto">
+      <ModalBody className="p-0 overflow-hidden flex flex-col">
+        {/* Scrollable content */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          {/* Sticky header that fades in on scroll */}
+          <StickyDrawerHeader
+            title={event.name}
+            opacity={stickyHeaderOpacity}
+            onClose={onClose}
+          />
         {/* Header image */}
         {imageUrl && (
           <div className="relative w-full h-[200px] flex-shrink-0">
@@ -304,23 +328,25 @@ export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalP
             </>
           )}
 
-          {/* Learn more button */}
-          {event.website && (
-            <div className="pt-2">
-              <Button
-                as="a"
-                href={event.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full font-medium text-white"
-                style={{ backgroundColor: accentColor }}
-                endContent={<ExternalLink size={16} />}
-              >
-                Learn More
-              </Button>
-            </div>
-          )}
         </div>
+        </div>
+
+        {/* Fixed footer with button */}
+        {event.website && (
+          <div className="flex-shrink-0 p-4 bg-background border-t border-border-default">
+            <Button
+              as="a"
+              href={event.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full font-medium text-white"
+              style={{ backgroundColor: accentColor }}
+              endContent={<ExternalLink size={16} />}
+            >
+              Learn More
+            </Button>
+          </div>
+        )}
       </ModalBody>
     </ResponsiveModal>
   );

@@ -61,7 +61,7 @@ export function ShopHeader({ shop }: ShopHeaderProps) {
           {/* Location row with status indicator on the right */}
           <div className="flex items-center justify-between w-full mt-1">
             {locationText && (
-              <p className="text-base text-white/80">
+              <p className="text-sm text-white/80">
                 {locationText}
               </p>
             )}
