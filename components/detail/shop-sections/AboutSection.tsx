@@ -5,22 +5,6 @@ interface AboutSectionProps {
   shop: Shop;
 }
 
-// Get description appropriate for the About section
-// For branded shops: show brand story/description (shop.description shown separately as "About This Branch")
-// For independent shops: show shop description with brand fallback
-function getAboutDescription(shop: Shop): string | null {
-  if (!shop.independent && shop.brand) {
-    // Branded shop: prefer brand story/description for the main "About" section
-    if (shop.brand.story) return shop.brand.story;
-    if (shop.brand.description) return shop.brand.description;
-    // Fall back to shop description if brand has none
-    if (shop.description) return shop.description;
-    return null;
-  }
-  // Independent shop: use standard fallback chain
-  return getShopDescription(shop);
-}
-
 // Get the preferred name for the header
 function getAboutName(shop: Shop): string {
   // Use prefName if available, otherwise fall back to brand name or shop name
@@ -28,8 +12,24 @@ function getAboutName(shop: Shop): string {
 }
 
 export function AboutSection({ shop }: AboutSectionProps) {
-  const description = getAboutDescription(shop);
+  const isChain = !shop.independent && shop.brand;
 
+  if (isChain) {
+    // For chains: show brand story/description without dynamic header
+    const brandDescription = shop.brand?.story || shop.brand?.description;
+    if (!brandDescription) return null;
+
+    return (
+      <div className="mt-5">
+        <p className="text-sm text-text leading-snug whitespace-pre-line">
+          {brandDescription}
+        </p>
+      </div>
+    );
+  }
+
+  // For independent shops: show shop description with dynamic header
+  const description = getShopDescription(shop);
   if (!description) return null;
 
   const storeName = getAboutName(shop);
