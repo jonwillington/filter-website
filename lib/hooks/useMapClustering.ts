@@ -556,11 +556,11 @@ export function useMapClustering({
   }, [shops, createMarkerElementForShop, mapReady, map, effectiveTheme]);
 
   // Recreate markers when crossing zoom thresholds for size/style changes
+  // Use a ref to track pending recreation to debounce rapid zoom changes
+  const pendingRecreationRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (!map || shops.length === 0 || markers.current.size === 0) return;
-
-    // Don't recreate markers while map is animating - causes flashing
-    if (isZooming.current || isDragging.current) return;
 
     const currentBracket = getZoomBracket(currentZoom);
     const previousBracket = wasAboveZoomThreshold.current;
@@ -568,62 +568,79 @@ export function useMapClustering({
     if (previousBracket !== currentBracket) {
       wasAboveZoomThreshold.current = currentBracket;
 
-      // Safety check - map may have been unmounted or in invalid state
-      try {
-        if (!map || typeof map.getSource !== 'function') return;
-        const source = map.getSource('shops') as mapboxgl.GeoJSONSource;
-        if (!source) return;
-      } catch {
-        return;
+      // Clear any pending recreation
+      if (pendingRecreationRef.current) {
+        clearTimeout(pendingRecreationRef.current);
       }
 
-      // Clear and recreate all markers with new zoom level
-      markers.current.forEach((marker) => marker.remove());
-      markers.current.clear();
+      // Debounce marker recreation to avoid flashing during rapid zoom changes
+      pendingRecreationRef.current = setTimeout(() => {
+        // Safety check - map may have been unmounted or in invalid state
+        try {
+          if (!map || typeof map.getSource !== 'function') return;
+          const source = map.getSource('shops') as mapboxgl.GeoJSONSource;
+          if (!source) return;
+        } catch {
+          return;
+        }
 
-      shops.forEach((shop) => {
-        const id = shop.documentId;
-        const coords = getShopCoords(shop);
-        if (!coords) return;
+        // Get actual current zoom from map (not the prop which may be stale)
+        const actualZoom = map.getZoom();
 
-        const isSelected = id === selectedMarkerRef.current;
-        const density = calculateLocalDensity(shop, shops);
-        const el = createMarkerElementForShop(shop, isSelected, false, density, currentZoom);
+        // Clear and recreate all markers with new zoom level
+        markers.current.forEach((marker) => marker.remove());
+        markers.current.clear();
 
-        el.style.display = 'none';
-        el.style.opacity = '0';
+        shops.forEach((shop) => {
+          const id = shop.documentId;
+          const coords = getShopCoords(shop);
+          if (!coords) return;
 
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'center',
-        })
-          .setLngLat(coords)
-          .addTo(map);
+          const isSelected = id === selectedMarkerRef.current;
+          const density = calculateLocalDensity(shop, shops);
+          const el = createMarkerElementForShop(shop, isSelected, false, density, actualZoom);
 
-        el.addEventListener('click', (e: MouseEvent) => {
-          e.stopPropagation();
-          onShopSelectRef.current(shop);
-        });
-
-        markers.current.set(id, marker);
-      });
-
-      // Show markers only after clusters are gone (>= 14)
-      const showMarkers = currentZoom >= CLUSTER_MAX_ZOOM;
-
-      markers.current.forEach((marker) => {
-        const el = marker.getElement();
-        if (showMarkers) {
-          el.style.display = '';
-          el.style.opacity = '1';
-          el.style.pointerEvents = '';
-        } else {
           el.style.display = 'none';
           el.style.opacity = '0';
-          el.style.pointerEvents = 'none';
-        }
-      });
+
+          const marker = new mapboxgl.Marker({
+            element: el,
+            anchor: 'center',
+          })
+            .setLngLat(coords)
+            .addTo(map);
+
+          el.addEventListener('click', (e: MouseEvent) => {
+            e.stopPropagation();
+            onShopSelectRef.current(shop);
+          });
+
+          markers.current.set(id, marker);
+        });
+
+        // Show markers only after clusters are gone (>= 14)
+        const showMarkers = actualZoom >= CLUSTER_MAX_ZOOM;
+
+        markers.current.forEach((marker) => {
+          const el = marker.getElement();
+          if (showMarkers) {
+            el.style.display = '';
+            el.style.opacity = '1';
+            el.style.pointerEvents = '';
+          } else {
+            el.style.display = 'none';
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+          }
+        });
+      }, 150); // Wait for zoom animation to settle
     }
+
+    return () => {
+      if (pendingRecreationRef.current) {
+        clearTimeout(pendingRecreationRef.current);
+      }
+    };
   }, [currentZoom, shops, createMarkerElementForShop, map]);
 
   // Update selected marker styling
