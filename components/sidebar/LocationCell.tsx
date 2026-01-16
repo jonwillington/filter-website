@@ -29,13 +29,12 @@ function LocationCellComponent({
   const locationName = isAreaUnsupported && unsupportedCountry?.name
     ? unsupportedCountry.name
     : selectedLocation?.name;
-  const showCaption = selectedLocation || (isAreaUnsupported && unsupportedCountry);
 
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg px-4 py-3 cursor-pointer transition-colors min-h-[48px] text-left"
-      aria-label={locationName ? `Exploring in ${locationName}. Click to change location.` : 'Select location'}
+      aria-label={locationName ? `${locationName}. Click to change location.` : 'Select location'}
     >
       {/* Flag */}
       {showFlag && flagCode && (
@@ -53,9 +52,6 @@ function LocationCellComponent({
 
       {/* Text content */}
       <div className="flex-1 min-w-0">
-        {showCaption && (
-          <p className="text-xs text-text-secondary leading-tight">Exploring in</p>
-        )}
         <p className="text-base font-medium text-primary truncate">
           {locationName || 'Select location'}
         </p>
