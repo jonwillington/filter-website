@@ -114,19 +114,19 @@ const getFlagUrl = (code: string) =>
 export const CountryChip = ({ code, name }: CountryChipProps) => (
   <Chip
     variant="solid"
-    size="md"
+    size="lg"
     radius="full"
     startContent={
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={getFlagUrl(code)}
         alt={name}
-        className="w-3 h-3 rounded-full"
+        className="w-4 h-4 rounded-full"
       />
     }
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none pl-3',
-      content: 'text-text text-xs',
+      base: 'bg-gray-100 dark:bg-white/15 border-none px-3 py-2 h-auto',
+      content: 'text-text text-sm',
     }}
   >
     {name}
