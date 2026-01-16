@@ -96,113 +96,31 @@ export function useMapClustering({
     previousShopIdsRef.current = currentShopIds;
     previousThemeRef.current = effectiveTheme;
 
-    // If shops haven't changed and theme hasn't changed and we have markers,
-    // just update the source data without full re-setup
+    // If nothing changed and we have markers, skip re-setup
     if (!shopsChanged && !themeChanged && markers.current.size > 0) {
       return;
     }
 
-    // If only shops changed (not theme) and source exists, try to just update the data
-    // This is more efficient than removing and re-adding all layers
-    if (shopsChanged && !themeChanged) {
-      try {
-        const existingSource = map.getSource('shops') as mapboxgl.GeoJSONSource;
-        if (existingSource && typeof existingSource.setData === 'function') {
-          // Create updated GeoJSON
-          const features: GeoJSON.Feature[] = [];
-          shops.forEach((shop) => {
-            const coords = getShopCoords(shop);
-            if (!coords) return;
-            const countryColor =
-              shop.location?.country?.primaryColor ||
-              shop.city_area?.location?.country?.primaryColor ||
-              '#8B6F47';
-            features.push({
-              type: 'Feature',
-              properties: {
-                id: shop.documentId,
-                countryColor: countryColor,
-              },
-              geometry: {
-                type: 'Point',
-                coordinates: coords,
-              },
-            });
-          });
-
-          const geojson: GeoJSON.FeatureCollection = {
-            type: 'FeatureCollection',
-            features,
-          };
-
-          // Update the source data
-          existingSource.setData(geojson);
-
-          // Clear and recreate markers for the new shop set
-          markers.current.forEach((marker) => marker.remove());
-          markers.current.clear();
-
-          const mapZoom = map.getZoom();
-          shops.forEach((shop) => {
-            const id = shop.documentId;
-            const coords = getShopCoords(shop);
-            if (!coords) return;
-
-            const isSelected = id === selectedMarkerRef.current;
-            const density = calculateLocalDensity(shop, shops);
-            const el = createMarkerElementForShop(shop, isSelected, false, density, mapZoom);
-
-            el.style.display = 'none';
-            el.style.opacity = '0';
-
-            const marker = new mapboxgl.Marker({
-              element: el,
-              anchor: 'center',
-            })
-              .setLngLat(coords)
-              .addTo(map);
-
-            el.addEventListener('click', (e: MouseEvent) => {
-              e.stopPropagation();
-              onShopSelectRef.current(shop);
-            });
-
-            markers.current.set(id, marker);
-          });
-
-          // Update marker visibility
-          const showMarkers = mapZoom >= CLUSTER_MAX_ZOOM;
-          markers.current.forEach((marker) => {
-            const el = marker.getElement();
-            if (showMarkers) {
-              el.style.display = '';
-              el.style.opacity = '1';
-              el.style.pointerEvents = '';
-            } else {
-              el.style.display = 'none';
-              el.style.opacity = '0';
-              el.style.pointerEvents = 'none';
-            }
-          });
-
-          // Force re-render
-          map.triggerRepaint();
-          return;
-        }
-      } catch (e) {
-        // Source doesn't exist or error - fall through to full setup
-        console.warn('Could not update existing source, doing full re-setup');
-      }
-    }
-
+    // Always do full re-setup when shops or theme changes
+    // This ensures layers are properly recreated with new data
     const m = map;
 
     const setupClustering = () => {
+      // Safety check - ensure map is still valid
+      if (!m || !m.getStyle()) {
+        console.warn('Map not ready for clustering setup');
+        return;
+      }
+
       // Remove existing source and layers if they exist
-      if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
-      if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
-      if (m.getLayer('clusters')) m.removeLayer('clusters');
-      if (m.getSource('shops')) m.removeSource('shops');
+      try {
+        if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
+        if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
+        if (m.getLayer('clusters')) m.removeLayer('clusters');
+        if (m.getSource('shops')) m.removeSource('shops');
+      } catch (e) {
+        console.warn('Error removing existing layers:', e);
+      }
 
       // Clear existing markers
       markers.current.forEach((marker) => marker.remove());
@@ -237,8 +155,14 @@ export function useMapClustering({
         features,
       };
 
+      // Log for debugging
+      if (features.length === 0) {
+        console.warn('No shop features to display on map');
+      }
+
       // Add clustered source with industry-standard configuration
-      m.addSource('shops', {
+      try {
+        m.addSource('shops', {
         type: 'geojson',
         data: geojson,
         cluster: true,
@@ -388,6 +312,10 @@ export function useMapClustering({
           ],
         },
       });
+      } catch (e) {
+        console.error('Error adding map layers:', e);
+        return;
+      }
 
       // Click on cluster to zoom in
       m.on('click', 'clusters', (e: MapLayerMouseEvent) => {
