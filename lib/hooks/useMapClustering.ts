@@ -519,6 +519,7 @@ export function useMapClustering({
     // Run setup with retry logic to handle timing issues during map animations
     let cleanup: (() => void) | undefined;
     let retryTimeout: NodeJS.Timeout | undefined;
+    let initialTimeout: NodeJS.Timeout | undefined;
     let retryCount = 0;
     const MAX_RETRIES = 3;
 
@@ -537,27 +538,20 @@ export function useMapClustering({
       }
     };
 
-    // Small delay to let map animations settle when shops change
-    const initialTimeout = setTimeout(attemptSetup, 50);
+    // Only delay if shops actually changed (to let map animations settle)
+    // Run immediately on initial setup or theme change
+    if (shopsChanged && markers.current.size > 0) {
+      initialTimeout = setTimeout(attemptSetup, 50);
+    } else {
+      attemptSetup();
+    }
 
     return () => {
       clearTimeout(initialTimeout);
       if (retryTimeout) clearTimeout(retryTimeout);
       cleanup?.();
-
-      // Also clean up layers and source on unmount/re-run
-      try {
-        if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
-        if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
-        if (m.getLayer('clusters')) m.removeLayer('clusters');
-        if (m.getSource('shops')) m.removeSource('shops');
-      } catch {
-        // Ignore errors during cleanup
-      }
-
-      // Clear markers
-      markers.current.forEach((marker) => marker.remove());
-      markers.current.clear();
+      // Note: Don't remove layers here - they should persist until setupClustering
+      // runs again with new data. Removing them here causes a flash.
     };
   }, [shops, createMarkerElementForShop, mapReady, map, effectiveTheme]);
 
