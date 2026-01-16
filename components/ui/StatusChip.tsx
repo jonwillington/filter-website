@@ -73,7 +73,7 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
     size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none px-3 py-2 h-auto',
+      base: 'bg-gray-100 dark:bg-white/15 border-none py-2 h-auto px-[0.45rem]',
       content: 'text-text text-sm',
     }}
     {...props}
@@ -91,7 +91,7 @@ export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'st
     size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none px-3 py-2 h-auto',
+      base: 'bg-gray-100 dark:bg-white/15 border-none py-2 h-auto px-[0.45rem]',
       content: 'text-text text-sm',
     }}
     {...props}
@@ -125,7 +125,7 @@ export const CountryChip = ({ code, name }: CountryChipProps) => (
       />
     }
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none px-3 py-2 h-auto',
+      base: 'bg-gray-100 dark:bg-white/15 border-none py-2 h-auto px-[0.45rem]',
       content: 'text-text text-sm',
     }}
   >
