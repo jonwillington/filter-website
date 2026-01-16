@@ -559,6 +559,9 @@ export function useMapClustering({
   useEffect(() => {
     if (!map || shops.length === 0 || markers.current.size === 0) return;
 
+    // Don't recreate markers while map is animating - causes flashing
+    if (isZooming.current || isDragging.current) return;
+
     const currentBracket = getZoomBracket(currentZoom);
     const previousBracket = wasAboveZoomThreshold.current;
 
@@ -605,8 +608,8 @@ export function useMapClustering({
         markers.current.set(id, marker);
       });
 
-      // Show markers only after clusters are gone
-      const showMarkers = currentZoom > CLUSTER_MAX_ZOOM;
+      // Show markers only after clusters are gone (>= 14)
+      const showMarkers = currentZoom >= CLUSTER_MAX_ZOOM;
 
       markers.current.forEach((marker) => {
         const el = marker.getElement();
