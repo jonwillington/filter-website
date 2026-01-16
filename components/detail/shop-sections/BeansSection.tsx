@@ -118,21 +118,22 @@ export function BeansSection({ shop }: BeansSectionProps) {
       {/* In-house roasting badge */}
       {hasInHouseRoast && brand && (
         <div className="flex items-center gap-3 py-3">
-          <div className="relative flex-shrink-0">
-            <Avatar
-              src={getMediaUrl(brand.logo) || undefined}
-              name={brand.name}
-              size="sm"
-              showFallback
-              fallback={<Bean className="w-4 h-4" />}
-            />
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-accent rounded-full flex items-center justify-center ring-2 ring-background">
-              <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-            </div>
-          </div>
+          <Avatar
+            src={getMediaUrl(brand.logo) || undefined}
+            name={brand.name}
+            size="sm"
+            className="flex-shrink-0"
+            showFallback
+            fallback={<Bean className="w-4 h-4" />}
+          />
           <div>
             <p className="text-sm font-medium text-primary">{brand.name}</p>
-            <p className="text-sm text-text-secondary">Roasts their own beans</p>
+            <p className="text-sm text-text-secondary flex items-center gap-1.5">
+              Roasts their own beans
+              <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
+                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+              </span>
+            </p>
           </div>
         </div>
       )}
