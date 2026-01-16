@@ -70,11 +70,11 @@ export const ComingSoonChip = ({ children = 'Coming Soon', ...props }: Omit<Stat
 export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
     variant="solid"
-    size="md"
+    size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none',
-      content: 'text-text text-xs',
+      base: 'bg-gray-100 dark:bg-white/15 border-none px-4 py-2 h-auto',
+      content: 'text-text text-sm',
     }}
     {...props}
   >
@@ -88,11 +88,11 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
 export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
     variant="solid"
-    size="md"
+    size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none',
-      content: 'text-text text-xs font-medium',
+      base: 'bg-gray-100 dark:bg-white/15 border-none px-4 py-2 h-auto',
+      content: 'text-text text-sm font-medium',
     }}
     {...props}
   >
