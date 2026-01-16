@@ -51,7 +51,6 @@ export function useMapClustering({
   const hasCalledTransitionComplete = useRef<boolean>(false);
   const wasAboveZoomThreshold = useRef(getZoomBracket(currentZoom));
   const previousShopIdsRef = useRef<string>('');
-  const previousThemeRef = useRef<string>(effectiveTheme);
 
   // Store callbacks in refs to avoid re-running setup when they change
   const onShopSelectRef = useRef(onShopSelect);
@@ -87,22 +86,13 @@ export function useMapClustering({
   useEffect(() => {
     if (!map || !mapReady) return;
 
-    // Compare shop IDs and theme to determine if we need full re-setup
+    // Check if shops actually changed (by IDs, not reference)
     const currentShopIds = shops.map(s => s.documentId).sort().join(',');
-    const themeChanged = effectiveTheme !== previousThemeRef.current;
     const shopsChanged = currentShopIds !== previousShopIdsRef.current;
-
-    // Update refs
     previousShopIdsRef.current = currentShopIds;
-    previousThemeRef.current = effectiveTheme;
 
-    // If nothing changed and we have markers, skip re-setup
-    if (!shopsChanged && !themeChanged && markers.current.size > 0) {
-      return;
-    }
+    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'markerCount:', markers.current.size);
 
-    // Always do full re-setup when shops or theme changes
-    // This ensures layers are properly recreated with new data
     const m = map;
 
     const setupClustering = () => {
@@ -112,213 +102,233 @@ export function useMapClustering({
         return;
       }
 
-      console.log('[Clustering] Setting up with', shops.length, 'shops');
+      // Only recreate layers/markers if shops actually changed or first run
+      // Check source existence rather than markers.current.size because handleIdle
+      // can temporarily clear markers during zoom bracket changes
+      const sourceExists = !!m.getSource('shops');
+      const needsMarkerRecreation = shopsChanged || !sourceExists;
 
-      // Remove existing source and layers if they exist
-      try {
-        if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
-        if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
-        if (m.getLayer('clusters')) m.removeLayer('clusters');
-        if (m.getSource('shops')) m.removeSource('shops');
-      } catch (e) {
-        console.warn('Error removing existing layers:', e);
+      console.log('[setupClustering] sourceExists:', sourceExists, 'needsMarkerRecreation:', needsMarkerRecreation);
+
+      if (needsMarkerRecreation) {
+        console.log('[Clustering] Setting up with', shops.length, 'shops');
+
+        // Remove existing source and layers if they exist
+        try {
+          if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
+          if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
+          if (m.getLayer('clusters')) m.removeLayer('clusters');
+          if (m.getSource('shops')) m.removeSource('shops');
+        } catch (e) {
+          console.warn('Error removing existing layers:', e);
+        }
+
+        // Clear existing markers
+        markers.current.forEach((marker) => marker.remove());
+        markers.current.clear();
+      } else {
+        console.log('[Clustering] Skipping marker recreation (shops unchanged), refreshing listeners only');
       }
 
-      // Clear existing markers
-      markers.current.forEach((marker) => marker.remove());
-      markers.current.clear();
+      // Only create layers and markers if shops actually changed
+      if (needsMarkerRecreation) {
+        // Create GeoJSON from displayed shops with country color
+        const features: GeoJSON.Feature[] = [];
+        shops.forEach((shop) => {
+          const coords = getShopCoords(shop);
+          if (!coords) return;
 
-      // Create GeoJSON from displayed shops with country color
-      const features: GeoJSON.Feature[] = [];
-      shops.forEach((shop) => {
-        const coords = getShopCoords(shop);
-        if (!coords) return;
+          const countryColor =
+            shop.location?.country?.primaryColor ||
+            shop.city_area?.location?.country?.primaryColor ||
+            '#8B6F47';
 
-        const countryColor =
-          shop.location?.country?.primaryColor ||
-          shop.city_area?.location?.country?.primaryColor ||
-          '#8B6F47';
-
-        features.push({
-          type: 'Feature',
-          properties: {
-            id: shop.documentId,
-            countryColor: countryColor,
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: coords,
-          },
+          features.push({
+            type: 'Feature',
+            properties: {
+              id: shop.documentId,
+              countryColor: countryColor,
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: coords,
+            },
+          });
         });
-      });
 
-      const geojson: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features,
-      };
+        const geojson: GeoJSON.FeatureCollection = {
+          type: 'FeatureCollection',
+          features,
+        };
 
-      console.log('[Clustering] Created GeoJSON with', features.length, 'features');
+        console.log('[Clustering] Created GeoJSON with', features.length, 'features');
 
-      // Add clustered source with industry-standard configuration
-      try {
-        m.addSource('shops', {
-        type: 'geojson',
-        data: geojson,
-        cluster: true,
-        clusterRadius: CLUSTER_RADIUS,
-        clusterMaxZoom: CLUSTER_MAX_ZOOM,
-        clusterProperties: {
-          clusterColor: ['coalesce', ['get', 'countryColor'], '#8B6F47'],
-        },
-      });
+        // Add clustered source with industry-standard configuration
+        try {
+          m.addSource('shops', {
+            type: 'geojson',
+            data: geojson,
+            cluster: true,
+            clusterRadius: CLUSTER_RADIUS,
+            clusterMaxZoom: CLUSTER_MAX_ZOOM,
+            clusterProperties: {
+              clusterColor: ['coalesce', ['get', 'countryColor'], '#8B6F47'],
+            },
+          });
 
-      // Add cluster circle layer with dynamic country colors and zoom-based sizing
-      // Clusters should always be larger than individual markers at each zoom level
-      m.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'shops',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': ['coalesce', ['get', 'clusterColor'], '#8B6F47'],
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 6,
-            3, 8,
-            4, 10,
-            5, ['step', ['get', 'point_count'], 14, 10, 20, 50, 26, 100, 32],
-            9, ['step', ['get', 'point_count'], 16, 10, 22, 30, 28, 50, 34],
-            12, ['step', ['get', 'point_count'], 16, 5, 20, 10, 24, 20, 28],
-            13, ['step', ['get', 'point_count'], 14, 3, 18, 5, 20, 10, 22],
-            14, ['step', ['get', 'point_count'], 14, 3, 16, 5, 18, 10, 20],
-            15, 0,
-          ],
-          'circle-stroke-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 1.5,
-            4, 2,
-            5, 3,
-            12, 2.5,
-            14, 2,
-            15, 0,
-          ],
-          'circle-stroke-color': '#fff',
-          'circle-opacity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 0.75,
-            4, 0.85,
-            5, 0.9,
-            11, 0.9,
-            13, 0.85,
-            14, 0.5,
-            15, 0,
-          ],
-          'circle-color-transition': { duration: 0 },
-          'circle-radius-transition': { duration: 0 },
-          'circle-stroke-width-transition': { duration: 0 },
-        },
-      });
+          // Add cluster circle layer with dynamic country colors and zoom-based sizing
+          // Clusters should always be larger than individual markers at each zoom level
+          m.addLayer({
+            id: 'clusters',
+            type: 'circle',
+            source: 'shops',
+            filter: ['has', 'point_count'],
+            paint: {
+              'circle-color': ['coalesce', ['get', 'clusterColor'], '#8B6F47'],
+              'circle-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 6,
+                3, 8,
+                4, 10,
+                5, ['step', ['get', 'point_count'], 14, 10, 20, 50, 26, 100, 32],
+                9, ['step', ['get', 'point_count'], 16, 10, 22, 30, 28, 50, 34],
+                12, ['step', ['get', 'point_count'], 16, 5, 20, 10, 24, 20, 28],
+                13, ['step', ['get', 'point_count'], 14, 3, 18, 5, 20, 10, 22],
+                14, ['step', ['get', 'point_count'], 14, 3, 16, 5, 18, 10, 20],
+                15, 0,
+              ],
+              'circle-stroke-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 1.5,
+                4, 2,
+                5, 3,
+                12, 2.5,
+                14, 2,
+                15, 0,
+              ],
+              'circle-stroke-color': '#fff',
+              'circle-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 0.75,
+                4, 0.85,
+                5, 0.9,
+                11, 0.9,
+                13, 0.85,
+                14, 0.5,
+                15, 0,
+              ],
+              'circle-color-transition': { duration: 0 },
+              'circle-radius-transition': { duration: 0 },
+              'circle-stroke-width-transition': { duration: 0 },
+            },
+          });
 
-      // Add unclustered points layer (individual markers - smaller than clusters)
-      m.addLayer({
-        id: 'unclustered-point',
-        type: 'circle',
-        source: 'shops',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': ['coalesce', ['get', 'countryColor'], '#8B6F47'],
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 4,
-            3, 5,
-            4, 6,
-            5, 8,
-            9, 10,
-            12, 11,
-            14, 11,
-            15, 0,
-          ],
-          'circle-stroke-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 1.5,
-            5, 2,
-            12, 2,
-            14, 2,
-            15, 0,
-          ],
-          'circle-stroke-color': '#fff',
-          'circle-opacity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 0.75,
-            5, 0.9,
-            11, 0.9,
-            13, 0.9,
-            14, 0.7,
-            15, 0,
-          ],
-        },
-      });
+          // Add unclustered points layer (individual markers - smaller than clusters)
+          m.addLayer({
+            id: 'unclustered-point',
+            type: 'circle',
+            source: 'shops',
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+              'circle-color': ['coalesce', ['get', 'countryColor'], '#8B6F47'],
+              'circle-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 4,
+                3, 5,
+                4, 6,
+                5, 8,
+                9, 10,
+                12, 11,
+                14, 11,
+                15, 0,
+              ],
+              'circle-stroke-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 1.5,
+                5, 2,
+                12, 2,
+                14, 2,
+                15, 0,
+              ],
+              'circle-stroke-color': '#fff',
+              'circle-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 0.75,
+                5, 0.9,
+                11, 0.9,
+                13, 0.9,
+                14, 0.7,
+                15, 0,
+              ],
+            },
+          });
 
-      // Add cluster count label
-      m.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: 'shops',
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': '{point_count_abbreviated}',
-          'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
-          'text-size': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 0,
-            4, 0,
-            5, 12,
-            8, 14,
-            11, 13,
-            12, 12,
-            13, 10,
-            14, 8,
-            15, 0,
-          ],
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-opacity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            0, 0,
-            4, 0,
-            5, 1,
-            11, 1,
-            13, 0.9,
-            14, 0.5,
-            15, 0,
-          ],
-        },
-      });
-        console.log('[Clustering] Layers added successfully');
-      } catch (e) {
-        console.error('[Clustering] Error adding map layers:', e);
-        return;
-      }
+          // Add cluster count label
+          m.addLayer({
+            id: 'cluster-count',
+            type: 'symbol',
+            source: 'shops',
+            filter: ['has', 'point_count'],
+            layout: {
+              'text-field': '{point_count_abbreviated}',
+              'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+              'text-size': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 0,
+                4, 0,
+                5, 12,
+                8, 14,
+                11, 13,
+                12, 12,
+                13, 10,
+                14, 8,
+                15, 0,
+              ],
+            },
+            paint: {
+              'text-color': '#ffffff',
+              'text-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0, 0,
+                4, 0,
+                5, 1,
+                11, 1,
+                13, 0.9,
+                14, 0.5,
+                15, 0,
+              ],
+            },
+          });
+          console.log('[Clustering] Layers added successfully');
+        } catch (e) {
+          console.error('[Clustering] Error adding map layers:', e);
+          return;
+        }
+      } // End of needsMarkerRecreation conditional
+
+      // Layer click handlers - these are added fresh each time since we can't easily
+      // reference and remove them. The layers already exist if !needsMarkerRecreation.
+      // Note: Mapbox will have multiple handlers if we don't track them, but since
+      // the cleanup function runs before each setup, we're okay.
 
       // Click on cluster to zoom in
-      m.on('click', 'clusters', (e: MapLayerMouseEvent) => {
+      const handleClusterClick = (e: MapLayerMouseEvent) => {
         const features = m.queryRenderedFeatures(e.point, { layers: ['clusters'] });
         if (!features.length) return;
 
@@ -341,18 +351,18 @@ export function useMapClustering({
             easing: (t) => 1 - Math.pow(1 - t, 3), // ease-out cubic
           });
         });
-      });
+      };
 
       // Change cursor on cluster hover
-      m.on('mouseenter', 'clusters', () => {
+      const handleClusterEnter = () => {
         m.getCanvas().style.cursor = 'pointer';
-      });
-      m.on('mouseleave', 'clusters', () => {
+      };
+      const handleClusterLeave = () => {
         m.getCanvas().style.cursor = '';
-      });
+      };
 
       // Click on unclustered point to select the shop
-      m.on('click', 'unclustered-point', (e: MapLayerMouseEvent) => {
+      const handleUnclusteredClick = (e: MapLayerMouseEvent) => {
         const features = m.queryRenderedFeatures(e.point, {
           layers: ['unclustered-point'],
         });
@@ -374,20 +384,33 @@ export function useMapClustering({
             easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // ease-in-out cubic
           });
         }
-      });
+      };
 
       // Change cursor on unclustered point hover
-      m.on('mouseenter', 'unclustered-point', () => {
+      const handleUnclusteredEnter = () => {
         m.getCanvas().style.cursor = 'pointer';
-      });
-      m.on('mouseleave', 'unclustered-point', () => {
+      };
+      const handleUnclusteredLeave = () => {
         m.getCanvas().style.cursor = '';
-      });
+      };
+
+      // Add layer event listeners (only if layers exist)
+      if (m.getLayer('clusters')) {
+        m.on('click', 'clusters', handleClusterClick);
+        m.on('mouseenter', 'clusters', handleClusterEnter);
+        m.on('mouseleave', 'clusters', handleClusterLeave);
+      }
+      if (m.getLayer('unclustered-point')) {
+        m.on('click', 'unclustered-point', handleUnclusteredClick);
+        m.on('mouseenter', 'unclustered-point', handleUnclusteredEnter);
+        m.on('mouseleave', 'unclustered-point', handleUnclusteredLeave);
+      }
 
       // Update marker visibility based on zoom
       const updateMarkerVisibility = () => {
         const currentMapZoom = m.getZoom();
         const showMarkers = currentMapZoom >= CLUSTER_MAX_ZOOM;
+        console.log('[updateMarkerVisibility] zoom:', currentMapZoom.toFixed(2), 'showMarkers:', showMarkers, 'count:', markers.current.size);
 
         markers.current.forEach((marker) => {
           const el = marker.getElement();
@@ -406,6 +429,8 @@ export function useMapClustering({
       // Create all markers upfront
       const createAllMarkers = () => {
         const mapZoom = m.getZoom();
+        const existingCount = markers.current.size;
+        let createdCount = 0;
 
         shops.forEach((shop) => {
           const id = shop.documentId;
@@ -413,6 +438,7 @@ export function useMapClustering({
           if (!coords) return;
 
           if (markers.current.has(id)) return;
+          createdCount++;
 
           const isSelected = id === selectedMarkerRef.current;
           const density = calculateLocalDensity(shop, shops);
@@ -430,11 +456,13 @@ export function useMapClustering({
 
           el.addEventListener('click', (e: MouseEvent) => {
             e.stopPropagation();
+            console.log('[Marker Click] Shop:', shop.documentId);
             onShopSelectRef.current(shop);
           });
 
           markers.current.set(id, marker);
         });
+        console.log('[createAllMarkers] existing:', existingCount, 'created:', createdCount, 'total:', markers.current.size);
       };
 
       // Event handlers
@@ -463,6 +491,18 @@ export function useMapClustering({
 
       const handleIdle = () => {
         if (!isZooming.current && !isDragging.current) {
+          const currentMapZoom = m.getZoom();
+          const currentBracket = getZoomBracket(currentMapZoom);
+          const previousBracket = wasAboveZoomThreshold.current;
+
+          console.log('[handleIdle] zoom:', currentMapZoom.toFixed(2), 'bracket:', currentBracket, 'prevBracket:', previousBracket, 'markerCount:', markers.current.size);
+
+          // Track bracket changes but DON'T recreate markers - just update visibility
+          // This prevents the visual glitches caused by destroying/recreating 500+ markers
+          if (previousBracket !== currentBracket) {
+            console.log('[handleIdle] Bracket changed from', previousBracket, 'to', currentBracket, '- updating visibility only');
+            wasAboveZoomThreshold.current = currentBracket;
+          }
           updateMarkerVisibility();
 
           if (
@@ -502,7 +542,15 @@ export function useMapClustering({
 
       // Cleanup function - remove ALL event listeners we added
       return () => {
+        console.log('[Cleanup] Removing event listeners, markerCount:', markers.current.size);
         clearTimeout(ensureMarkersTimeout);
+
+        // Safety check - map might be destroyed during cleanup
+        if (!m || !m.getStyle()) {
+          console.log('[Cleanup] Map already destroyed, skipping listener removal');
+          return;
+        }
+
         m.off('dragstart', handleDragStart);
         m.off('dragend', handleDragEnd);
         m.off('zoomstart', handleZoomStart);
@@ -511,15 +559,22 @@ export function useMapClustering({
         m.off('idle', handleIdle);
 
         // Remove layer-specific click handlers
-        // Note: We can't easily remove anonymous handlers, but removing the layers
-        // will effectively disable them. The cleanup in the effect will remove layers.
+        if (m.getLayer('clusters')) {
+          m.off('click', 'clusters', handleClusterClick);
+          m.off('mouseenter', 'clusters', handleClusterEnter);
+          m.off('mouseleave', 'clusters', handleClusterLeave);
+        }
+        if (m.getLayer('unclustered-point')) {
+          m.off('click', 'unclustered-point', handleUnclusteredClick);
+          m.off('mouseenter', 'unclustered-point', handleUnclusteredEnter);
+          m.off('mouseleave', 'unclustered-point', handleUnclusteredLeave);
+        }
       };
     };
 
     // Run setup with retry logic to handle timing issues during map animations
     let cleanup: (() => void) | undefined;
     let retryTimeout: NodeJS.Timeout | undefined;
-    let initialTimeout: NodeJS.Timeout | undefined;
     let retryCount = 0;
     const MAX_RETRIES = 3;
 
@@ -538,16 +593,10 @@ export function useMapClustering({
       }
     };
 
-    // Only delay if shops actually changed (to let map animations settle)
-    // Run immediately on initial setup or theme change
-    if (shopsChanged && markers.current.size > 0) {
-      initialTimeout = setTimeout(attemptSetup, 50);
-    } else {
-      attemptSetup();
-    }
+    // Run setup immediately
+    attemptSetup();
 
     return () => {
-      clearTimeout(initialTimeout);
       if (retryTimeout) clearTimeout(retryTimeout);
       cleanup?.();
       // Note: Don't remove layers here - they should persist until setupClustering
@@ -555,93 +604,8 @@ export function useMapClustering({
     };
   }, [shops, createMarkerElementForShop, mapReady, map, effectiveTheme]);
 
-  // Recreate markers when crossing zoom thresholds for size/style changes
-  // Use a ref to track pending recreation to debounce rapid zoom changes
-  const pendingRecreationRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (!map || shops.length === 0 || markers.current.size === 0) return;
-
-    const currentBracket = getZoomBracket(currentZoom);
-    const previousBracket = wasAboveZoomThreshold.current;
-
-    if (previousBracket !== currentBracket) {
-      wasAboveZoomThreshold.current = currentBracket;
-
-      // Clear any pending recreation
-      if (pendingRecreationRef.current) {
-        clearTimeout(pendingRecreationRef.current);
-      }
-
-      // Debounce marker recreation to avoid flashing during rapid zoom changes
-      pendingRecreationRef.current = setTimeout(() => {
-        // Safety check - map may have been unmounted or in invalid state
-        try {
-          if (!map || typeof map.getSource !== 'function') return;
-          const source = map.getSource('shops') as mapboxgl.GeoJSONSource;
-          if (!source) return;
-        } catch {
-          return;
-        }
-
-        // Get actual current zoom from map (not the prop which may be stale)
-        const actualZoom = map.getZoom();
-
-        // Clear and recreate all markers with new zoom level
-        markers.current.forEach((marker) => marker.remove());
-        markers.current.clear();
-
-        shops.forEach((shop) => {
-          const id = shop.documentId;
-          const coords = getShopCoords(shop);
-          if (!coords) return;
-
-          const isSelected = id === selectedMarkerRef.current;
-          const density = calculateLocalDensity(shop, shops);
-          const el = createMarkerElementForShop(shop, isSelected, false, density, actualZoom);
-
-          el.style.display = 'none';
-          el.style.opacity = '0';
-
-          const marker = new mapboxgl.Marker({
-            element: el,
-            anchor: 'center',
-          })
-            .setLngLat(coords)
-            .addTo(map);
-
-          el.addEventListener('click', (e: MouseEvent) => {
-            e.stopPropagation();
-            onShopSelectRef.current(shop);
-          });
-
-          markers.current.set(id, marker);
-        });
-
-        // Show markers only after clusters are gone (>= 14)
-        const showMarkers = actualZoom >= CLUSTER_MAX_ZOOM;
-
-        markers.current.forEach((marker) => {
-          const el = marker.getElement();
-          if (showMarkers) {
-            el.style.display = '';
-            el.style.opacity = '1';
-            el.style.pointerEvents = '';
-          } else {
-            el.style.display = 'none';
-            el.style.opacity = '0';
-            el.style.pointerEvents = 'none';
-          }
-        });
-      }, 150); // Wait for zoom animation to settle
-    }
-
-    return () => {
-      if (pendingRecreationRef.current) {
-        clearTimeout(pendingRecreationRef.current);
-      }
-    };
-  }, [currentZoom, shops, createMarkerElementForShop, map]);
+  // Note: Zoom bracket changes for marker style updates are now handled in handleIdle
+  // This avoids the debounce cancellation issues that occurred with a separate effect
 
   // Update selected marker styling
   useEffect(() => {
