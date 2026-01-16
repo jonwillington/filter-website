@@ -19,7 +19,7 @@ export function PhotoGallery({ shop }: PhotoGalleryProps) {
     <>
       <Divider className="my-5 opacity-30" />
       <div>
-      <h3 className="text-base font-medium text-primary mb-3">
+      <h3 className="text-base font-semibold text-primary mb-3">
         Photos
       </h3>
 
