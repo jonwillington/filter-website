@@ -685,7 +685,7 @@ export function MainLayout({
     return mapShops;
   }, [cachedShops, sidebarShops, selectedLocation, shopFilter, applyMyFilters, userProfile?.preferences, shopMatchesTags, shopMatchesBrewMethods]);
 
-  // Track filter changes and show loading overlay
+  // Track filter changes and show loading overlay, fit map to filtered shops
   useEffect(() => {
     if (prevShopFilterRef.current !== shopFilter) {
       setIsFilterLoading(true);
@@ -694,9 +694,50 @@ export function MainLayout({
         setIsFilterLoading(false);
       }, 400); // Slightly longer than marker animation
       prevShopFilterRef.current = shopFilter;
+
+      // When applying a filter (not 'all'), fit map to show all filtered shops
+      if (shopFilter !== 'all' && sidebarShops.length > 0) {
+        const shopsWithCoords = sidebarShops
+          .map(shop => {
+            const coords = getShopCoords(shop);
+            return coords ? { lng: coords.lng, lat: coords.lat } : null;
+          })
+          .filter((c): c is { lng: number; lat: number } => c !== null);
+
+        if (shopsWithCoords.length > 0) {
+          // Calculate bounds
+          const lngs = shopsWithCoords.map(c => c.lng);
+          const lats = shopsWithCoords.map(c => c.lat);
+          const minLng = Math.min(...lngs);
+          const maxLng = Math.max(...lngs);
+          const minLat = Math.min(...lats);
+          const maxLat = Math.max(...lats);
+
+          // Calculate center and appropriate zoom
+          const centerLng = (minLng + maxLng) / 2;
+          const centerLat = (minLat + maxLat) / 2;
+
+          // Add padding to bounds
+          const lngSpan = Math.max(maxLng - minLng, 0.01) * 1.3;
+          const latSpan = Math.max(maxLat - minLat, 0.01) * 1.3;
+
+          // Estimate zoom level based on span (rough approximation)
+          const maxSpan = Math.max(lngSpan, latSpan);
+          let newZoom = 12;
+          if (maxSpan > 0.5) newZoom = 10;
+          else if (maxSpan > 0.2) newZoom = 11;
+          else if (maxSpan > 0.1) newZoom = 12;
+          else if (maxSpan > 0.05) newZoom = 13;
+          else newZoom = 14;
+
+          setMapCenter([centerLng, centerLat]);
+          setMapZoom(newZoom);
+        }
+      }
+
       return () => clearTimeout(timer);
     }
-  }, [shopFilter]);
+  }, [shopFilter, sidebarShops]);
 
   // Debug: Log when shops or selectedLocation changes
   useEffect(() => {

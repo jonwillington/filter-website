@@ -103,10 +103,10 @@ export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalP
             className="text-primary"
             style={{
               fontFamily: 'PPNeueYork, serif',
-              fontSize: '24px',
+              fontSize: '32px',
               fontWeight: 600,
               letterSpacing: '-0.5px',
-              lineHeight: 1.2,
+              lineHeight: 1.15,
             }}
           >
             {event.name}
@@ -271,6 +271,37 @@ export function EventModal({ event, isOpen, onClose, primaryColor }: EventModalP
                 {event.contact_email}
               </a>
             </div>
+          )}
+
+          {/* Google Maps embed */}
+          {event.physicalLocation && (
+            <>
+              <Divider className="bg-border-default" />
+              <div>
+                <h3 className="text-sm font-medium text-primary mb-3">Location</h3>
+                <div className="rounded-xl overflow-hidden border border-border-default">
+                  <iframe
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(event.physicalLocation)}&output=embed`}
+                    width="100%"
+                    height="200"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title={`Map showing ${event.physicalLocation}`}
+                  />
+                </div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.physicalLocation)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors mt-2"
+                >
+                  <ExternalLink size={14} />
+                  Open in Google Maps
+                </a>
+              </div>
+            </>
           )}
 
           {/* Learn more button */}

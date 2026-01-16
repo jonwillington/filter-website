@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { EventCard, EventModal } from '@/components/events';
+import { TopChoicesModal } from '@/components/modals/TopChoicesModal';
 
 interface LocationDrawerProps {
   location: Location;
@@ -34,6 +35,7 @@ export function LocationDrawer({
   onLocationChange,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showTopChoicesModal, setShowTopChoicesModal] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['topShops']));
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -444,6 +446,16 @@ export function LocationDrawer({
                     );
                   })}
                 </div>
+                {/* Top Choices Explainer */}
+                <p className="text-xs text-white/40 leading-tight px-4 pt-3 pb-1">
+                  Top Choices are places we have verified for outstanding coffee in {currentLocation.name}.{' '}
+                  <button
+                    onClick={() => setShowTopChoicesModal(true)}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    Learn more
+                  </button>
+                </p>
               </AccordionItem>
             </Accordion>
           )}
@@ -459,6 +471,7 @@ export function LocationDrawer({
               </p>
             </div>
           )}
+
         </div>
       </div>
 
@@ -468,6 +481,12 @@ export function LocationDrawer({
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
         primaryColor={primaryColor}
+      />
+
+      {/* Top Choices Modal */}
+      <TopChoicesModal
+        isOpen={showTopChoicesModal}
+        onClose={() => setShowTopChoicesModal(false)}
       />
     </>
   );
