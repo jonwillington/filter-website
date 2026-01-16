@@ -130,10 +130,10 @@ export function BeansSection({ shop }: BeansSectionProps) {
               <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
             </div>
           </div>
-          <p className="text-sm text-primary">
-            <span className="font-medium">{brand.name}</span>
-            <span className="text-text-secondary"> roasts their own beans</span>
-          </p>
+          <div>
+            <p className="text-sm font-medium text-primary">{brand.name}</p>
+            <p className="text-sm text-text-secondary">Roasts their own beans</p>
+          </div>
         </div>
       )}
 
