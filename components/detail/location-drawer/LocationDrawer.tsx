@@ -194,18 +194,19 @@ export function LocationDrawer({
       <div className="drawer-content flex-1 overflow-y-auto">
         {/* Beta Banner */}
         {currentLocation.beta && (
-          <div className="px-6 pt-3 pb-3 text-sm text-center text-white/90 animate-fade-in flex items-center justify-center gap-2 border-b border-white/10">
-            <svg className="w-4 h-4 flex-shrink-0 text-white/80" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          <div className="px-6 pt-3 pb-3 text-sm text-center text-white/90 animate-fade-in flex items-center justify-center gap-2 border-b border-white/10 bg-purple-600">
+            <svg className="w-4 h-4 flex-shrink-0 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span><span className="font-medium">Beta location.</span> More shops coming soon!</span>
+            <span><span className="font-medium">{currentLocation.name} is in BETA.</span> More shops coming soon!</span>
           </div>
         )}
 
         {/* Top header row with City Guide and close button */}
         <div
-          className="relative flex items-center justify-between px-6 py-4 border-b border-white/10"
+          className="relative flex items-center justify-between px-6 py-4"
           style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.07)',
             opacity: 1 - stickyHeaderOpacity,
             pointerEvents: stickyHeaderOpacity > 0.5 ? 'none' : 'auto',
           }}
@@ -271,7 +272,7 @@ export function LocationDrawer({
             {/* City Rating */}
             {currentLocation.rating_stars && (
               <div className="flex items-center gap-2">
-                <span className="text-white/60">Rating</span>
+                <span className="text-white/60">City rating</span>
                 <StarRating
                   rating={currentLocation.rating_stars}
                   size={14}
