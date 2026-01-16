@@ -19,6 +19,16 @@ function getDistance(c1: [number, number], c2: [number, number]): number {
 }
 
 /**
+ * Easing functions for natural map animations
+ */
+const easing = {
+  // Smooth ease-out cubic - natural deceleration
+  outCubic: (t: number) => 1 - Math.pow(1 - t, 3),
+  // Ease-in-out cubic - smooth start and end
+  inOutCubic: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+};
+
+/**
  * Hook to manage map center and zoom position updates.
  * Handles smooth transitions. City-level changes (zoom changes or major center changes)
  * animate immediately, while shop-level pans can be queued during loading.
@@ -38,7 +48,11 @@ export function useMapPosition({
   useEffect(() => {
     if (!map) return;
 
-    const isZoomChange = Math.abs(zoom - lastZoom.current) > 0.5;
+    // Get current map zoom - don't zoom out if user has zoomed in further
+    const currentMapZoom = map.getZoom();
+    const effectiveZoom = Math.max(zoom, currentMapZoom);
+
+    const isZoomChange = Math.abs(effectiveZoom - lastZoom.current) > 0.5;
     // Detect major center changes (city-to-city navigation) - ~50km at equator
     const isMajorCenterChange = getDistance(center, lastCenter.current) > 0.5;
 
@@ -47,28 +61,31 @@ export function useMapPosition({
     if (isLoading && !isZoomChange && !isMajorCenterChange) {
       // Only queue minor same-zoom transitions during loading
       pendingCenter.current = center;
-      pendingZoom.current = zoom;
+      pendingZoom.current = effectiveZoom;
     } else {
       if (isZoomChange || isMajorCenterChange) {
         // Full flyTo for location/zoom changes or city-to-city - animate immediately
         map.flyTo({
           center,
-          zoom,
-          duration: 800,
+          zoom: effectiveZoom,
+          duration: 1600,
           padding: { left: 200, right: 0, top: 0, bottom: 0 },
+          essential: true,
+          easing: easing.inOutCubic,
         });
       } else {
-        // Quick easeTo for shop-to-shop (same zoom, minor distance)
+        // Smooth easeTo for shop-to-shop (same zoom, minor distance)
         map.easeTo({
           center,
-          zoom,
-          duration: 400,
+          zoom: effectiveZoom,
+          duration: 1000,
           padding: { left: 200, right: 0, top: 0, bottom: 0 },
+          easing: easing.outCubic,
         });
       }
 
       lastCenter.current = center;
-      lastZoom.current = zoom;
+      lastZoom.current = effectiveZoom;
 
       pendingCenter.current = null;
       pendingZoom.current = null;
@@ -87,15 +104,18 @@ export function useMapPosition({
         map.flyTo({
           center: pendingCenter.current,
           zoom: pendingZoom.current,
-          duration: 800,
+          duration: 1600,
           padding: { left: 200, right: 0, top: 0, bottom: 0 },
+          essential: true,
+          easing: easing.inOutCubic,
         });
       } else {
         map.easeTo({
           center: pendingCenter.current,
           zoom: pendingZoom.current,
-          duration: 400,
+          duration: 1000,
           padding: { left: 200, right: 0, top: 0, bottom: 0 },
+          easing: easing.outCubic,
         });
       }
 

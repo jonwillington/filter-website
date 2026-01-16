@@ -50,6 +50,8 @@ export function useMapClustering({
   const isTransitioning = useRef<boolean>(false);
   const hasCalledTransitionComplete = useRef<boolean>(false);
   const wasAboveZoomThreshold = useRef(getZoomBracket(currentZoom));
+  const previousShopIdsRef = useRef<string>('');
+  const previousThemeRef = useRef<string>(effectiveTheme);
 
   // Store callbacks in refs to avoid re-running setup when they change
   const onShopSelectRef = useRef(onShopSelect);
@@ -84,6 +86,16 @@ export function useMapClustering({
   // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
   useEffect(() => {
     if (!map || !mapReady) return;
+
+    // Compare shop IDs and theme to avoid unnecessary re-setup when only selectedShop changes
+    const currentShopIds = shops.map(s => s.documentId).sort().join(',');
+    const themeChanged = effectiveTheme !== previousThemeRef.current;
+    if (currentShopIds === previousShopIdsRef.current && !themeChanged && markers.current.size > 0) {
+      // Shops and theme haven't changed, skip re-setup
+      return;
+    }
+    previousShopIdsRef.current = currentShopIds;
+    previousThemeRef.current = effectiveTheme;
 
     const m = map;
 
@@ -297,8 +309,10 @@ export function useMapClustering({
           m.flyTo({
             center: geometry.coordinates as [number, number],
             zoom: expansionZoom ?? 14,
-            duration: 500,
+            duration: 900,
             padding: { left: 200, right: 0, top: 0, bottom: 0 },
+            essential: true,
+            easing: (t) => 1 - Math.pow(1 - t, 3), // ease-out cubic
           });
         });
       });
@@ -323,11 +337,15 @@ export function useMapClustering({
         if (shop) {
           onShopSelectRef.current(shop);
           const geometry = features[0].geometry as GeoJSON.Point;
+          const currentMapZoom = m.getZoom();
+          const targetZoom = Math.max(currentMapZoom, 14); // Don't zoom out if already zoomed in
           m.flyTo({
             center: geometry.coordinates as [number, number],
-            zoom: 15,
-            duration: 800,
+            zoom: targetZoom,
+            duration: currentMapZoom >= 14 ? 800 : 1200, // Faster if just panning
             padding: { left: 200, right: 0, top: 0, bottom: 0 },
+            essential: true,
+            easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // ease-in-out cubic
           });
         }
       });
@@ -494,7 +512,7 @@ export function useMapClustering({
     return () => {
       cleanup?.();
     };
-  }, [shops, createMarkerElementForShop, mapReady, map]);
+  }, [shops, createMarkerElementForShop, mapReady, map, effectiveTheme]);
 
   // Recreate markers when crossing zoom thresholds for size/style changes
   useEffect(() => {

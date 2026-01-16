@@ -169,9 +169,9 @@ export function MainLayout({
       const coords = getShopCoords(initialShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        // Zoom in to shop level to prevent clustering from obscuring the pin
+        // Zoom in to shop level while showing surrounding context
         if (!prevInitialShopRef.current) {
-          setMapZoom(16);
+          setMapZoom(14);
         }
       }
       prevInitialShopRef.current = initialShop;
@@ -213,15 +213,19 @@ export function MainLayout({
   }, [initialShop, initialLocation, shops]); // Update when initialShop changes
 
   // Update map center and zoom when selectedShop changes (for same-location navigation via pushState)
+  const MIN_SHOP_ZOOM = 14;
   useEffect(() => {
     if (selectedShop && selectedShop.documentId !== initialShop?.documentId) {
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(16); // Zoom in to shop level to prevent clustering
+        // Only zoom in if currently zoomed out - don't zoom out if user has zoomed in further
+        if (mapZoom < MIN_SHOP_ZOOM) {
+          setMapZoom(MIN_SHOP_ZOOM);
+        }
       }
     }
-  }, [selectedShop, initialShop]);
+  }, [selectedShop, initialShop, mapZoom]);
 
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
@@ -375,7 +379,7 @@ export function MainLayout({
               const coords = getShopCoordinates(matchedShop);
               if (coords) {
                 setMapCenter([coords[0], coords[1]]);
-                setMapZoom(16);
+                setMapZoom(14);
               }
               return;
             }

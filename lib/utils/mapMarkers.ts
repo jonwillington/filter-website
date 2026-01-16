@@ -123,6 +123,8 @@ function createSimpleMarkerElement(
 
 /**
  * Create a detailed marker element with logo and optional text label
+ * Selected markers are larger with a pointer showing exact location
+ * All markers use center anchor, so we offset selected markers upward
  */
 function createDetailedMarkerElement(
   shop: Shop,
@@ -134,28 +136,39 @@ function createDetailedMarkerElement(
   const { labelBg, labelText, shimmerGradient } = themeConfig;
   const logoUrl = getMediaUrl(shop.brand?.logo);
 
+  // Size based on selection state - selected is larger
+  const logoSize = isSelected ? 48 : 32;
+  const borderWidth = isSelected ? 3 : 2.5;
+  const pointerHeight = 10;
+
   const container = document.createElement('div');
   container.className = `shop-marker${isSelected ? ' selected' : ''}`;
+
+  // For selected markers, offset upward so pointer tip is at the anchor point
+  // Total offset = half logo height + pointer height
+  const offsetY = isSelected ? -(logoSize / 2 + pointerHeight) : 0;
+
   container.style.cssText = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     cursor: pointer;
     opacity: ${fadeIn ? '0' : '1'};
-    transition: opacity 0.2s ease;
+    transition: opacity 0.3s ease;
+    transform: translateY(${offsetY}px);
   `;
   container.style.zIndex = isSelected ? '10' : '1';
 
   // Create logo circle
   const logoEl = document.createElement('div');
+  logoEl.className = 'marker-logo';
   const baseStyles = `
-    width: 36px;
-    height: 36px;
+    width: ${logoSize}px;
+    height: ${logoSize}px;
     border-radius: 50%;
-    border: 3px solid ${isSelected ? '#8B6F47' : 'white'};
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    transition: border-color 0.2s ease;
+    border: ${borderWidth}px solid ${isSelected ? '#8B6F47' : 'white'};
+    box-shadow: ${isSelected ? '0 4px 16px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.2)'};
+    transition: all 0.3s ease;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     flex-shrink: 0;
@@ -191,39 +204,26 @@ function createDetailedMarkerElement(
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: ${isSelected ? 20 : 14}px;
     `;
   }
 
   container.appendChild(logoEl);
 
-  // Create text label only if showLabel is true
-  if (showLabel) {
-    const textLabel = document.createElement('div');
-    const brandName = shop.brand?.name || shop.name;
-    const locationName = shop.location?.name || '';
-    textLabel.textContent = `${brandName} · ${locationName}`;
-    textLabel.style.cssText = `
-      background: ${labelBg};
-      color: ${labelText};
-      font-size: 10px;
-      font-weight: 400;
-      padding: 2px 6px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-      margin-top: 3px;
-      max-width: 90px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: center;
-      line-height: 1.2;
-    `;
-    container.appendChild(textLabel);
-  }
-
+  // Add pointer beneath selected marker to show exact location
   if (isSelected) {
-    container.style.transform = 'scale(1.1)';
+    const pointer = document.createElement('div');
+    pointer.className = 'marker-pointer';
+    pointer.style.cssText = `
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: ${pointerHeight}px solid #8B6F47;
+      margin-top: -1px;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+    `;
+    container.appendChild(pointer);
   }
 
   // Fade in after a brief delay if fadeIn is true
@@ -283,20 +283,57 @@ export function updateMarkerStyle(
   // Simple markers have border-radius: 50% and no children
   const isSimpleMarker = !hasChildren && el.style.borderRadius === '50%';
 
+  // Sizing constants (must match createDetailedMarkerElement)
+  const selectedLogoSize = 48;
+  const normalLogoSize = 32;
+  const pointerHeight = 10;
+
   if (isSimpleMarker) {
     // Simple circular marker
     const countryColor = shop ? getShopCountryColor(shop) : '#FF6B6B';
     el.style.backgroundColor = isSelected ? '#8B6F47' : countryColor;
     el.style.transform = isSelected
-      ? 'translate3d(0, 0, 0) scale(1.3)'
+      ? 'translate3d(0, 0, 0) scale(1.4)'
       : 'translate3d(0, 0, 0) scale(1)';
   } else if (hasChildren) {
-    // Container with logo and text label
-    const logoEl = el.children[0] as HTMLElement;
+    // Container with logo marker
+    const logoEl = el.querySelector('.marker-logo') as HTMLElement;
+    const existingPointer = el.querySelector('.marker-pointer');
+
+    // Update container offset for pointer alignment
+    const logoSize = isSelected ? selectedLogoSize : normalLogoSize;
+    const offsetY = isSelected ? -(logoSize / 2 + pointerHeight) : 0;
+    el.style.transform = `translateY(${offsetY}px)`;
+
     if (logoEl) {
+      // Update logo size and styling
+      const borderWidth = isSelected ? 3 : 2.5;
+      logoEl.style.width = `${logoSize}px`;
+      logoEl.style.height = `${logoSize}px`;
+      logoEl.style.borderWidth = `${borderWidth}px`;
       logoEl.style.borderColor = isSelected ? '#8B6F47' : 'white';
+      logoEl.style.boxShadow = isSelected
+        ? '0 4px 16px rgba(0,0,0,0.35)'
+        : '0 2px 8px rgba(0,0,0,0.2)';
     }
-    el.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
+
+    // Add or remove pointer
+    if (isSelected && !existingPointer) {
+      const pointer = document.createElement('div');
+      pointer.className = 'marker-pointer';
+      pointer.style.cssText = `
+        width: 0;
+        height: 0;
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-top: ${pointerHeight}px solid #8B6F47;
+        margin-top: -1px;
+        filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+      `;
+      el.appendChild(pointer);
+    } else if (!isSelected && existingPointer) {
+      existingPointer.remove();
+    }
   } else {
     // Legacy single element logo marker
     el.style.borderColor = isSelected ? '#8B6F47' : 'white';

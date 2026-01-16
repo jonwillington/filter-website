@@ -305,7 +305,7 @@ export function LocationDrawer({
                 base: 'bg-white/10 rounded-xl shadow-none overflow-hidden',
                 title: 'text-base font-medium text-white',
                 trigger: 'px-4 py-3 data-[open=true]:bg-white/[0.15] transition-colors',
-                content: 'px-4 pb-3 pt-3',
+                content: 'pb-3 pt-3',
                 indicator: 'text-white/60',
               }}
             >
@@ -349,7 +349,7 @@ export function LocationDrawer({
                 base: 'bg-white/10 rounded-xl shadow-none overflow-hidden',
                 title: 'text-base font-medium text-white',
                 trigger: 'px-4 py-3 data-[open=true]:bg-white/[0.15] transition-colors',
-                content: 'px-4 pb-3 pt-3',
+                content: 'pb-3 pt-3',
                 indicator: 'text-white/60',
               }}
             >
@@ -385,7 +385,7 @@ export function LocationDrawer({
                       <button
                         key={shop.documentId}
                         onClick={() => onShopSelect(shop)}
-                        className="w-full text-left transition-all duration-200 hover:bg-white/5 rounded-lg py-3 group"
+                        className="w-full text-left transition-all duration-200 hover:bg-white/5 py-3 px-4 group"
                       >
                         <div className="flex items-center gap-3">
                           {/* Brand avatar - far left */}

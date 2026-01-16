@@ -100,7 +100,7 @@ export function LocationProvider({
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
         if (!prevInitialShopRef.current) {
-          setMapZoom(16);
+          setMapZoom(14);
         }
       }
       prevInitialShopRef.current = initialShop;
@@ -140,7 +140,7 @@ export function LocationProvider({
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(16);
+        setMapZoom(14);
       }
     }
   }, [selectedShop, initialShop, getShopCoords]);

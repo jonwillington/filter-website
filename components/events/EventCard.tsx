@@ -33,7 +33,7 @@ export function EventCard({ event, onClick, primaryColor, variant = 'default' }:
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left transition-all duration-200 rounded-lg py-3 group ${
+      className={`w-full text-left transition-all duration-200 py-3 px-4 group ${
         isLight ? 'hover:bg-white/5' : 'hover:bg-gray-50 dark:hover:bg-white/5'
       }`}
     >
