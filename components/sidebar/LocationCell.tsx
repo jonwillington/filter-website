@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, MapPin } from 'lucide-react';
 import { Location } from '@/lib/types';
 
 interface LocationCellProps {
@@ -51,7 +51,8 @@ function LocationCellComponent({
       )}
 
       {/* Text content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <MapPin className="w-4 h-4 text-text-secondary flex-shrink-0" />
         <p className="text-base font-medium text-primary truncate">
           {locationName || 'Select location'}
         </p>
