@@ -5,7 +5,7 @@ import {
   getShopCoords,
   getZoomBracket,
 } from '../utils/mapGeometry';
-import { createLogoBadgeElement, updateLogoBadgeStyle } from '../utils/mapMarkers';
+import { createLogoBadgeElement, updateLogoBadgeStyle, loadLogoBadgeImage } from '../utils/mapMarkers';
 
 // Industry standard clustering parameters (Mapbox/Supercluster best practices)
 const CLUSTER_RADIUS = 50; // Optimal radius for urban density (40-60 recommended)
@@ -404,11 +404,14 @@ export function useMapClustering({
         m.on('mouseleave', 'unclustered-point', handleUnclusteredLeave);
       }
 
+      // Track whether badges have been created yet (lazy creation)
+      let badgesCreated = false;
+
       // Update logo badge visibility based on zoom and movement state
       const updateBadgeVisibility = (forceHide: boolean = false) => {
         const currentMapZoom = m.getZoom();
         const shouldShow = !forceHide && currentMapZoom >= LOGO_BADGE_ZOOM && !isZooming.current && !isDragging.current;
-        console.log('[updateBadgeVisibility] zoom:', currentMapZoom.toFixed(2), 'shouldShow:', shouldShow, 'programmatic:', isProgrammaticMove.current);
+        console.log('[updateBadgeVisibility] zoom:', currentMapZoom.toFixed(2), 'shouldShow:', shouldShow, 'programmatic:', isProgrammaticMove.current, 'badgesCreated:', badgesCreated);
 
         // Cancel any pending show
         if (badgeShowTimeoutRef.current) {
@@ -417,6 +420,12 @@ export function useMapClustering({
         }
 
         if (shouldShow) {
+          // Lazy create badges only when we're zoomed in enough to see them
+          if (!badgesCreated) {
+            createAllLogoBadges();
+            badgesCreated = true;
+          }
+
           // Shorter delay for programmatic moves (shop-to-shop), longer for user movement
           const delay = isProgrammaticMove.current ? 50 : 150;
           badgeShowTimeoutRef.current = setTimeout(() => {
@@ -426,6 +435,8 @@ export function useMapClustering({
               el.style.display = '';
               el.style.opacity = '0';
               el.style.pointerEvents = '';
+              // Lazy load the logo image when badge becomes visible
+              loadLogoBadgeImage(el);
               // Then fade in after a frame (allows CSS transition to work)
               requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
@@ -591,8 +602,7 @@ export function useMapClustering({
       m.on('sourcedata', handleSourceData);
       m.on('idle', handleIdle);
 
-      // Create logo badges and update visibility based on zoom
-      createAllLogoBadges();
+      // Update badge visibility based on zoom (badges created lazily when needed)
       updateBadgeVisibility();
 
       // Force map resize to ensure rendering

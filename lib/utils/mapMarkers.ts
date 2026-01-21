@@ -387,17 +387,10 @@ export function createLogoBadgeElement(
 
   ensureShimmerStyle();
 
-  // Preload image and swap when ready
-  const img = new Image();
-  img.onload = () => {
-    el.style.backgroundImage = `url(${logoUrl})`;
-    el.style.backgroundSize = 'cover';
-    el.style.backgroundPosition = 'center';
-    el.style.backgroundColor = labelBg;
-    el.style.background = `url(${logoUrl}) center/cover ${labelBg}`;
-    el.style.animation = 'none';
-  };
-  img.src = logoUrl;
+  // Store the logo URL as a data attribute for lazy loading
+  // The image will be loaded when the badge becomes visible
+  el.dataset.logoUrl = logoUrl;
+  el.dataset.labelBg = labelBg;
 
   // Fade in after a brief delay if fadeIn is true
   if (fadeIn) {
@@ -422,4 +415,30 @@ export function updateLogoBadgeStyle(
   el.style.transform = isSelected ? 'scale(1.15)' : 'scale(1)';
   el.style.zIndex = isSelected ? '10' : '1';
   el.className = `logo-badge${isSelected ? ' selected' : ''}`;
+}
+
+/**
+ * Load the logo image for a badge element.
+ * Call this when the badge becomes visible to lazy-load the image.
+ */
+export function loadLogoBadgeImage(el: HTMLElement): void {
+  const logoUrl = el.dataset.logoUrl;
+  const labelBg = el.dataset.labelBg;
+
+  // Already loaded or no URL
+  if (!logoUrl || el.dataset.loaded === 'true') return;
+
+  // Mark as loading to prevent duplicate loads
+  el.dataset.loaded = 'true';
+
+  const img = new Image();
+  img.onload = () => {
+    el.style.backgroundImage = `url(${logoUrl})`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.style.backgroundColor = labelBg || 'white';
+    el.style.background = `url(${logoUrl}) center/cover ${labelBg || 'white'}`;
+    el.style.animation = 'none';
+  };
+  img.src = logoUrl;
 }
