@@ -59,46 +59,59 @@ export async function getAllBrands(): Promise<Map<string, Brand>> {
   }
 
   try {
-    const allBrands: Brand[] = [];
-    let page = 1;
-    let pageCount = 1;
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+    const populateParams = [
+      'populate[logo][fields][0]=url',
+      'populate[logo][fields][1]=formats',
+      'populate[suppliers][populate][logo][fields][0]=url',
+      'populate[suppliers][populate][logo][fields][1]=formats',
+      'populate[suppliers][populate][bg-image][fields][0]=url',
+      'populate[suppliers][populate][bg-image][fields][1]=formats',
+      'populate[suppliers][populate][country][fields][0]=name',
+      'populate[suppliers][populate][country][fields][1]=code',
+      'populate[suppliers][populate][ownRoastCountry][fields][0]=name',
+      'populate[suppliers][populate][ownRoastCountry][fields][1]=code',
+      'populate[ownRoastCountry][fields][0]=name',
+      'populate[ownRoastCountry][fields][1]=code',
+    ].join('&');
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+      },
+      next: { revalidate: 300 },
+    };
 
-    while (page <= pageCount) {
-      // Populate suppliers with their media fields (logo, bg-image)
-      const populateParams = [
-        'populate[logo][fields][0]=url',
-        'populate[logo][fields][1]=formats',
-        'populate[suppliers][populate][logo][fields][0]=url',
-        'populate[suppliers][populate][logo][fields][1]=formats',
-        'populate[suppliers][populate][bg-image][fields][0]=url',
-        'populate[suppliers][populate][bg-image][fields][1]=formats',
-        'populate[suppliers][populate][country][fields][0]=name',
-        'populate[suppliers][populate][country][fields][1]=code',
-        'populate[suppliers][populate][ownRoastCountry][fields][0]=name',
-        'populate[suppliers][populate][ownRoastCountry][fields][1]=code',
-        'populate[ownRoastCountry][fields][0]=name',
-        'populate[ownRoastCountry][fields][1]=code',
-      ].join('&');
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          cache: 'no-store',
-        }
-      );
+    // Fetch first page to get total page count
+    const firstResponse = await fetch(
+      `${baseUrl}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=1`,
+      fetchOptions
+    );
 
-      if (!response.ok) {
-        throw new Error(`Brands API Error: ${response.statusText}`);
+    if (!firstResponse.ok) {
+      throw new Error(`Brands API Error: ${firstResponse.statusText}`);
+    }
+
+    const firstJson = await firstResponse.json();
+    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
+    const allBrands: Brand[] = [...(firstJson.data || [])];
+
+    // Fetch remaining pages in parallel
+    if (pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pageCount; page++) {
+        pagePromises.push(
+          fetch(
+            `${baseUrl}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
+            fetchOptions
+          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
+        );
       }
 
-      const json = await response.json();
-      allBrands.push(...(json.data || []));
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
+      const results = await Promise.all(pagePromises);
+      for (const json of results) {
+        allBrands.push(...(json.data || []));
+      }
     }
 
     // Create lookup map by documentId

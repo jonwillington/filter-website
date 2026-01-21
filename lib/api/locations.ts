@@ -1,6 +1,5 @@
 import { Location, Shop, CityArea } from '../types';
 import { deslugify } from '../utils';
-import { getAllShops } from './shops';
 import { getCached, setCache } from './cache';
 
 export interface ApiResponse<T> {
@@ -38,33 +37,46 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
 // Fetch all locations directly from Strapi
 async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
   try {
-    const locations: Location[] = [];
-    let page = 1;
-    let pageCount = 1;
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+      },
+      next: { revalidate: 300 },
+    };
 
-    while (page <= pageCount) {
-      // Don't use explicit fields - JSON fields like boundary_coordinates can't be fetched that way in Strapi v5
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          cache: 'no-store',
-        }
-      );
+    // Fetch first page to get total page count
+    const firstResponse = await fetch(
+      `${baseUrl}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=1`,
+      fetchOptions
+    );
 
-      if (!response.ok) {
-        console.error(`Locations API Error: ${response.statusText}`);
-        break;
+    if (!firstResponse.ok) {
+      console.error(`Locations API Error: ${firstResponse.statusText}`);
+      return [];
+    }
+
+    const firstJson = await firstResponse.json();
+    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
+    const locations: Location[] = [...(firstJson.data || [])];
+
+    // Fetch remaining pages in parallel
+    if (pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pageCount; page++) {
+        pagePromises.push(
+          fetch(
+            `${baseUrl}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+            fetchOptions
+          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
+        );
       }
 
-      const json = await response.json();
-      locations.push(...(json.data || []));
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
+      const results = await Promise.all(pagePromises);
+      for (const json of results) {
+        locations.push(...(json.data || []));
+      }
     }
 
     return locations;
@@ -76,7 +88,8 @@ async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
 
 // Fetch unique locations from Strapi, city-areas, and shops
 // This ensures all locations are available, including coming soon ones
-export async function getAllLocations(): Promise<Location[]> {
+// Pass shops and cityAreas to avoid duplicate fetching (they're already fetched in page.tsx)
+export async function getAllLocations(shops?: Shop[], cityAreas?: CityArea[]): Promise<Location[]> {
   const cacheKey = 'locations:all';
   const cached = getCached<Location[]>(cacheKey);
   if (cached) return cached;
@@ -93,8 +106,9 @@ export async function getAllLocations(): Promise<Location[]> {
     }
 
     // 2. Get locations from city-areas (with full nested data) - may have more complete data
-    const cityAreas = await getAllCityAreas();
-    for (const cityArea of cityAreas) {
+    // Use passed cityAreas if available to avoid duplicate fetch
+    const cityAreasData = cityAreas ?? await getAllCityAreas();
+    for (const cityArea of cityAreasData) {
       const loc = cityArea.location;
       if (loc?.documentId && !locationMap.has(loc.documentId)) {
         locationMap.set(loc.documentId, loc as Location);
@@ -102,15 +116,17 @@ export async function getAllLocations(): Promise<Location[]> {
     }
 
     // 3. Also get locations directly from shops (in case some don't have city-areas)
-    const shops = await getAllShops();
-    for (const shop of shops) {
-      // Check direct location reference
-      if (shop.location?.documentId && !locationMap.has(shop.location.documentId)) {
-        locationMap.set(shop.location.documentId, shop.location as Location);
-      }
-      // Check location via city_area
-      if (shop.city_area?.location?.documentId && !locationMap.has(shop.city_area.location.documentId)) {
-        locationMap.set(shop.city_area.location.documentId, shop.city_area.location as Location);
+    // Use passed shops if available to avoid duplicate fetch
+    if (shops) {
+      for (const shop of shops) {
+        // Check direct location reference
+        if (shop.location?.documentId && !locationMap.has(shop.location.documentId)) {
+          locationMap.set(shop.location.documentId, shop.location as Location);
+        }
+        // Check location via city_area
+        if (shop.city_area?.location?.documentId && !locationMap.has(shop.city_area.location.documentId)) {
+          locationMap.set(shop.city_area.location.documentId, shop.city_area.location as Location);
+        }
       }
     }
 
@@ -160,55 +176,51 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
   if (cached) return cached;
 
   try {
-    const cityAreas: CityArea[] = [];
-    let page = 1;
-    let pageCount = 1;
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+    const populateParams = [
+      'populate[location]=*',
+      'populate[location][populate][country]=*',
+      'populate[location][populate][background_image]=*',
+    ].join('&');
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+      },
+      next: { revalidate: 300 },
+    };
 
-    while (page <= pageCount) {
-      // Populate location with all fields including coordinates (boundary) and nested relations
-      const populateParams = [
-        'populate[location]=*',
-        'populate[location][populate][country]=*',
-        'populate[location][populate][background_image]=*',
-      ].join('&');
+    // Fetch first page to get total page count
+    const firstResponse = await fetch(
+      `${baseUrl}/city-areas?${populateParams}&pagination[pageSize]=100&pagination[page]=1`,
+      fetchOptions
+    );
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          // Response too large for Next.js cache (>2MB), use our own cache instead
-          cache: 'no-store',
-        }
-      );
+    if (!firstResponse.ok) {
+      console.error(`City Areas API Error: ${firstResponse.statusText}`);
+      return [];
+    }
 
-      if (!response.ok) {
-        console.error(`City Areas API Error: ${response.statusText}`);
-        break;
+    const firstJson = await firstResponse.json();
+    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
+    const cityAreas: CityArea[] = [...(firstJson.data || [])];
+
+    // Fetch remaining pages in parallel
+    if (pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pageCount; page++) {
+        pagePromises.push(
+          fetch(
+            `${baseUrl}/city-areas?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
+            fetchOptions
+          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
+        );
       }
 
-      const json = await response.json();
-      const pageData = json.data || [];
-
-      // Debug: Log first city area's location data to see what fields are returned
-      if (page === 1 && pageData.length > 0) {
-        const firstWithLocation = pageData.find((ca: CityArea) => ca.location);
-        if (firstWithLocation?.location) {
-          console.log('[getAllCityAreas] Sample location data from API:', {
-            name: firstWithLocation.location.name,
-            keys: Object.keys(firstWithLocation.location),
-            hasBoundaryCoords: !!firstWithLocation.location.boundary_coordinates,
-            hasCoords: !!firstWithLocation.location.coordinates,
-          });
-        }
+      const results = await Promise.all(pagePromises);
+      for (const json of results) {
+        cityAreas.push(...(json.data || []));
       }
-
-      cityAreas.push(...pageData);
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
     }
 
     setCache(cacheKey, cityAreas);

@@ -213,37 +213,55 @@ async function getAllCityAreasMap(): Promise<Map<string, { group: string | null 
   }
 
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+      },
+      next: { revalidate: 300 },
+    };
+
+    // Fetch first page to get total page count
+    const firstResponse = await fetch(
+      `${baseUrl}/city-areas?fields[0]=documentId&fields[1]=group&pagination[pageSize]=100&pagination[page]=1`,
+      fetchOptions
+    );
+
+    if (!firstResponse.ok) {
+      throw new Error(`City Areas API Error: ${firstResponse.statusText}`);
+    }
+
+    const firstJson = await firstResponse.json();
+    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
     const cityAreaMap = new Map<string, { group: string | null }>();
-    let page = 1;
-    let pageCount = 1;
 
-    while (page <= pageCount) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?fields[0]=documentId&fields[1]=group&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          cache: 'no-store',
-        }
-      );
+    for (const cityArea of (firstJson.data || [])) {
+      if (cityArea.documentId) {
+        cityAreaMap.set(cityArea.documentId, { group: cityArea.group || null });
+      }
+    }
 
-      if (!response.ok) {
-        throw new Error(`City Areas API Error: ${response.statusText}`);
+    // Fetch remaining pages in parallel
+    if (pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pageCount; page++) {
+        pagePromises.push(
+          fetch(
+            `${baseUrl}/city-areas?fields[0]=documentId&fields[1]=group&pagination[pageSize]=100&pagination[page]=${page}`,
+            fetchOptions
+          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
+        );
       }
 
-      const json = await response.json();
-      const cityAreas = json.data || [];
-
-      for (const cityArea of cityAreas) {
-        if (cityArea.documentId) {
-          cityAreaMap.set(cityArea.documentId, { group: cityArea.group || null });
+      const results = await Promise.all(pagePromises);
+      for (const json of results) {
+        for (const cityArea of (json.data || [])) {
+          if (cityArea.documentId) {
+            cityAreaMap.set(cityArea.documentId, { group: cityArea.group || null });
+          }
         }
       }
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
     }
 
     setCache(cacheKey, cityAreaMap);
@@ -262,38 +280,55 @@ async function getAllLocationsMap(): Promise<Map<string, Partial<Location>>> {
   if (cached) return cached;
 
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+      },
+      next: { revalidate: 300 },
+    };
+
+    // Fetch first page to get total page count
+    const firstResponse = await fetch(
+      `${baseUrl}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=1`,
+      fetchOptions
+    );
+
+    if (!firstResponse.ok) {
+      throw new Error(`City Areas API Error: ${firstResponse.statusText}`);
+    }
+
+    const firstJson = await firstResponse.json();
+    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
     const allLocations: Partial<Location>[] = [];
-    let page = 1;
-    let pageCount = 1;
 
-    while (page <= pageCount) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          // Response too large for Next.js cache (>2MB), use our own cache instead
-          cache: 'no-store',
-        }
-      );
+    for (const cityArea of (firstJson.data || [])) {
+      if (cityArea.location?.documentId) {
+        allLocations.push(cityArea.location);
+      }
+    }
 
-      if (!response.ok) {
-        throw new Error(`City Areas API Error: ${response.statusText}`);
+    // Fetch remaining pages in parallel
+    if (pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pageCount; page++) {
+        pagePromises.push(
+          fetch(
+            `${baseUrl}/city-areas?populate[location]=*&populate[location][populate][country]=*&populate[location][populate][background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+            fetchOptions
+          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
+        );
       }
 
-      const json = await response.json();
-      const cityAreas = json.data || [];
-
-      for (const cityArea of cityAreas) {
-        if (cityArea.location?.documentId) {
-          allLocations.push(cityArea.location);
+      const results = await Promise.all(pagePromises);
+      for (const json of results) {
+        for (const cityArea of (json.data || [])) {
+          if (cityArea.location?.documentId) {
+            allLocations.push(cityArea.location);
+          }
         }
       }
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
     }
 
     // Create lookup map by documentId (deduplicating)
@@ -400,41 +435,45 @@ export async function getAllShops(): Promise<Shop[]> {
   }
 
   try {
-    const allShops: Shop[] = [];
-    let page = 1;
-    let pageCount = 1;
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
+      },
+      next: { revalidate: 300 },
+    };
 
-    // Fetch all pages (Strapi limits to 100 per page max)
-    while (page <= pageCount) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/shops?${SHOP_POPULATE}&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-          },
-          // Response too large for Next.js cache (>2MB), use our own cache instead
-          cache: 'no-store',
-        }
-      );
+    // Fetch first page to get total page count
+    const firstResponse = await fetch(
+      `${baseUrl}/shops?${SHOP_POPULATE}&pagination[pageSize]=100&pagination[page]=1`,
+      fetchOptions
+    );
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
+    if (!firstResponse.ok) {
+      throw new Error(`API Error: ${firstResponse.statusText}`);
+    }
+
+    const firstJson = await firstResponse.json();
+    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
+    const allShops: Shop[] = [...(firstJson.data || [])];
+
+    // Fetch remaining pages in parallel
+    if (pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pageCount; page++) {
+        pagePromises.push(
+          fetch(
+            `${baseUrl}/shops?${SHOP_POPULATE}&pagination[pageSize]=100&pagination[page]=${page}`,
+            fetchOptions
+          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
+        );
       }
 
-      const json = await response.json();
-      const data = json.data || [];
-      // Debug: Log first shop's city_area to see what fields are returned
-      if (page === 1 && data.length > 0) {
-        const firstWithCityArea = data.find((s: any) => s.city_area);
-        if (firstWithCityArea) {
-          console.log('[Shops API] Sample city_area data:', JSON.stringify(firstWithCityArea.city_area, null, 2));
-        }
+      const results = await Promise.all(pagePromises);
+      for (const json of results) {
+        allShops.push(...(json.data || []));
       }
-      allShops.push(...data);
-
-      pageCount = json.meta?.pagination?.pageCount || 1;
-      page++;
     }
 
     // Fetch countries, brands, and city areas in parallel (batch fetch, not N+1)

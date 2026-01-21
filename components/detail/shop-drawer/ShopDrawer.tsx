@@ -147,7 +147,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {/* City Area Recommendation Award - at top */}
           {isTopChoice && (
             <AwardBox
-              title={`Top Choice in ${areaName || currentShop.location?.name || 'this area'}`}
+              title={`Filter recommendation in ${areaName || currentShop.location?.name || 'this area'}`}
             />
           )}
 
