@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { Location, Shop, Event } from '@/lib/types';
+import { Location, Shop, Event, Critic } from '@/lib/types';
 import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
@@ -11,12 +11,15 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { EventCard, EventModal } from '@/components/events';
-import { TopChoicesModal } from '@/components/modals/TopChoicesModal';
+import { FilterRecommendationsModal } from '@/components/modals/FilterRecommendationsModal';
+import { CriticCard, CriticModal } from '@/components/critics';
+import { UserCheck } from 'lucide-react';
 
 interface LocationDrawerProps {
   location: Location;
   allShops: Shop[];
   events?: Event[];
+  critics?: Critic[];
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
   useWrapper?: boolean;
@@ -28,6 +31,7 @@ export function LocationDrawer({
   location,
   allShops,
   events = [],
+  critics = [],
   onClose,
   onShopSelect,
   useWrapper = true,
@@ -35,7 +39,8 @@ export function LocationDrawer({
   onLocationChange,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [showTopChoicesModal, setShowTopChoicesModal] = useState(false);
+  const [selectedCritic, setSelectedCritic] = useState<Critic | null>(null);
+  const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['topShops']));
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -109,6 +114,22 @@ export function LocationDrawer({
         return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
       });
   }, [events, currentLocation.documentId]);
+
+  // Filter critics for current location
+  const locationCritics = useMemo(() => {
+    console.log('[LocationDrawer] Filtering critics:', {
+      totalCritics: critics.length,
+      currentLocationId: currentLocation.documentId,
+      currentLocationName: currentLocation.name,
+    });
+    const filtered = critics.filter((critic) =>
+      critic.locations?.some(
+        (location) => location.documentId === currentLocation.documentId
+      )
+    );
+    console.log('[LocationDrawer] Filtered critics:', filtered.length, filtered.map(c => c.name));
+    return filtered;
+  }, [critics, currentLocation.documentId, currentLocation.name]);
 
   // Filter locations in same country (sorted alphabetically)
   const countryLocations = useMemo(() => {
@@ -193,7 +214,7 @@ export function LocationDrawer({
       />
 
       {/* Scrollable content area */}
-      <div className="drawer-content flex-1 overflow-y-auto">
+      <div className="drawer-content flex-1 overflow-y-auto flex flex-col">
         {/* Beta Banner */}
         {currentLocation.beta && (
           <div className="px-6 pt-3 pb-3 text-sm text-center text-white/90 animate-fade-in flex items-center justify-center gap-2 border-b border-white/10 bg-purple-600">
@@ -265,36 +286,38 @@ export function LocationDrawer({
           )}
 
           {/* Description */}
-          <p className="text-[13px] text-white/75 leading-snug mt-4">
+          <p className="text-[13px] text-white/75 leading-snug mt-4 pb-14">
             {displayStory}
           </p>
+        </div>
 
+        {/* Curved content section */}
+        <div className="relative -mt-6 rounded-t-3xl bg-surface pt-6 flex-1">
           {/* Stats row */}
-          <div className="flex items-center gap-6 text-sm mt-4 pb-6">
+          <div className="px-6 flex items-center gap-6 text-sm pb-6 border-b border-border-default">
             {/* City Rating */}
             {currentLocation.rating_stars && (
               <div className="flex items-center gap-2">
-                <span className="text-white/60">City rating</span>
+                <span className="text-text-secondary">City rating</span>
                 <StarRating
                   rating={currentLocation.rating_stars}
                   size={14}
                   animate={true}
                   animationDelay={0}
                 />
-                <span className="font-medium text-white">{currentLocation.rating_stars.toFixed(1)}</span>
+                <span className="font-medium text-primary">{currentLocation.rating_stars.toFixed(1)}</span>
               </div>
             )}
 
             {/* Total Shops */}
             <div className="flex items-center gap-2">
-              <span className="text-white/60">Shops</span>
-              <span className="font-medium text-white">{totalShops}</span>
+              <span className="text-text-secondary">Shops</span>
+              <span className="font-medium text-primary">{totalShops}</span>
             </div>
           </div>
-        </div>
 
-        {/* Content - accordions */}
-        <div key={currentLocation.documentId} className={cn("px-6 pb-6 space-y-4 stagger-fade-in", countryLocations.length > 1 && "pb-16")}>
+          {/* Content - accordions */}
+          <div key={currentLocation.documentId} className={cn("px-6 pb-6 space-y-4 stagger-fade-in pt-4", countryLocations.length > 1 && "pb-16")}>
 
           {/* Upcoming Events */}
           {locationEvents.length > 0 && (
@@ -304,11 +327,11 @@ export function LocationDrawer({
               variant="light"
               className="px-0 gap-0"
               itemClasses={{
-                base: 'bg-white/10 rounded-xl shadow-none overflow-hidden',
-                title: 'text-base font-medium text-white',
-                trigger: 'px-4 py-3 data-[open=true]:bg-white/[0.15] transition-colors',
+                base: 'bg-surface-elevated rounded-xl shadow-none overflow-hidden',
+                title: 'text-base font-medium text-primary',
+                trigger: 'px-4 py-3 data-[open=true]:bg-border-default transition-colors',
                 content: 'pb-3 pt-3',
-                indicator: 'text-white/60',
+                indicator: 'text-text-secondary',
               }}
             >
               <AccordionItem
@@ -325,14 +348,13 @@ export function LocationDrawer({
                 }
                 title={`${locationEvents.length} ${locationEvents.length === 1 ? 'Event' : 'Events'}`}
               >
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-border-default">
                   {locationEvents.map((event) => (
                     <EventCard
                       key={event.documentId}
                       event={event}
                       onClick={() => setSelectedEvent(event)}
                       primaryColor={primaryColor}
-                      variant="light"
                     />
                   ))}
                 </div>
@@ -340,7 +362,7 @@ export function LocationDrawer({
             </Accordion>
           )}
 
-          {/* Top Choices */}
+          {/* Filter Recommendations */}
           {topRecommendationShops.length > 0 && (
             <Accordion
               selectedKeys={expandedKeys}
@@ -348,28 +370,28 @@ export function LocationDrawer({
               variant="light"
               className="px-0 gap-0"
               itemClasses={{
-                base: 'bg-white/10 rounded-xl shadow-none overflow-hidden',
-                title: 'text-base font-medium text-white',
-                trigger: 'px-4 py-3 data-[open=true]:bg-white/[0.15] transition-colors',
+                base: 'bg-surface-elevated rounded-xl shadow-none overflow-hidden',
+                title: 'text-base font-medium text-primary',
+                trigger: 'px-4 py-3 data-[open=true]:bg-border-default transition-colors',
                 content: 'pb-3 pt-3',
-                indicator: 'text-white/60',
+                indicator: 'text-text-secondary',
               }}
             >
               <AccordionItem
                 key="topShops"
-                aria-label="Top Choices"
+                aria-label="Filter Recommendations"
                 startContent={
                   <Image
                     src="/coffee-award.png"
-                    alt="Top Choice"
+                    alt="Filter Recommendation"
                     width={28}
                     height={28}
                     className="w-7 h-7"
                   />
                 }
-                title={`${topRecommendationShops.length} Top Shop ${topRecommendationShops.length === 1 ? 'Choice' : 'Choices'}`}
+                title={`${topRecommendationShops.length} Filter ${topRecommendationShops.length === 1 ? 'Recommendation' : 'Recommendations'}`}
               >
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-border-default">
                   {topRecommendationShops.map((shop) => {
                     const imageUrl = getMediaUrl(shop.featured_image);
                     const logoUrl = getMediaUrl(shop.brand?.logo);
@@ -387,13 +409,13 @@ export function LocationDrawer({
                       <button
                         key={shop.documentId}
                         onClick={() => onShopSelect(shop)}
-                        className="w-full text-left transition-all duration-200 hover:bg-white/5 py-3 px-4 group"
+                        className="w-full text-left transition-all duration-200 hover:bg-border-default py-3 px-4 group"
                       >
                         <div className="flex items-center gap-3">
                           {/* Brand avatar - far left */}
                           {shop.brand && (
                             logoUrl ? (
-                              <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-border-default flex-shrink-0">
                                 <Image
                                   src={logoUrl}
                                   alt={shop.brand.name}
@@ -403,7 +425,7 @@ export function LocationDrawer({
                                 />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium bg-white/20 text-white flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium bg-border-default text-primary flex-shrink-0">
                                 {shop.brand.name.charAt(0)}
                               </div>
                             )
@@ -412,20 +434,20 @@ export function LocationDrawer({
                           {/* Content - middle */}
                           <div className="flex-1 min-w-0">
                             {/* Shop name */}
-                            <h4 className="font-medium text-white text-[15px] leading-tight line-clamp-2">
+                            <h4 className="font-medium text-primary text-[15px] leading-tight line-clamp-2">
                               {displayName}
                             </h4>
 
                             {/* Location label - city area or short address */}
                             {locationLabel && (
-                              <p className="text-sm text-white/60 line-clamp-1 mt-0.5">
+                              <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">
                                 {locationLabel}
                               </p>
                             )}
                           </div>
 
                           {/* Image - far right (always show, with placeholder) */}
-                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-white/10">
+                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-border-default">
                             {imageUrl ? (
                               <Image
                                 src={imageUrl}
@@ -435,7 +457,7 @@ export function LocationDrawer({
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <svg className="w-6 h-6 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-6 h-6 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                               </div>
@@ -446,12 +468,12 @@ export function LocationDrawer({
                     );
                   })}
                 </div>
-                {/* Top Choices Explainer */}
-                <p className="text-xs text-white/40 leading-tight px-4 pt-3 pb-1">
-                  Top Choices are places we have verified for outstanding coffee in {currentLocation.name}.{' '}
+                {/* Filter Recommendations Explainer */}
+                <p className="text-xs text-text-secondary leading-tight px-4 pt-3 pb-1">
+                  Filter recommendations are places we have verified for outstanding coffee in {currentLocation.name}.{' '}
                   <button
-                    onClick={() => setShowTopChoicesModal(true)}
-                    className="text-white/80 hover:text-white transition-colors"
+                    onClick={() => setShowRecommendationsModal(true)}
+                    className="text-primary hover:text-accent transition-colors"
                   >
                     Learn more
                   </button>
@@ -460,18 +482,55 @@ export function LocationDrawer({
             </Accordion>
           )}
 
+          {/* Insiders Guide */}
+          {locationCritics.length > 0 && (
+            <Accordion
+              selectedKeys={expandedKeys}
+              onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+              variant="light"
+              className="px-0 gap-0"
+              itemClasses={{
+                base: 'bg-surface-elevated rounded-xl shadow-none overflow-hidden',
+                title: 'text-base font-medium text-primary',
+                trigger: 'px-4 py-3 data-[open=true]:bg-border-default transition-colors',
+                content: 'pb-3 pt-3',
+                indicator: 'text-text-secondary',
+              }}
+            >
+              <AccordionItem
+                key="critics"
+                aria-label="Insiders Guide"
+                startContent={
+                  <UserCheck className="w-6 h-6 text-text-secondary" />
+                }
+                title="Insiders Guide"
+              >
+                <div className="divide-y divide-border-default">
+                  {locationCritics.map((critic) => (
+                    <CriticCard
+                      key={critic.documentId}
+                      critic={critic}
+                      onClick={() => setSelectedCritic(critic)}
+                    />
+                  ))}
+                </div>
+              </AccordionItem>
+            </Accordion>
+          )}
+
           {/* No Shops Message */}
           {totalShops === 0 && (
-            <div className="bg-white/10 border border-white/20 rounded-lg p-5">
-              <h4 className="text-base font-semibold text-white mb-2">
+            <div className="bg-surface-elevated border border-border-default rounded-lg p-5">
+              <h4 className="text-base font-semibold text-primary mb-2">
                 No recommendations yet
               </h4>
-              <p className="text-sm text-white/70">
+              <p className="text-sm text-text-secondary">
                 We haven&apos;t found any good specialty coffee shops in {currentLocation.name} yet. Know of one? Let us know!
               </p>
             </div>
           )}
 
+          </div>
         </div>
       </div>
 
@@ -483,10 +542,18 @@ export function LocationDrawer({
         primaryColor={primaryColor}
       />
 
-      {/* Top Choices Modal */}
-      <TopChoicesModal
-        isOpen={showTopChoicesModal}
-        onClose={() => setShowTopChoicesModal(false)}
+      {/* Filter Recommendations Modal */}
+      <FilterRecommendationsModal
+        isOpen={showRecommendationsModal}
+        onClose={() => setShowRecommendationsModal(false)}
+      />
+
+      {/* Critic Modal */}
+      <CriticModal
+        critic={selectedCritic}
+        isOpen={!!selectedCritic}
+        onClose={() => setSelectedCritic(null)}
+        onShopSelect={onShopSelect}
       />
     </>
   );
