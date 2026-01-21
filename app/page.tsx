@@ -8,14 +8,16 @@ import { getAllEvents } from '@/lib/api/events';
 export const revalidate = 300;
 
 export default async function HomePage() {
-  // Fetch all data in parallel for faster build times
-  const [locations, allShops, countries, cityAreas, events] = await Promise.all([
-    getAllLocations(),
+  // Fetch independent data in parallel first
+  const [allShops, countries, cityAreas, events] = await Promise.all([
     getAllShops(),
     getAllCountries(),
     getAllCityAreas(),
     getAllEvents(),
   ]);
+
+  // Then get locations, passing already-fetched data to avoid duplicate API calls
+  const locations = await getAllLocations(allShops, cityAreas);
 
   // Start with no location selected - zoomed out world view
   return (

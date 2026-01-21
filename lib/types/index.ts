@@ -306,3 +306,27 @@ export interface UserImage {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Critic {
+  id: number;
+  documentId: string;
+  name: string;
+  slug: string;
+  bio?: string | null;
+  photo?: MediaAsset | null;
+  website?: string | null;
+  instagram?: string | null;
+  twitter?: string | null;
+  youtube?: string | null;
+  locations?: Location[];
+  critic_picks?: CriticPick[];
+}
+
+export interface CriticPick {
+  id: number;
+  documentId: string;
+  description?: string | null;
+  rank?: 1 | 2 | 3 | null;
+  critic?: Critic;
+  shop?: Shop;
+}

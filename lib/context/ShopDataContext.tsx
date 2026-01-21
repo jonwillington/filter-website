@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useMemo, useRef } from 'react';
-import { Shop, Location, Country, CityArea, Event } from '@/lib/types';
+import { Shop, Location, Country, CityArea, Event, Critic } from '@/lib/types';
 
 interface ShopDataContextType {
   shops: Shop[];
@@ -9,6 +9,7 @@ interface ShopDataContextType {
   countries: Country[];
   cityAreas: CityArea[];
   events: Event[];
+  critics: Critic[];
   isHydrated: boolean;
   hydrate: (data: HydrateData) => void;
 }
@@ -19,6 +20,7 @@ interface HydrateData {
   countries?: Country[];
   cityAreas?: CityArea[];
   events?: Event[];
+  critics?: Critic[];
 }
 
 const ShopDataContext = createContext<ShopDataContextType | null>(null);
@@ -36,6 +38,7 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [cityAreas, setCityAreas] = useState<CityArea[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [critics, setCritics] = useState<Critic[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Track hydration to prevent unnecessary updates
@@ -81,13 +84,20 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    if (data.critics && data.critics.length > 0) {
+      if (critics.length === 0 || (data.critics.length > critics.length && hydrationCountRef.current === 0)) {
+        setCritics(data.critics);
+        shouldUpdate = true;
+      }
+    }
+
     if (shouldUpdate || hydrationCountRef.current === 0) {
       hydrationCountRef.current += 1;
       if (!isHydrated) {
         setIsHydrated(true);
       }
     }
-  }, [shops.length, locations.length, countries.length, cityAreas.length, events.length, isHydrated]);
+  }, [shops.length, locations.length, countries.length, cityAreas.length, events.length, critics.length, isHydrated]);
 
   const value = useMemo(() => ({
     shops,
@@ -95,9 +105,10 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
     countries,
     cityAreas,
     events,
+    critics,
     isHydrated,
     hydrate,
-  }), [shops, locations, countries, cityAreas, events, isHydrated, hydrate]);
+  }), [shops, locations, countries, cityAreas, events, critics, isHydrated, hydrate]);
 
   return (
     <ShopDataContext.Provider value={value}>

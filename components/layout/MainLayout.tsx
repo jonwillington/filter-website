@@ -15,7 +15,7 @@ import { Footer } from './Footer';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useShopData } from '@/lib/context/ShopDataContext';
-import { Location, Shop, Country, CityArea, Event } from '@/lib/types';
+import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
@@ -66,6 +66,7 @@ interface MainLayoutProps {
   countries?: Country[];
   cityAreas?: CityArea[];
   events?: Event[];
+  critics?: Critic[];
 }
 
 export function MainLayout({
@@ -76,6 +77,7 @@ export function MainLayout({
   countries = [],
   cityAreas: propCityAreas = [],
   events = [],
+  critics = [],
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -93,10 +95,11 @@ export function MainLayout({
         countries,
         cityAreas: propCityAreas,
         events,
+        critics,
       });
       hasHydratedRef.current = true;
     }
-  }, [shops, locations, countries, propCityAreas, events, shopData]);
+  }, [shops, locations, countries, propCityAreas, events, critics, shopData]);
 
   // Use cached data if available, otherwise fall back to props
   const cachedShops = shopData.isHydrated && shopData.shops.length > 0 ? shopData.shops : shops;
@@ -104,6 +107,7 @@ export function MainLayout({
   const cachedCountries = shopData.isHydrated && shopData.countries.length > 0 ? shopData.countries : countries;
   const cachedCityAreas = shopData.isHydrated && shopData.cityAreas.length > 0 ? shopData.cityAreas : propCityAreas;
   const cachedEvents = shopData.isHydrated && shopData.events.length > 0 ? shopData.events : events;
+  const cachedCritics = shopData.isHydrated && shopData.critics.length > 0 ? shopData.critics : critics;
 
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(initialLocation);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(initialShop);
@@ -1142,6 +1146,7 @@ export function MainLayout({
                 location={selectedLocation}
                 allShops={cachedShops}
                 events={cachedEvents}
+                critics={cachedCritics}
                 onClose={() => {
                   // Start exit animation
                   setIsLocationDrawerClosing(true);

@@ -3,6 +3,7 @@ import { getAllLocations, getLocationBySlug, getAllCityAreas } from '@/lib/api/l
 import { getAllShops } from '@/lib/api/shops';
 import { getAllEvents } from '@/lib/api/events';
 import { getAllCountries } from '@/lib/api/countries';
+import { getAllCritics } from '@/lib/api/critics';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
@@ -69,12 +70,15 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  const [allShops, countries, cityAreas, allEvents] = await Promise.all([
+  const [allShops, countries, cityAreas, allEvents, allCritics] = await Promise.all([
     getAllShops(),
     getAllCountries(),
     getAllCityAreas(),
     getAllEvents(),
+    getAllCritics(),
   ]);
+
+  console.log('[CityPage] Fetched critics:', allCritics.length, allCritics.map(c => c.name));
 
   // Count shops in this location
   const locationShops = allShops.filter(shop => shop.location?.documentId === location.documentId);
@@ -117,6 +121,7 @@ export default async function CityPage({ params }: CityPageProps) {
         countries={countries}
         cityAreas={cityAreas}
         events={allEvents}
+        critics={allCritics}
       />
     </>
   );
