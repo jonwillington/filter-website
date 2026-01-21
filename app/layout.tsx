@@ -20,6 +20,40 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Preload critical fonts to prevent FOUT */}
+        <link
+          rel="preload"
+          href="/fonts/PPNeueYork-NormalMedium.otf"
+          as="font"
+          type="font/otf"
+          crossOrigin="anonymous"
+        />
+
+        {/* Preconnect to critical external origins */}
+        <link rel="preconnect" href="https://api.mapbox.com" />
+        <link rel="preconnect" href="https://tiles.mapbox.com" />
+        <link rel="preconnect" href="https://events.mapbox.com" />
+        <link rel="dns-prefetch" href="https://api.mapbox.com" />
+        <link rel="dns-prefetch" href="https://tiles.mapbox.com" />
+
+        {/* Preconnect to Strapi CMS */}
+        <link rel="preconnect" href="https://helpful-oasis-8bb949e05d.strapiapp.com" />
+        <link rel="preconnect" href="https://helpful-oasis-8bb949e05d.media.strapiapp.com" />
+        <link rel="dns-prefetch" href="https://helpful-oasis-8bb949e05d.media.strapiapp.com" />
+
+        {/* Prefetch Mapbox GL JS (defer loading) */}
+        <link
+          rel="prefetch"
+          href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"
+          as="script"
+        />
+        <link
+          rel="prefetch"
+          href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css"
+          as="style"
+        />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    unoptimized: true,
+    // Enable image optimization for faster loading
     remotePatterns: [
       {
         protocol: 'https',
@@ -20,6 +20,16 @@ const nextConfig = {
         hostname: 'hatscripts.github.io',
       },
     ],
+    // Use modern formats for better compression
+    formats: ['image/avif', 'image/webp'],
+    // Minimize layout shift
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+  },
+  // Enable experimental features for better performance
+  experimental: {
+    // Optimize package imports to reduce bundle size
+    optimizePackageImports: ['lucide-react', '@heroui/react', 'date-fns'],
   },
 }
 
