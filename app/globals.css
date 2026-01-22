@@ -39,6 +39,7 @@
   --background: #FFFFFF;
   --surface: #FAFAFA;
   --surface-elevated: #FFFFFF;
+  --surface-warm: #FAF5F0;
   --contrast-block: #2E1F17;
   --contrast-text: #FFFDFB;
   --accent: #8B6F47;
@@ -55,6 +56,7 @@
   --background: #1A1410;
   --surface: #251C16;
   --surface-elevated: #2E2219;
+  --surface-warm: #2A1F18;
   --contrast-block: #FFFDFB;
   --contrast-text: #2E1F17;
   --accent: #B8956A;
@@ -704,5 +706,33 @@ h1, h2 {
   100% {
     transform: scale(2);
     opacity: 0;
+  }
+}
+
+/* Brand logo carousel animations */
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes scrollRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-scroll-left {
+  animation: scrollLeft linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-right {
+  animation: scrollRight linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scroll-left,
+  .animate-scroll-right {
+    animation: none !important;
   }
 }

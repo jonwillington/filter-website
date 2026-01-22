@@ -5,8 +5,10 @@ import { ShopList } from './ShopList';
 import { ShortOnShopsAlert } from './ShortOnShopsAlert';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
 import { WelcomeStats } from './WelcomeStats';
+import { FirstTimeWelcome } from './FirstTimeWelcome';
 import { Location, Shop, Country } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, getMediaUrl } from '@/lib/utils';
+import { BrandLogo } from './BrandLogoCarousel';
 import { useMemo, ReactNode, useState } from 'react';
 import { useTags } from '@/lib/hooks/useTags';
 import { Button, Select, SelectItem, Switch, Tooltip } from '@heroui/react';
@@ -44,6 +46,9 @@ interface SidebarProps {
   };
   shopMatchInfo?: Map<string, string[]>;
   onCityAreaExpand?: (cityAreaId: string | null) => void;
+  isFirstTimeVisitor?: boolean;
+  onFirstTimeFindNearMe?: () => void;
+  onFirstTimeExplore?: () => void;
 }
 
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
@@ -78,6 +83,9 @@ export function Sidebar({
   userPreferences,
   shopMatchInfo,
   onCityAreaExpand,
+  isFirstTimeVisitor = false,
+  onFirstTimeFindNearMe,
+  onFirstTimeExplore,
 }: SidebarProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const { tags } = useTags();
@@ -147,6 +155,32 @@ export function Sidebar({
   // Check if there are any special filters available (not just "all")
   const hasSpecialFilters = filterCounts.topPicks > 0 || filterCounts.working > 0 || filterCounts.interior > 0 || filterCounts.brewing > 0;
 
+  // Extract unique brand logos for first-time welcome carousel
+  const brandLogos = useMemo<BrandLogo[]>(() => {
+    const shopsToUse = allShops || shops;
+    const seen = new Set<string>();
+    const logos: BrandLogo[] = [];
+
+    for (const shop of shopsToUse) {
+      if (!shop.brand?.documentId || !shop.brand.logo) continue;
+      if (seen.has(shop.brand.documentId)) continue;
+
+      const logoUrl = getMediaUrl(shop.brand.logo);
+      if (!logoUrl) continue;
+
+      seen.add(shop.brand.documentId);
+      logos.push({
+        name: shop.brand.name,
+        logoUrl,
+      });
+
+      // Cap at 60 logos for performance
+      if (logos.length >= 60) break;
+    }
+
+    return logos;
+  }, [allShops, shops]);
+
   // Only show filter when a location is selected, at least 5 shops, and has special filters
   const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters;
 
@@ -161,16 +195,17 @@ export function Sidebar({
         </div>
       </AnimatedGradientHeader>
 
-      {/* Controls section - outside gradient header */}
-      <div className="px-4 py-5 space-y-3 border-b border-border-default bg-background">
-        <LocationCell
-          selectedLocation={selectedLocation}
-          unsupportedCountry={unsupportedCountry ?? null}
-          isAreaUnsupported={isAreaUnsupported}
-          onClick={onOpenExploreModal}
-        />
-        {/* Apply my filters toggle - only show if user has filters set */}
-        {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
+      {/* Controls section - outside gradient header, hidden for first-time visitors */}
+      {!isFirstTimeVisitor && (
+        <div className="px-4 py-5 space-y-3 border-b border-border-default bg-background">
+          <LocationCell
+            selectedLocation={selectedLocation}
+            unsupportedCountry={unsupportedCountry ?? null}
+            isAreaUnsupported={isAreaUnsupported}
+            onClick={onOpenExploreModal}
+          />
+          {/* Apply my filters toggle - only show if user has filters set */}
+          {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
           <div
             className="flex items-center justify-between p-3 rounded-lg"
             style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -244,10 +279,17 @@ export function Sidebar({
             </Button>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       <div className="sidebar-content transition-opacity duration-300">
-        {isLoading && !selectedLocation && !isAreaUnsupported ? (
+        {isFirstTimeVisitor && onFirstTimeFindNearMe && onFirstTimeExplore ? (
+          <FirstTimeWelcome
+            onFindNearMe={onFirstTimeFindNearMe}
+            onExplore={onFirstTimeExplore}
+            brandLogos={brandLogos}
+          />
+        ) : isLoading && !selectedLocation && !isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
