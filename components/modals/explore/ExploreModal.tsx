@@ -58,7 +58,8 @@ export function ExploreModal({
       onClose={onClose}
       size="4xl"
       modalClassNames={{
-        backdrop: 'bg-black/60 backdrop-blur-sm',
+        wrapper: 'z-[1100]',
+        backdrop: 'bg-black/60 backdrop-blur-sm z-[1100]',
         base: 'max-h-[90vh] overflow-hidden bg-[#5D4A38]',
       }}
       hideCloseButton

@@ -9,9 +9,11 @@ import { Shop } from '@/lib/types';
 
 interface FooterProps {
   shops?: Shop[];
+  isFirstTimeVisitor?: boolean;
+  onToggleFirstTimeVisitor?: () => void;
 }
 
-export function Footer({ shops = [] }: FooterProps) {
+export function Footer({ shops = [], isFirstTimeVisitor, onToggleFirstTimeVisitor }: FooterProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const [showDevTools, setShowDevTools] = useState(false);
   const { effectiveTheme, setThemeMode } = useTheme();
@@ -99,7 +101,12 @@ export function Footer({ shops = [] }: FooterProps) {
 
       {/* Dev Tools - positioned above footer */}
       {process.env.NODE_ENV === 'development' && showDevTools && (
-        <DevTools shops={shops} onClose={() => setShowDevTools(false)} />
+        <DevTools
+          shops={shops}
+          onClose={() => setShowDevTools(false)}
+          isFirstTimeVisitor={isFirstTimeVisitor}
+          onToggleFirstTimeVisitor={onToggleFirstTimeVisitor}
+        />
       )}
 
       <LegalModal

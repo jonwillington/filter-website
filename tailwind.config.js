@@ -16,6 +16,7 @@ module.exports = {
         background: 'var(--background)',
         surface: 'var(--surface)',
         'surface-elevated': 'var(--surface-elevated)',
+        'surface-warm': 'var(--surface-warm)',
         contrastBlock: 'var(--contrast-block)',
         contrastText: 'var(--contrast-text)',
         accent: 'var(--accent)',

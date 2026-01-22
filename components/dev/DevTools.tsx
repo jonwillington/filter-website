@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@heroui/react';
-import { Settings, X, MapPin, Navigation, Eye, EyeOff } from 'lucide-react';
+import { Settings, X, MapPin, Navigation, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { setFakeGPS, clearFakeGPS } from '@/lib/hooks/useGeolocation';
 import {
   enableMockReviews,
@@ -20,6 +20,8 @@ import { Shop } from '@/lib/types';
 interface DevToolsProps {
   shops?: Shop[];
   onClose: () => void;
+  isFirstTimeVisitor?: boolean;
+  onToggleFirstTimeVisitor?: () => void;
 }
 
 // Preset test locations
@@ -32,7 +34,7 @@ const PRESET_LOCATIONS = [
   { name: 'Seoul, Gangnam', lat: 37.4979, lng: 127.0276 },
 ];
 
-export function DevTools({ shops = [], onClose }: DevToolsProps) {
+export function DevTools({ shops = [], onClose, isFirstTimeVisitor, onToggleFirstTimeVisitor }: DevToolsProps) {
   const [status, setStatus] = useState<string>('');
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [mockReviewsActive, setMockReviewsActive] = useState(isMockReviewsEnabled());
@@ -151,6 +153,19 @@ export function DevTools({ shops = [], onClose }: DevToolsProps) {
           >
             {mockBadgesActive ? 'Mock Badges ON' : 'Mock Badges OFF'}
           </Button>
+
+          {onToggleFirstTimeVisitor && (
+            <Button
+              size="sm"
+              variant={isFirstTimeVisitor ? 'solid' : 'flat'}
+              color={isFirstTimeVisitor ? 'warning' : 'default'}
+              className="w-full h-8 text-xs"
+              startContent={<UserPlus className="w-3 h-3" />}
+              onPress={onToggleFirstTimeVisitor}
+            >
+              {isFirstTimeVisitor ? 'First Visit ON' : 'First Visit OFF'}
+            </Button>
+          )}
 
           <Button
             size="sm"

@@ -25,10 +25,6 @@ import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
 
 // Dynamic imports for modals to reduce initial bundle size
-const WelcomeModal = dynamic(
-  () => import('../modals/WelcomeModal').then(mod => ({ default: mod.WelcomeModal })),
-  { ssr: false }
-);
 const SearchModal = dynamic(
   () => import('../modals/SearchModal').then(mod => ({ default: mod.SearchModal })),
   { ssr: false }
@@ -136,6 +132,7 @@ export function MainLayout({
   const [isDesktop, setIsDesktop] = useState(false);
   const [isLocationDrawerClosing, setIsLocationDrawerClosing] = useState(false);
   const [expandedCityAreaId, setExpandedCityAreaId] = useState<string | null>(null);
+  const [isFirstTimeVisitor, setIsFirstTimeVisitor] = useState(false);
 
   const { coordinates, requestLocation, isPermissionBlocked, clearPermissionBlocked } = useGeolocation();
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -152,6 +149,14 @@ export function MainLayout({
     // Listen for resize
     window.addEventListener('resize', checkDesktop);
     return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  // Detect first-time visitor
+  useEffect(() => {
+    const hasBeenShown = localStorage.getItem('filter-welcome-modal-shown');
+    if (!hasBeenShown) {
+      setIsFirstTimeVisitor(true);
+    }
   }, []);
 
   // Track previous initialShop to detect shop-to-shop transitions
@@ -893,6 +898,16 @@ export function MainLayout({
     setMapZoom(2);
   }, []);
 
+  const handleFirstTimeFindNearMe = useCallback(() => {
+    localStorage.setItem('filter-welcome-modal-shown', 'true');
+    setIsFirstTimeVisitor(false);
+    handleWelcomeFindNearMe();
+  }, [handleWelcomeFindNearMe]);
+
+  const handleFirstTimeExplore = useCallback(() => {
+    setShowExploreModal(true);
+  }, []);
+
   const handleMapTransitionComplete = useCallback(() => {
     // Clear any pending timeout
     if (loadingTimeoutRef.current) {
@@ -939,10 +954,7 @@ export function MainLayout({
 
   return (
     <>
-      <WelcomeModal
-        onFindNearMe={handleWelcomeFindNearMe}
-        onExplore={handleWelcomeExplore}
-      />
+      {/* WelcomeModal replaced by FirstTimeWelcome inline in sidebar */}
 
       <ExploreModal
         isOpen={showExploreModal}
@@ -952,6 +964,11 @@ export function MainLayout({
         allShops={cachedShops}
         events={cachedEvents}
         onLocationSelect={(location) => {
+          // Dismiss first-time visitor state when location selected
+          if (isFirstTimeVisitor) {
+            localStorage.setItem('filter-welcome-modal-shown', 'true');
+            setIsFirstTimeVisitor(false);
+          }
           handleLocationChange(location);
           setShowExploreModal(false);
           // Clear unsupported state when user selects a supported city
@@ -1048,6 +1065,9 @@ export function MainLayout({
           userPreferences={userProfile?.preferences ?? undefined}
           shopMatchInfo={shopMatchInfo}
           onCityAreaExpand={handleCityAreaExpand}
+          isFirstTimeVisitor={isFirstTimeVisitor}
+          onFirstTimeFindNearMe={handleFirstTimeFindNearMe}
+          onFirstTimeExplore={handleFirstTimeExplore}
           authComponent={
             <div className="flex items-center gap-3">
               <Button
@@ -1103,6 +1123,14 @@ export function MainLayout({
             </div>
           }
         />
+
+        {/* First-time visitor map overlay */}
+        {isFirstTimeVisitor && (
+          <div
+            className="fixed inset-0 bg-black/40 z-[500] transition-opacity duration-300 pointer-events-none"
+            aria-hidden="true"
+          />
+        )}
 
         <MapContainer
           key="map-container"
@@ -1167,7 +1195,11 @@ export function MainLayout({
         )}
       </div>
 
-      <Footer shops={shops} />
+      <Footer
+        shops={shops}
+        isFirstTimeVisitor={isFirstTimeVisitor}
+        onToggleFirstTimeVisitor={() => setIsFirstTimeVisitor(prev => !prev)}
+      />
     </>
   );
 }
