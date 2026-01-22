@@ -8,10 +8,16 @@ const BASE_STYLES = {
   dark: 'mapbox://styles/jonwillington-deel/cmjzv4sah005q01safrv11qu9',
 };
 
-// Overlay colors for unsupported countries
+// Overlay colors for unsupported countries (dimmed to make supported pop)
 const OVERLAY_COLORS = {
-  light: 'rgba(80, 60, 45, 0.45)',   // Darker brown overlay for light mode
-  dark: 'rgba(26, 20, 16, 0.6)',     // Dark brown overlay
+  light: 'rgba(80, 60, 45, 0.6)',    // Strong brown overlay for light mode
+  dark: 'rgba(26, 20, 16, 0.75)',    // Strong dark overlay for dark mode
+};
+
+// Highlight colors for supported countries (subtle tint to make them pop)
+const SUPPORTED_HIGHLIGHT = {
+  light: 'rgba(139, 111, 71, 0.15)', // Warm accent tint
+  dark: 'rgba(200, 170, 130, 0.12)', // Warm highlight in dark mode
 };
 
 export interface UseMapInstanceOptions {
@@ -51,6 +57,9 @@ function applyCountryOverlay(
   if (map.getLayer('unsupported-country-overlay')) {
     map.removeLayer('unsupported-country-overlay');
   }
+  if (map.getLayer('supported-country-highlight')) {
+    map.removeLayer('supported-country-highlight');
+  }
   if (map.getSource('country-boundaries-overlay')) {
     map.removeSource('country-boundaries-overlay');
   }
@@ -60,6 +69,20 @@ function applyCountryOverlay(
     type: 'vector',
     url: 'mapbox://mapbox.country-boundaries-v1',
   });
+
+  // Add highlight on supported countries (makes them pop)
+  if (supportedCountryCodes.length > 0) {
+    map.addLayer({
+      id: 'supported-country-highlight',
+      type: 'fill',
+      source: 'country-boundaries-overlay',
+      'source-layer': 'country_boundaries',
+      filter: ['in', ['get', 'iso_3166_1'], ['literal', supportedCountryCodes]],
+      paint: {
+        'fill-color': SUPPORTED_HIGHLIGHT[theme],
+      },
+    });
+  }
 
   // Add overlay on unsupported countries (excludes supported ones)
   map.addLayer({
