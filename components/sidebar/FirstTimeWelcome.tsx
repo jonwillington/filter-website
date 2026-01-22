@@ -2,14 +2,25 @@
 
 import { Button } from '@heroui/react';
 import { BrandLogoCarousel, BrandLogo } from './BrandLogoCarousel';
+import { Country } from '@/lib/types';
 
 interface FirstTimeWelcomeProps {
   onFindNearMe: () => void;
   onExplore: () => void;
   brandLogos?: BrandLogo[];
+  visitorCountry?: Country | null;
 }
 
-export function FirstTimeWelcome({ onFindNearMe, onExplore, brandLogos }: FirstTimeWelcomeProps) {
+export function FirstTimeWelcome({ onFindNearMe, onExplore, brandLogos, visitorCountry }: FirstTimeWelcomeProps) {
+  // Dynamic headline based on visitor's country
+  const headline = visitorCountry
+    ? `Bringing you ${visitorCountry.name}'s best coffee shops`
+    : "Bringing you the world's best coffee shops";
+
+  const subtitle = visitorCountry
+    ? `Discover our curated selections of specialty coffee shops in ${visitorCountry.name}`
+    : 'Discover our curated selections of specialty coffee shops in cities worldwide';
+
   return (
     <div className="flex flex-col h-full bg-surface-warm">
       {/* Brand logo carousel */}
@@ -22,10 +33,10 @@ export function FirstTimeWelcome({ onFindNearMe, onExplore, brandLogos }: FirstT
           className="font-display text-3xl leading-tight font-bold"
           style={{ color: 'var(--text)' }}
         >
-          Bringing you the world&apos;s best coffee shops
+          {headline}
         </h2>
         <p className="mt-3 text-sm text-text-secondary">
-          Discover our curated selections of specialty coffee shops in cities worldwide
+          {subtitle}
         </p>
       </div>
 

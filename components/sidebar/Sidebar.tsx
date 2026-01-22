@@ -49,6 +49,7 @@ interface SidebarProps {
   isFirstTimeVisitor?: boolean;
   onFirstTimeFindNearMe?: () => void;
   onFirstTimeExplore?: () => void;
+  visitorCountry?: Country | null;
 }
 
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
@@ -86,6 +87,7 @@ export function Sidebar({
   isFirstTimeVisitor = false,
   onFirstTimeFindNearMe,
   onFirstTimeExplore,
+  visitorCountry,
 }: SidebarProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const { tags } = useTags();
@@ -288,6 +290,7 @@ export function Sidebar({
             onFindNearMe={onFirstTimeFindNearMe}
             onExplore={onFirstTimeExplore}
             brandLogos={brandLogos}
+            visitorCountry={visitorCountry}
           />
         ) : isLoading && !selectedLocation && !isAreaUnsupported ? (
           <div className="flex-1 flex items-center justify-center p-8">

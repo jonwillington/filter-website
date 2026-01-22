@@ -19,6 +19,7 @@ import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
+import { getCountryCoordinates } from '@/lib/utils/countryCoordinates';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
@@ -63,6 +64,7 @@ interface MainLayoutProps {
   cityAreas?: CityArea[];
   events?: Event[];
   critics?: Critic[];
+  visitorCountry?: Country | null;
 }
 
 export function MainLayout({
@@ -74,6 +76,7 @@ export function MainLayout({
   cityAreas: propCityAreas = [],
   events = [],
   critics = [],
+  visitorCountry = null,
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -158,6 +161,17 @@ export function MainLayout({
       setIsFirstTimeVisitor(true);
     }
   }, []);
+
+  // Set initial map position based on visitor's country (only on home page with no location)
+  useEffect(() => {
+    if (!initialLocation && visitorCountry?.code) {
+      const coords = getCountryCoordinates(visitorCountry.code);
+      if (coords) {
+        setMapCenter(coords.center);
+        setMapZoom(coords.zoom);
+      }
+    }
+  }, []); // Only run once on mount
 
   // Track previous initialShop to detect shop-to-shop transitions
   const prevInitialShopRef = useRef<Shop | null>(null);
@@ -1068,6 +1082,7 @@ export function MainLayout({
           isFirstTimeVisitor={isFirstTimeVisitor}
           onFirstTimeFindNearMe={handleFirstTimeFindNearMe}
           onFirstTimeExplore={handleFirstTimeExplore}
+          visitorCountry={visitorCountry}
           authComponent={
             <div className="flex items-center gap-3">
               <Button

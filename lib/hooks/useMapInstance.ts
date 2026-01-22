@@ -132,6 +132,9 @@ export function useMapInstance({
       attributionControl: false,
     });
 
+    // Set globe projection after map creation
+    newMap.setProjection('globe');
+
     newMap.setPadding({ left: 200, right: 0, top: 0, bottom: 0 });
 
     newMap.addControl(
@@ -169,6 +172,19 @@ export function useMapInstance({
       }
       styleLoadCalled = true;
       console.log('[useMapInstance] onStyleLoad called!');
+
+      // Ensure globe projection is set after style loads
+      newMap.setProjection('globe');
+
+      // Add atmosphere/fog for globe effect
+      newMap.setFog({
+        color: currentThemeRef.current === 'dark' ? '#1A1410' : '#FAF5F0',
+        'high-color': currentThemeRef.current === 'dark' ? '#2A1F18' : '#E8DDD4',
+        'horizon-blend': 0.02,
+        'space-color': currentThemeRef.current === 'dark' ? '#0A0806' : '#D8CFC5',
+        'star-intensity': currentThemeRef.current === 'dark' ? 0.6 : 0,
+      });
+
       const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes(), true);
       console.log('[useMapInstance] Country overlay applied:', success);
       setMapReady(true);
@@ -231,6 +247,19 @@ export function useMapInstance({
     // Use 'once' to handle this specific style load
     map.once('style.load', () => {
       console.log('Style loaded! Theme:', effectiveTheme);
+
+      // Re-apply globe projection after style change
+      map.setProjection('globe');
+
+      // Update atmosphere/fog for new theme
+      map.setFog({
+        color: effectiveTheme === 'dark' ? '#1A1410' : '#FAF5F0',
+        'high-color': effectiveTheme === 'dark' ? '#2A1F18' : '#E8DDD4',
+        'horizon-blend': 0.02,
+        'space-color': effectiveTheme === 'dark' ? '#0A0806' : '#D8CFC5',
+        'star-intensity': effectiveTheme === 'dark' ? 0.6 : 0,
+      });
+
       const success = applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes(), true);
       setMapReady(true);
       if (success) {
