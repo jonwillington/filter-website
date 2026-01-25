@@ -7,7 +7,7 @@
     "dev:turbo": "next dev --turbo",
     "prefetch": "node scripts/prefetch-data.js",
     "prefetch:prod": "USE_PROD=1 node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
-    "build": "next build",
+    "build": "npm run prefetch:prod && next build",
     "build:cloudflare": "npx @opennextjs/cloudflare build && cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/ && cp -r .open-next/middleware .open-next/assets/ && cp -r .open-next/server-functions .open-next/assets/ && cp -r .open-next/.build .open-next/assets/ && echo '{\"version\":1,\"include\":[\"/*\"],\"exclude\":[\"/favicon.ico\",\"/robots.txt\",\"/_next/static/*\",\"/fonts/*\",\"/*.png\",\"/*.ico\",\"/*.txt\"]}' > .open-next/assets/_routes.json",
     "build:no-prefetch": "next build",
     "preview": "wrangler pages dev",

@@ -65,6 +65,8 @@ interface MainLayoutProps {
   events?: Event[];
   critics?: Critic[];
   visitorCountry?: Country | null;
+  /** When true, indicates data is loading client-side (for static shell pages) */
+  isClientSideLoading?: boolean;
 }
 
 export function MainLayout({
@@ -77,6 +79,7 @@ export function MainLayout({
   events = [],
   critics = [],
   visitorCountry = null,
+  isClientSideLoading = false,
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -85,20 +88,27 @@ export function MainLayout({
   const shopData = useShopData();
   const hasHydratedRef = useRef(false);
 
-  // Hydrate the shop data context with server-side props (only once)
+  // Hydrate the shop data context with props
+  // For SSR pages: hydrates once with server data
+  // For client-side loading: hydrates when data arrives from React Query
   useEffect(() => {
-    if (!hasHydratedRef.current && shops.length > 0) {
-      shopData.hydrate({
-        shops,
-        locations,
-        countries,
-        cityAreas: propCityAreas,
-        events,
-        critics,
-      });
-      hasHydratedRef.current = true;
+    if (shops.length > 0) {
+      // Only hydrate if we have new data and either:
+      // 1. Haven't hydrated yet, OR
+      // 2. We're in client-side loading mode and context is not hydrated yet
+      if (!hasHydratedRef.current || (!shopData.isHydrated && isClientSideLoading)) {
+        shopData.hydrate({
+          shops,
+          locations,
+          countries,
+          cityAreas: propCityAreas,
+          events,
+          critics,
+        });
+        hasHydratedRef.current = true;
+      }
     }
-  }, [shops, locations, countries, propCityAreas, events, critics, shopData]);
+  }, [shops, locations, countries, propCityAreas, events, critics, shopData, isClientSideLoading]);
 
   // Use cached data if available, otherwise fall back to props
   const cachedShops = shopData.isHydrated && shopData.shops.length > 0 ? shopData.shops : shops;

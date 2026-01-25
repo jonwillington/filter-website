@@ -144,14 +144,12 @@ export function MapContainer({
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="map-container" />
 
-      {/* Country layer loading overlay - prevents flash of unstyled map */}
-      <div
-        className={`absolute inset-0 bg-background flex items-center justify-center pointer-events-none z-[5] transition-opacity duration-300 ${
-          countryLayerReady ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        <Spinner size="lg" color="primary" />
-      </div>
+      {/* Map initialization indicator - subtle corner spinner instead of blocking overlay */}
+      {!countryLayerReady && (
+        <div className="absolute top-4 right-16 z-[5] bg-white/80 dark:bg-[rgba(37,28,22,0.8)] backdrop-blur-sm rounded-full p-2 shadow-sm">
+          <Spinner size="sm" color="primary" />
+        </div>
+      )}
 
       {/* Loading spinner overlay */}
       <div
