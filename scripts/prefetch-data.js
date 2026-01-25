@@ -16,10 +16,10 @@ const STRAPI_TOKEN = useProd
   : process.env.NEXT_PUBLIC_STRAPI_TOKEN;
 
 if (!STRAPI_TOKEN) {
-  console.error(useProd
-    ? 'Error: NEXT_PUBLIC_STRAPI_TOKEN_PROD is required (set in .env.local)'
-    : 'Error: NEXT_PUBLIC_STRAPI_TOKEN is required');
-  process.exit(1);
+  console.warn(useProd
+    ? '⚠️  NEXT_PUBLIC_STRAPI_TOKEN_PROD not set - skipping prefetch (data will be fetched at runtime)'
+    : '⚠️  NEXT_PUBLIC_STRAPI_TOKEN not set - skipping prefetch (data will be fetched at runtime)');
+  process.exit(0); // Exit gracefully - prefetch is optional
 }
 
 if (useProd) {
