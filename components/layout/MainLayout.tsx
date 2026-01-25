@@ -88,27 +88,21 @@ export function MainLayout({
   const shopData = useShopData();
   const hasHydratedRef = useRef(false);
 
-  // Hydrate the shop data context with props
-  // For SSR pages: hydrates once with server data
-  // For client-side loading: hydrates when data arrives from React Query
+  // Hydrate the shop data context with props (only once per mount)
+  // Works for both SSR (props arrive populated) and client-side loading (props arrive after fetch)
   useEffect(() => {
-    if (shops.length > 0) {
-      // Only hydrate if we have new data and either:
-      // 1. Haven't hydrated yet, OR
-      // 2. We're in client-side loading mode and context is not hydrated yet
-      if (!hasHydratedRef.current || (!shopData.isHydrated && isClientSideLoading)) {
-        shopData.hydrate({
-          shops,
-          locations,
-          countries,
-          cityAreas: propCityAreas,
-          events,
-          critics,
-        });
-        hasHydratedRef.current = true;
-      }
+    if (!hasHydratedRef.current && shops.length > 0) {
+      shopData.hydrate({
+        shops,
+        locations,
+        countries,
+        cityAreas: propCityAreas,
+        events,
+        critics,
+      });
+      hasHydratedRef.current = true;
     }
-  }, [shops, locations, countries, propCityAreas, events, critics, shopData, isClientSideLoading]);
+  }, [shops, locations, countries, propCityAreas, events, critics, shopData]);
 
   // Use cached data if available, otherwise fall back to props
   const cachedShops = shopData.isHydrated && shopData.shops.length > 0 ? shopData.shops : shops;
