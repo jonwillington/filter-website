@@ -4,54 +4,74 @@
  * This cache persists across the entire build process to prevent
  * redundant API calls when generating static pages.
  *
- * The cache uses a longer TTL during build (30 min) since data
- * doesn't change during a single build run.
- *
- * If pre-fetched data exists in .data/, it will be used instead of API calls.
+ * Pre-fetched data is bundled at build time via lib/data/prefetched.ts
+ * This works in Cloudflare Workers which don't have filesystem access.
  */
-
-import * as fs from 'fs';
-import * as path from 'path';
 
 type CacheEntry = { data: unknown; timestamp: number };
 type CacheMap = Map<string, CacheEntry>;
 
-// Pre-fetched data cache (loaded once from .data/ files)
+// Try to load bundled prefetched data (generated at build time)
 let prefetchedData: Map<string, unknown> | null = null;
+let prefetchAttempted = false;
 
-function loadPrefetchedData(): Map<string, unknown> {
+async function loadPrefetchedData(): Promise<Map<string, unknown>> {
   if (prefetchedData) return prefetchedData;
+  if (prefetchAttempted) return new Map();
 
+  prefetchAttempted = true;
   prefetchedData = new Map();
-  const dataDir = path.join(process.cwd(), '.data');
 
-  if (fs.existsSync(dataDir)) {
-    const files = ['shops.json', 'countries.json', 'city-areas.json', 'brands.json'];
-    for (const file of files) {
-      const filePath = path.join(dataDir, file);
-      if (fs.existsSync(filePath)) {
-        try {
-          const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-          const key = file.replace('.json', '');
-          prefetchedData.set(key, data);
-          console.log(`[Cache] Loaded pre-fetched ${key}: ${Array.isArray(data) ? data.length : 0} items`);
-        } catch (e) {
-          console.warn(`[Cache] Failed to load ${file}:`, e);
-        }
-      }
+  try {
+    // Dynamic import to handle case where file doesn't exist (dev mode)
+    const prefetched = await import('@/lib/data/prefetched');
+
+    if (prefetched.prefetchedShops?.length > 0) {
+      prefetchedData.set('shops', prefetched.prefetchedShops);
+      console.log(`[Cache] Loaded bundled shops: ${prefetched.prefetchedShops.length} items`);
     }
+    if (prefetched.prefetchedCountries?.length > 0) {
+      prefetchedData.set('countries', prefetched.prefetchedCountries);
+      console.log(`[Cache] Loaded bundled countries: ${prefetched.prefetchedCountries.length} items`);
+    }
+    if (prefetched.prefetchedCityAreas?.length > 0) {
+      prefetchedData.set('city-areas', prefetched.prefetchedCityAreas);
+      console.log(`[Cache] Loaded bundled city-areas: ${prefetched.prefetchedCityAreas.length} items`);
+    }
+    if (prefetched.prefetchedBrands?.length > 0) {
+      prefetchedData.set('brands', prefetched.prefetchedBrands);
+      console.log(`[Cache] Loaded bundled brands: ${prefetched.prefetchedBrands.length} items`);
+    }
+
+    if (prefetched.PREFETCH_TIMESTAMP) {
+      const age = Date.now() - prefetched.PREFETCH_TIMESTAMP;
+      console.log(`[Cache] Prefetch data age: ${Math.round(age / 1000 / 60)} minutes`);
+    }
+  } catch (e) {
+    // Prefetched module doesn't exist (dev mode or first build)
+    console.log('[Cache] No bundled prefetch data available, will fetch from API');
   }
 
   return prefetchedData;
 }
 
-export function getPrefetched<T>(key: string): T | null {
-  const data = loadPrefetchedData();
+// Synchronous version that returns cached result (call loadPrefetchedData first)
+function getPrefetchedSync(): Map<string, unknown> {
+  return prefetchedData || new Map();
+}
+
+export async function getPrefetched<T>(key: string): Promise<T | null> {
+  const data = await loadPrefetchedData();
   return (data.get(key) as T) || null;
 }
 
-export function hasPrefetchedData(): boolean {
-  const data = loadPrefetchedData();
+export function getPrefetchedImmediate<T>(key: string): T | null {
+  const data = getPrefetchedSync();
+  return (data.get(key) as T) || null;
+}
+
+export async function hasPrefetchedData(): Promise<boolean> {
+  const data = await loadPrefetchedData();
   return data.size > 0;
 }
 

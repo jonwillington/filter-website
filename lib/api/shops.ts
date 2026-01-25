@@ -145,7 +145,7 @@ async function getAllCountries(): Promise<Map<string, Country>> {
   if (cached) return cached;
 
   // Check for pre-fetched data
-  const prefetched = getPrefetched<Country[]>('countries');
+  const prefetched = await getPrefetched<Country[]>('countries');
   if (prefetched) {
     const countryMap = new Map<string, Country>();
     for (const country of prefetched) {
@@ -200,7 +200,7 @@ async function getAllCityAreasMap(): Promise<Map<string, { group: string | null 
   if (cached) return cached;
 
   // Check for pre-fetched data
-  const prefetched = getPrefetched<Array<{ documentId: string; group?: string | null }>>('city-areas');
+  const prefetched = await getPrefetched<Array<{ documentId: string; group?: string | null }>>('city-areas');
   if (prefetched) {
     const cityAreaMap = new Map<string, { group: string | null }>();
     for (const cityArea of prefetched) {
@@ -379,7 +379,7 @@ export async function getAllShops(): Promise<Shop[]> {
   if (cached) return cached;
 
   // Check for pre-fetched data (from build-time prefetch script)
-  const prefetched = getPrefetched<Shop[]>('shops');
+  const prefetched = await getPrefetched<Shop[]>('shops');
   if (prefetched) {
     // Still need to enrich with country, brand, and city area data
     // (Strapi's nested populate doesn't return all fields for relations)

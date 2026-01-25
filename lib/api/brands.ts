@@ -46,7 +46,7 @@ export async function getAllBrands(): Promise<Map<string, Brand>> {
   if (cached) return cached;
 
   // Check for pre-fetched data (from build-time prefetch script)
-  const prefetched = getPrefetched<Brand[]>('brands');
+  const prefetched = await getPrefetched<Brand[]>('brands');
   if (prefetched) {
     const brandMap = new Map<string, Brand>();
     for (const brand of prefetched) {
