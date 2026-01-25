@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "name": "Filter Light",
+  "name": "Filter Light v2",
   "sources": {
     "composite": {
       "url": "mapbox://mapbox.mapbox-streets-v8",
@@ -8,6 +8,7 @@
     }
   },
   "glyphs": "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
+  "sprite": "mapbox://sprites/mapbox/streets-v12",
   "layers": [
     {
       "id": "background",
@@ -23,6 +24,17 @@
       "source-layer": "water",
       "paint": {
         "fill-color": "#E8E0D8"
+      }
+    },
+    {
+      "id": "landuse-park",
+      "type": "fill",
+      "source": "composite",
+      "source-layer": "landuse",
+      "filter": ["==", ["get", "class"], "park"],
+      "paint": {
+        "fill-color": "#E5E8DF",
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0, 12, 0.5, 16, 0.7]
       }
     },
     {
@@ -198,26 +210,101 @@
       }
     },
     {
-      "id": "place-label-city",
+      "id": "road-label",
       "type": "symbol",
       "source": "composite",
-      "source-layer": "place_label",
-      "filter": ["==", ["get", "class"], "city"],
+      "source-layer": "road",
+      "minzoom": 14,
+      "filter": [
+        "all",
+        ["has", "name"],
+        ["in", ["get", "class"], ["literal", ["street", "street_limited", "primary", "secondary", "tertiary"]]]
+      ],
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["DIN Pro Regular", "Arial Unicode MS Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 18, 13],
+        "symbol-placement": "line",
+        "text-max-angle": 30,
+        "text-padding": 1
+      },
+      "paint": {
+        "text-color": "#8B7355",
+        "text-halo-color": "#FAF7F4",
+        "text-halo-width": 1.5,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0, 15, 1]
+      }
+    },
+    {
+      "id": "transit-label",
+      "type": "symbol",
+      "source": "composite",
+      "source-layer": "transit_stop_label",
+      "minzoom": 14,
+      "filter": ["in", ["get", "mode"], ["literal", ["rail", "metro_rail", "light_rail"]]],
       "layout": {
         "text-field": ["get", "name"],
         "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
-        "text-size": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          4, 10,
-          10, 16
-        ]
+        "text-size": 11,
+        "text-anchor": "top",
+        "text-offset": [0, 0.6],
+        "icon-image": "rail",
+        "icon-size": 0.9,
+        "icon-allow-overlap": false
       },
       "paint": {
         "text-color": "#6B5235",
         "text-halo-color": "#FAF7F4",
         "text-halo-width": 1.5
+      }
+    },
+    {
+      "id": "poi-label",
+      "type": "symbol",
+      "source": "composite",
+      "source-layer": "poi_label",
+      "minzoom": 15,
+      "filter": ["in", ["get", "class"], ["literal", ["food_and_drink", "shop", "landmark", "park_like"]]],
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["DIN Pro Regular", "Arial Unicode MS Regular"],
+        "text-size": 11,
+        "text-anchor": "top",
+        "text-offset": [0, 0.5],
+        "icon-image": ["get", "maki"],
+        "icon-size": 0.8,
+        "icon-allow-overlap": false,
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#6B5235",
+        "text-halo-color": "#FAF7F4",
+        "text-halo-width": 1,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, 1]
+      }
+    },
+    {
+      "id": "place-label-neighborhood",
+      "type": "symbol",
+      "source": "composite",
+      "source-layer": "place_label",
+      "filter": [
+        "any",
+        ["==", ["get", "class"], "neighbourhood"],
+        ["==", ["get", "class"], "suburb"]
+      ],
+      "minzoom": 12,
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["DIN Pro Regular", "Arial Unicode MS Regular"],
+        "text-size": 11,
+        "text-transform": "uppercase",
+        "text-letter-spacing": 0.1
+      },
+      "paint": {
+        "text-color": "#A89080",
+        "text-halo-color": "#FAF7F4",
+        "text-halo-width": 1
       }
     },
     {
@@ -245,27 +332,26 @@
       }
     },
     {
-      "id": "place-label-neighborhood",
+      "id": "place-label-city",
       "type": "symbol",
       "source": "composite",
       "source-layer": "place_label",
-      "filter": [
-        "any",
-        ["==", ["get", "class"], "neighbourhood"],
-        ["==", ["get", "class"], "suburb"]
-      ],
-      "minzoom": 12,
+      "filter": ["==", ["get", "class"], "city"],
       "layout": {
         "text-field": ["get", "name"],
-        "text-font": ["DIN Pro Regular", "Arial Unicode MS Regular"],
-        "text-size": 11,
-        "text-transform": "uppercase",
-        "text-letter-spacing": 0.1
+        "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
+        "text-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4, 10,
+          10, 16
+        ]
       },
       "paint": {
-        "text-color": "#A89080",
+        "text-color": "#6B5235",
         "text-halo-color": "#FAF7F4",
-        "text-halo-width": 1
+        "text-halo-width": 1.5
       }
     },
     {

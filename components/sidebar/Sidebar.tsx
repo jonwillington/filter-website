@@ -326,20 +326,22 @@ export function Sidebar({
             onLocationSelect={onLocationChange}
           />
         ) : (
-          <>
-            <ShopList
-              shops={shops}
-              selectedShop={selectedShop}
-              onShopSelect={onShopSelect}
-              isLoading={isLoading}
-              isFiltered={applyMyFilters || shopFilter !== 'all'}
-              shopMatchInfo={shopMatchInfo}
-              onCityAreaExpand={onCityAreaExpand}
-            />
+          <div className="p-3">
+            <div className="bg-surface-warm rounded-2xl overflow-hidden">
+              <ShopList
+                shops={shops}
+                selectedShop={selectedShop}
+                onShopSelect={onShopSelect}
+                isLoading={isLoading}
+                isFiltered={applyMyFilters || shopFilter !== 'all'}
+                shopMatchInfo={shopMatchInfo}
+                onCityAreaExpand={onCityAreaExpand}
+              />
+            </div>
             {selectedLocation && filterCounts.all < 5 && (
               <ShortOnShopsAlert locationName={selectedLocation.name} />
             )}
-          </>
+          </div>
         )}
       </div>
 

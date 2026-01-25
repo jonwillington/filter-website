@@ -208,7 +208,7 @@ export function ShopList({
         <div key={groupName || 'ungrouped'} className={index > 0 ? 'mt-3' : ''}>
           {groupName && (
             <div className="px-4 pt-4 pb-2">
-              <h4 className="text-[10px] font-medium text-gray-400 dark:text-white/30 uppercase tracking-wider">
+              <h4 className="text-[10px] font-medium text-accent/60 dark:text-accent/50 uppercase tracking-wider">
                 {groupName}
               </h4>
             </div>
@@ -275,7 +275,11 @@ function AreaSection({
     <div className="border-b border-border-default last:border-b-0">
       <button
         onClick={toggleExpanded}
-        className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+        className={`w-full flex items-center justify-between px-4 py-2 transition-colors ${
+          isExpanded
+            ? 'bg-accent/10 dark:bg-accent/20'
+            : 'hover:bg-accent/5 dark:hover:bg-white/5'
+        }`}
         style={{ fontFamily: 'PPNeueYork, system-ui, sans-serif' }}
       >
         <span className="text-sm font-medium text-text">{areaName}</span>
