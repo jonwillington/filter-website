@@ -2,11 +2,20 @@ import { useEffect, useRef, useState, RefObject, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Country } from '@/lib/types';
 
-// Custom Mapbox Studio styles
-const BASE_STYLES = {
+// Custom Mapbox Studio styles for globe/world view (warm, branded)
+const GLOBE_STYLES = {
   light: 'mapbox://styles/jonwillington-deel/cmjzugwf1004x01s919ofgims',
   dark: 'mapbox://styles/jonwillington-deel/cmjzv4sah005q01safrv11qu9',
 };
+
+// Standard Mapbox styles for street-level view (functional, detailed)
+const STREET_STYLES = {
+  light: 'mapbox://styles/mapbox/streets-v12',
+  dark: 'mapbox://styles/mapbox/dark-v11',
+};
+
+// Zoom threshold for switching between globe and street styles
+const STYLE_SWITCH_ZOOM = 10;
 
 // Overlay colors for unsupported countries (dimmed to make supported pop)
 const OVERLAY_COLORS = {
@@ -119,6 +128,9 @@ export function useMapInstance({
   const [countryLayerReady, setCountryLayerReady] = useState(false);
   const initializedRef = useRef(false);
   const countriesRef = useRef(countries);
+  // Track current style mode: 'globe' for world view, 'street' for detailed local view
+  const currentStyleModeRef = useRef<'globe' | 'street'>(zoom >= STYLE_SWITCH_ZOOM ? 'street' : 'globe');
+  const isChangingStyleRef = useRef(false);
 
   // Keep countries ref up to date
   useEffect(() => {
@@ -147,9 +159,18 @@ export function useMapInstance({
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
     currentThemeRef.current = effectiveTheme;
 
+    // Choose initial style based on zoom level
+    const initialStyleMode = zoom >= STYLE_SWITCH_ZOOM ? 'street' : 'globe';
+    currentStyleModeRef.current = initialStyleMode;
+    const initialStyle = initialStyleMode === 'street'
+      ? STREET_STYLES[effectiveTheme]
+      : GLOBE_STYLES[effectiveTheme];
+
+    console.log('[useMapInstance] Initial style mode:', initialStyleMode, 'zoom:', zoom);
+
     const newMap = new mapboxgl.Map({
       container: containerRef.current,
-      style: BASE_STYLES[effectiveTheme],
+      style: initialStyle,
       center,
       zoom,
       attributionControl: false,
@@ -181,39 +202,70 @@ export function useMapInstance({
     };
     const zoomCheckInterval = setInterval(checkBrowserZoom, 300);
 
-    // Track zoom changes
+    // Track zoom changes and switch styles when crossing threshold
     newMap.on('zoom', () => {
-      setCurrentZoom(newMap.getZoom());
+      const newZoom = newMap.getZoom();
+      setCurrentZoom(newZoom);
+
+      // Check if we need to switch style modes
+      const shouldBeStreet = newZoom >= STYLE_SWITCH_ZOOM;
+      const currentMode = currentStyleModeRef.current;
+      const needsSwitch = (shouldBeStreet && currentMode === 'globe') ||
+                          (!shouldBeStreet && currentMode === 'street');
+
+      if (needsSwitch && !isChangingStyleRef.current) {
+        const newMode = shouldBeStreet ? 'street' : 'globe';
+        console.log('[useMapInstance] Switching style mode:', currentMode, '->', newMode, 'at zoom:', newZoom);
+
+        isChangingStyleRef.current = true;
+        currentStyleModeRef.current = newMode;
+
+        const newStyle = newMode === 'street'
+          ? STREET_STYLES[currentThemeRef.current]
+          : GLOBE_STYLES[currentThemeRef.current];
+
+        // Style change will trigger style.load event
+        newMap.setStyle(newStyle);
+      }
     });
 
-    // When style loads, apply country overlay and mark ready
+    // When style loads, apply appropriate settings based on style mode
     let styleLoadCalled = false;
     const onStyleLoad = () => {
-      if (styleLoadCalled) {
+      if (styleLoadCalled && !isChangingStyleRef.current) {
         console.log('[useMapInstance] onStyleLoad already called, skipping');
         return;
       }
       styleLoadCalled = true;
-      console.log('[useMapInstance] onStyleLoad called!');
 
-      // Ensure globe projection is set after style loads
-      newMap.setProjection('globe');
+      const styleMode = currentStyleModeRef.current;
+      console.log('[useMapInstance] onStyleLoad called! Mode:', styleMode);
 
-      // Add atmosphere/fog for globe effect
-      newMap.setFog({
-        color: currentThemeRef.current === 'dark' ? '#1A1410' : '#FAF5F0',
-        'high-color': currentThemeRef.current === 'dark' ? '#2A1F18' : '#E8DDD4',
-        'horizon-blend': 0.02,
-        'space-color': currentThemeRef.current === 'dark' ? '#0A0806' : '#D8CFC5',
-        'star-intensity': currentThemeRef.current === 'dark' ? 0.6 : 0,
-      });
+      isChangingStyleRef.current = false;
 
-      const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes(), true);
-      console.log('[useMapInstance] Country overlay applied:', success);
-      setMapReady(true);
-      if (success) {
-        setCountryLayerReady(true);
+      if (styleMode === 'globe') {
+        // Globe mode: apply projection and fog for 3D globe effect
+        newMap.setProjection('globe');
+        newMap.setFog({
+          color: currentThemeRef.current === 'dark' ? '#1A1410' : '#FAF5F0',
+          'high-color': currentThemeRef.current === 'dark' ? '#2A1F18' : '#E8DDD4',
+          'horizon-blend': 0.02,
+          'space-color': currentThemeRef.current === 'dark' ? '#0A0806' : '#D8CFC5',
+          'star-intensity': currentThemeRef.current === 'dark' ? 0.6 : 0,
+        });
+
+        // Apply country overlay only in globe mode
+        const success = applyCountryOverlay(newMap, currentThemeRef.current, getSupportedCountryCodes(), true);
+        console.log('[useMapInstance] Country overlay applied:', success);
+      } else {
+        // Street mode: use mercator projection (flat map)
+        newMap.setProjection('mercator');
+        // Clear fog for street view
+        newMap.setFog(null as any);
       }
+
+      setMapReady(true);
+      setCountryLayerReady(true);
     };
 
     newMap.on('style.load', onStyleLoad);
@@ -260,8 +312,12 @@ export function useMapInstance({
 
     if (currentThemeRef.current === effectiveTheme) return;
 
-    const newStyle = BASE_STYLES[effectiveTheme];
-    console.log('Changing style to:', newStyle);
+    // Choose style based on current mode and new theme
+    const styleMode = currentStyleModeRef.current;
+    const newStyle = styleMode === 'street'
+      ? STREET_STYLES[effectiveTheme]
+      : GLOBE_STYLES[effectiveTheme];
+    console.log('Changing style to:', newStyle, 'mode:', styleMode);
 
     currentThemeRef.current = effectiveTheme;
     setMapReady(false);
@@ -269,35 +325,45 @@ export function useMapInstance({
 
     // Use 'once' to handle this specific style load
     map.once('style.load', () => {
-      console.log('Style loaded! Theme:', effectiveTheme);
+      console.log('Style loaded! Theme:', effectiveTheme, 'Mode:', styleMode);
 
-      // Re-apply globe projection after style change
-      map.setProjection('globe');
+      if (styleMode === 'globe') {
+        // Re-apply globe projection after style change
+        map.setProjection('globe');
 
-      // Update atmosphere/fog for new theme
-      map.setFog({
-        color: effectiveTheme === 'dark' ? '#1A1410' : '#FAF5F0',
-        'high-color': effectiveTheme === 'dark' ? '#2A1F18' : '#E8DDD4',
-        'horizon-blend': 0.02,
-        'space-color': effectiveTheme === 'dark' ? '#0A0806' : '#D8CFC5',
-        'star-intensity': effectiveTheme === 'dark' ? 0.6 : 0,
-      });
+        // Update atmosphere/fog for new theme
+        map.setFog({
+          color: effectiveTheme === 'dark' ? '#1A1410' : '#FAF5F0',
+          'high-color': effectiveTheme === 'dark' ? '#2A1F18' : '#E8DDD4',
+          'horizon-blend': 0.02,
+          'space-color': effectiveTheme === 'dark' ? '#0A0806' : '#D8CFC5',
+          'star-intensity': effectiveTheme === 'dark' ? 0.6 : 0,
+        });
 
-      const success = applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes(), true);
-      setMapReady(true);
-      if (success) {
-        setCountryLayerReady(true);
+        const success = applyCountryOverlay(map, effectiveTheme, getSupportedCountryCodes(), true);
+        if (!success) {
+          console.warn('[useMapInstance] Failed to apply country overlay');
+        }
+      } else {
+        map.setProjection('mercator');
+        map.setFog(null as any);
       }
+
+      setMapReady(true);
+      setCountryLayerReady(true);
     });
 
     // Change base style
     map.setStyle(newStyle);
   }, [effectiveTheme, map, getSupportedCountryCodes]);
 
-  // Update country overlay when countries data changes
+  // Update country overlay when countries data changes (only in globe mode)
   useEffect(() => {
     if (!map || !mapReady) return;
-    applyCountryOverlay(map, currentThemeRef.current, getSupportedCountryCodes());
+    // Only apply country overlay in globe mode
+    if (currentStyleModeRef.current === 'globe') {
+      applyCountryOverlay(map, currentThemeRef.current, getSupportedCountryCodes());
+    }
   }, [countries, map, mapReady, getSupportedCountryCodes]);
 
   return {
