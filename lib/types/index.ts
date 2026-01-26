@@ -12,7 +12,7 @@ export interface MediaAsset {
   id?: number;
   documentId?: string;
   url?: string;
-  formats?: Record<string, MediaFormat>;
+  formats?: Record<string, MediaFormat> | null;
 }
 
 export interface Region {
