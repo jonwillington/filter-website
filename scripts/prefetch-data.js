@@ -8,6 +8,8 @@ const path = require('path');
 
 // Output directory for bundled data (will be imported at build time)
 const LIB_DATA_DIR = path.join(__dirname, '../lib/data');
+// Output directory for static JSON files (served from CDN)
+const PUBLIC_DATA_DIR = path.join(__dirname, '../public/data');
 
 // Use production Strapi if USE_PROD=1 or NEXT_PUBLIC_STRAPI_URL_PROD is set
 const useProd = process.env.USE_PROD === '1';
@@ -222,9 +224,34 @@ export const PREFETCH_TIMESTAMP = ${Date.now()};
     fs.writeFileSync(path.join(LIB_DATA_DIR, 'prefetched.ts'), moduleContent);
     console.log('   ✓ Generated lib/data/prefetched.ts\n');
 
+    // Also write to public/data/ for CDN serving (faster than API routes)
+    console.log('6. Generating static JSON files for CDN...');
+    if (!fs.existsSync(PUBLIC_DATA_DIR)) {
+      fs.mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
+    }
+
+    // Write minified JSON (no pretty print - smaller files)
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'shops.json'), JSON.stringify(shops));
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'countries.json'), JSON.stringify(countries));
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'city-areas.json'), JSON.stringify(cityAreas));
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'brands.json'), JSON.stringify(brands));
+
+    // Extract unique locations from city areas
+    const locationMap = new Map();
+    for (const cityArea of cityAreas) {
+      if (cityArea.location?.documentId) {
+        locationMap.set(cityArea.location.documentId, cityArea.location);
+      }
+    }
+    const locations = Array.from(locationMap.values());
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'locations.json'), JSON.stringify(locations));
+
+    console.log('   ✓ Generated public/data/*.json files\n');
+
     console.log('✅ All data pre-fetched successfully!');
     console.log(`   JSON saved to ${dataDir}/`);
     console.log(`   Module saved to ${LIB_DATA_DIR}/prefetched.ts`);
+    console.log(`   Static files saved to ${PUBLIC_DATA_DIR}/`);
 
   } catch (error) {
     console.error('❌ Error pre-fetching data:', error.message);

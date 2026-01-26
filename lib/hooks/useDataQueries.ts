@@ -13,10 +13,26 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return response.json();
 }
 
+// Fetch from static CDN files (generated at build time) - FAST
+// Falls back to API routes if static files don't exist
+async function fetchWithFallback<T>(staticPath: string, apiPath: string): Promise<T> {
+  try {
+    // Try static file first (served from CDN, very fast)
+    const response = await fetch(staticPath);
+    if (response.ok) {
+      return response.json();
+    }
+  } catch (e) {
+    // Static file not available, fall back to API
+  }
+  // Fall back to API route
+  return fetchJSON<T>(apiPath);
+}
+
 export function useShopsQuery() {
   return useQuery<Shop[]>({
     queryKey: ['shops'],
-    queryFn: () => fetchJSON<Shop[]>('/api/data/shops'),
+    queryFn: () => fetchWithFallback<Shop[]>('/data/shops.json', '/api/data/shops'),
     staleTime: STALE_TIME,
   });
 }
@@ -24,7 +40,7 @@ export function useShopsQuery() {
 export function useCountriesQuery() {
   return useQuery<Country[]>({
     queryKey: ['countries'],
-    queryFn: () => fetchJSON<Country[]>('/api/data/countries'),
+    queryFn: () => fetchWithFallback<Country[]>('/data/countries.json', '/api/data/countries'),
     staleTime: STALE_TIME,
   });
 }
@@ -32,7 +48,7 @@ export function useCountriesQuery() {
 export function useLocationsQuery() {
   return useQuery<Location[]>({
     queryKey: ['locations'],
-    queryFn: () => fetchJSON<Location[]>('/api/data/locations'),
+    queryFn: () => fetchWithFallback<Location[]>('/data/locations.json', '/api/data/locations'),
     staleTime: STALE_TIME,
   });
 }
@@ -40,12 +56,13 @@ export function useLocationsQuery() {
 export function useCityAreasQuery() {
   return useQuery<CityArea[]>({
     queryKey: ['cityAreas'],
-    queryFn: () => fetchJSON<CityArea[]>('/api/data/city-areas'),
+    queryFn: () => fetchWithFallback<CityArea[]>('/data/city-areas.json', '/api/data/city-areas'),
     staleTime: STALE_TIME,
   });
 }
 
 export function useEventsQuery() {
+  // Events change frequently, always fetch from API
   return useQuery<Event[]>({
     queryKey: ['events'],
     queryFn: () => fetchJSON<Event[]>('/api/data/events'),
