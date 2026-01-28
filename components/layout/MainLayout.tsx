@@ -86,13 +86,15 @@ export function MainLayout({
 
   // Use cached shop data for stable reference (prevents map marker recreation on navigation)
   const shopData = useShopData();
+  const hydrateRef = useRef(shopData.hydrate);
+  hydrateRef.current = shopData.hydrate;
   const hasHydratedRef = useRef(false);
 
   // Hydrate the shop data context with props (only once per mount)
   // Works for both SSR (props arrive populated) and client-side loading (props arrive after fetch)
   useEffect(() => {
     if (!hasHydratedRef.current && shops.length > 0) {
-      shopData.hydrate({
+      hydrateRef.current({
         shops,
         locations,
         countries,
@@ -102,7 +104,7 @@ export function MainLayout({
       });
       hasHydratedRef.current = true;
     }
-  }, [shops, locations, countries, propCityAreas, events, critics, shopData]);
+  }, [shops, locations, countries, propCityAreas, events, critics]);
 
   // Use cached data if available, otherwise fall back to props
   const cachedShops = shopData.isHydrated && shopData.shops.length > 0 ? shopData.shops : shops;
