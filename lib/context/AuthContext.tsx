@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { authService } from '../services/authService';
 import { userService } from '../services/userService';
@@ -114,27 +114,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return unsubscribe;
   }, [getFirebaseDisplayName, ensurePersonalDetails]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       await authService.signInWithGoogle();
     } catch (error) {
       throw error;
     }
-  };
+  }, []);
 
-  const signInWithApple = async () => {
+  const signInWithApple = useCallback(async () => {
     try {
       await authService.signInWithApple();
     } catch (error) {
       throw error;
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await authService.signOut();
-  };
+  }, []);
 
-  const deleteAccount = async () => {
+  const deleteAccount = useCallback(async () => {
     if (!user) throw new Error('No user signed in');
     const uid = user.uid;
 
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     setUser(null);
     setUserProfile(null);
-  };
+  }, [user]);
 
   const refreshUserProfile = useCallback(async () => {
     if (!user) return;
@@ -151,7 +151,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUserProfile(profile);
   }, [user]);
 
-  const value: AuthContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo<AuthContextType>(() => ({
     user,
     userProfile,
     loading,
@@ -160,7 +161,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
     deleteAccount,
     refreshUserProfile,
-  };
+  }), [user, userProfile, loading, signInWithGoogle, signInWithApple, signOut, deleteAccount, refreshUserProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

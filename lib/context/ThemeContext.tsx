@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { userService } from '../services/userService';
 
@@ -77,8 +77,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.uid]);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
+    themeMode,
+    effectiveTheme,
+    setThemeMode,
+    isLoading,
+  }), [themeMode, effectiveTheme, setThemeMode, isLoading]);
+
   return (
-    <ThemeContext.Provider value={{ themeMode, effectiveTheme, setThemeMode, isLoading }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
