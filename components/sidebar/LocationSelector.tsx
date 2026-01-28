@@ -3,7 +3,7 @@
 import { Select, SelectItem, SelectSection, type SharedSelection } from '@heroui/react';
 import { Location } from '@/lib/types';
 import { MapPin } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 interface LocationSelectorProps {
   locations: Location[];
@@ -30,7 +30,7 @@ export function LocationSelector({
   isNearbyMode,
   onNearbyToggle,
 }: LocationSelectorProps) {
-  const handleChange = (keys: SharedSelection) => {
+  const handleChange = useCallback((keys: SharedSelection) => {
     if (keys === 'all') return;
     const value = Array.from(keys)[0] as string | undefined;
 
@@ -40,13 +40,13 @@ export function LocationSelector({
       const location = locations.find((l) => l.documentId === value);
       onLocationChange(location ?? null);
     }
-  };
+  }, [locations, onNearbyToggle, onLocationChange]);
 
-  const selectedKeys = isNearbyMode
-    ? new Set(['nearby'])
-    : selectedLocation
-    ? new Set([selectedLocation.documentId])
-    : new Set<string>();
+  const selectedKeys = useMemo(() => {
+    if (isNearbyMode) return new Set(['nearby']);
+    if (selectedLocation) return new Set([selectedLocation.documentId]);
+    return new Set<string>();
+  }, [isNearbyMode, selectedLocation]);
 
   // Group locations by country and create a flat list with section headers
   const groupedItems = useMemo(() => {
