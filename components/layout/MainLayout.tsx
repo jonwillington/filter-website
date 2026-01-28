@@ -17,6 +17,9 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { useShopData } from '@/lib/context/ShopDataContext';
 import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
+
+// Stable empty Map to prevent re-render loops
+const EMPTY_SHOP_MATCH_INFO = new Map<string, string[]>();
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { getCountryCoordinates } from '@/lib/utils/countryCoordinates';
@@ -594,11 +597,11 @@ export function MainLayout({
   // Also calculates match info when applyMyFilters is on
   const { sidebarShops, shopMatchInfo, totalFilterCount } = useMemo(() => {
     let filtered = locationFilteredShops;
-    const matchInfo = new Map<string, string[]>();
     let filterCount = 0;
 
     // Only apply user preference filters when "apply my filters" toggle is ON
     if (applyMyFilters) {
+      const matchInfo = new Map<string, string[]>();
       const preferences = userProfile?.preferences;
       const preferIndependent = preferences?.preferIndependentOnly;
       const preferredTags = preferences?.preferredTags || [];
@@ -648,8 +651,8 @@ export function MainLayout({
       return { sidebarShops: filtered, shopMatchInfo: matchInfo, totalFilterCount: filterCount };
     }
 
-    // When "apply my filters" is off, apply the dropdown filter instead
-    if (shopFilter === 'all') return { sidebarShops: filtered, shopMatchInfo: matchInfo, totalFilterCount: 0 };
+    // When "apply my filters" is off, use stable empty Map
+    if (shopFilter === 'all') return { sidebarShops: filtered, shopMatchInfo: EMPTY_SHOP_MATCH_INFO, totalFilterCount: 0 };
 
     const dropdownFiltered = filtered.filter((shop) => {
       const anyShop = shop as any;
@@ -667,7 +670,7 @@ export function MainLayout({
       }
     });
 
-    return { sidebarShops: dropdownFiltered, shopMatchInfo: matchInfo, totalFilterCount: 0 };
+    return { sidebarShops: dropdownFiltered, shopMatchInfo: EMPTY_SHOP_MATCH_INFO, totalFilterCount: 0 };
   }, [locationFilteredShops, shopFilter, applyMyFilters, userProfile?.preferences, getShopMatches]);
 
   // Map shows filtered shops when filter is active or "apply my filters" is on

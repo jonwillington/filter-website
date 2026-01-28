@@ -110,9 +110,8 @@ export function useHomeData() {
     cityAreasQuery.isError ||
     eventsQuery.isError;
 
-  // Return object directly - React Query handles stability internally
-  // Don't include refetch functions in consumer components' dependency arrays
-  return {
+  // Memoize return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     shops,
     countries,
     locations,
@@ -135,5 +134,23 @@ export function useHomeData() {
       cityAreasQuery.refetch();
       eventsQuery.refetch();
     },
-  };
+  }), [
+    shops,
+    countries,
+    locations,
+    cityAreas,
+    events,
+    isLoading,
+    isError,
+    shopsQuery.isLoading,
+    countriesQuery.isLoading,
+    locationsQuery.isLoading,
+    cityAreasQuery.isLoading,
+    eventsQuery.isLoading,
+    shopsQuery.refetch,
+    countriesQuery.refetch,
+    locationsQuery.refetch,
+    cityAreasQuery.refetch,
+    eventsQuery.refetch,
+  ]);
 }
