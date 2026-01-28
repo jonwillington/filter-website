@@ -4,6 +4,9 @@ import { Button } from '@heroui/react';
 import { BrandLogoCarousel, BrandLogo } from './BrandLogoCarousel';
 import { Country } from '@/lib/types';
 
+// Stable empty array to prevent re-render loops
+const EMPTY_LOGOS: BrandLogo[] = [];
+
 interface FirstTimeWelcomeProps {
   onFindNearMe: () => void;
   onExplore: () => void;
@@ -24,7 +27,7 @@ export function FirstTimeWelcome({ onFindNearMe, onExplore, brandLogos, visitorC
   return (
     <div className="flex flex-col h-full bg-surface-warm">
       {/* Brand logo carousel */}
-      <BrandLogoCarousel logos={brandLogos || []} />
+      <BrandLogoCarousel logos={brandLogos ?? EMPTY_LOGOS} />
 
       {/* Content area */}
       <div className="flex-1 flex flex-col justify-center px-6 py-8">
