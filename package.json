@@ -8,6 +8,7 @@
     "prefetch": "node scripts/prefetch-data.js",
     "prefetch:prod": "USE_PROD=1 node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
     "build": "npm run prefetch:prod && if [ -f .open-next-building ]; then next build; else touch .open-next-building && npx @opennextjs/cloudflare build && npm run build:routes && rm -f .open-next-building; fi",
+    "build:cloudflare": "npm run build",
     "build:routes": "cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/ 2>/dev/null || true && cp -r .open-next/middleware .open-next/assets/ 2>/dev/null || true && cp -r .open-next/server-functions .open-next/assets/ 2>/dev/null || true && cp -r .open-next/.build .open-next/assets/ 2>/dev/null || true && echo '{\"version\":1,\"include\":[\"/*\"],\"exclude\":[\"/favicon.ico\",\"/robots.txt\",\"/_next/static/*\",\"/fonts/*\",\"/data/*\",\"/*.png\",\"/*.ico\",\"/*.txt\",\"/*.json\"]}' > .open-next/assets/_routes.json",
     "build:no-prefetch": "next build",
     "preview": "wrangler pages dev",
