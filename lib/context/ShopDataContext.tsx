@@ -45,59 +45,33 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
   const hydrationCountRef = useRef(0);
 
   const hydrate = useCallback((data: HydrateData) => {
-    // Only hydrate if we have more/better data than current
-    let shouldUpdate = false;
+    // Only hydrate once - use ref to track without causing re-renders
+    if (hydrationCountRef.current > 0) {
+      return;
+    }
+
+    hydrationCountRef.current = 1;
 
     if (data.shops && data.shops.length > 0) {
-      // Always update if we have no data, or if new data is larger
-      if (shops.length === 0 || (data.shops.length > shops.length && hydrationCountRef.current === 0)) {
-        setShops(data.shops);
-        shouldUpdate = true;
-      }
+      setShops(data.shops);
     }
-
     if (data.locations && data.locations.length > 0) {
-      if (locations.length === 0 || (data.locations.length > locations.length && hydrationCountRef.current === 0)) {
-        setLocations(data.locations);
-        shouldUpdate = true;
-      }
+      setLocations(data.locations);
     }
-
     if (data.countries && data.countries.length > 0) {
-      if (countries.length === 0 || (data.countries.length > countries.length && hydrationCountRef.current === 0)) {
-        setCountries(data.countries);
-        shouldUpdate = true;
-      }
+      setCountries(data.countries);
     }
-
     if (data.cityAreas && data.cityAreas.length > 0) {
-      if (cityAreas.length === 0 || (data.cityAreas.length > cityAreas.length && hydrationCountRef.current === 0)) {
-        setCityAreas(data.cityAreas);
-        shouldUpdate = true;
-      }
+      setCityAreas(data.cityAreas);
     }
-
     if (data.events && data.events.length > 0) {
-      if (events.length === 0 || (data.events.length > events.length && hydrationCountRef.current === 0)) {
-        setEvents(data.events);
-        shouldUpdate = true;
-      }
+      setEvents(data.events);
     }
-
     if (data.critics && data.critics.length > 0) {
-      if (critics.length === 0 || (data.critics.length > critics.length && hydrationCountRef.current === 0)) {
-        setCritics(data.critics);
-        shouldUpdate = true;
-      }
+      setCritics(data.critics);
     }
-
-    if (shouldUpdate || hydrationCountRef.current === 0) {
-      hydrationCountRef.current += 1;
-      if (!isHydrated) {
-        setIsHydrated(true);
-      }
-    }
-  }, [shops.length, locations.length, countries.length, cityAreas.length, events.length, critics.length, isHydrated]);
+    setIsHydrated(true);
+  }, []);
 
   const value = useMemo(() => ({
     shops,
