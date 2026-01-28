@@ -51,3 +51,6 @@ next-env.d.ts
 
 # OS
 Thumbs.db
+
+# Build marker file
+.open-next-building
