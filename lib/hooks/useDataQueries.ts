@@ -1,7 +1,15 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Shop, Country, Location, CityArea, Event } from '@/lib/types';
+
+// Stable empty arrays to prevent re-render loops
+const EMPTY_SHOPS: Shop[] = [];
+const EMPTY_COUNTRIES: Country[] = [];
+const EMPTY_LOCATIONS: Location[] = [];
+const EMPTY_CITY_AREAS: CityArea[] = [];
+const EMPTY_EVENTS: Event[] = [];
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
@@ -81,6 +89,13 @@ export function useHomeData() {
   const cityAreasQuery = useCityAreasQuery();
   const eventsQuery = useEventsQuery();
 
+  // Use stable empty arrays to prevent re-render loops
+  const shops = shopsQuery.data ?? EMPTY_SHOPS;
+  const countries = countriesQuery.data ?? EMPTY_COUNTRIES;
+  const locations = locationsQuery.data ?? EMPTY_LOCATIONS;
+  const cityAreas = cityAreasQuery.data ?? EMPTY_CITY_AREAS;
+  const events = eventsQuery.data ?? EMPTY_EVENTS;
+
   const isLoading =
     shopsQuery.isLoading ||
     countriesQuery.isLoading ||
@@ -95,12 +110,13 @@ export function useHomeData() {
     cityAreasQuery.isError ||
     eventsQuery.isError;
 
-  return {
-    shops: shopsQuery.data ?? [],
-    countries: countriesQuery.data ?? [],
-    locations: locationsQuery.data ?? [],
-    cityAreas: cityAreasQuery.data ?? [],
-    events: eventsQuery.data ?? [],
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
+    shops,
+    countries,
+    locations,
+    cityAreas,
+    events,
     isLoading,
     isError,
     // Individual loading states for progressive rendering
@@ -118,5 +134,23 @@ export function useHomeData() {
       cityAreasQuery.refetch();
       eventsQuery.refetch();
     },
-  };
+  }), [
+    shops,
+    countries,
+    locations,
+    cityAreas,
+    events,
+    isLoading,
+    isError,
+    shopsQuery.isLoading,
+    countriesQuery.isLoading,
+    locationsQuery.isLoading,
+    cityAreasQuery.isLoading,
+    eventsQuery.isLoading,
+    shopsQuery.refetch,
+    countriesQuery.refetch,
+    locationsQuery.refetch,
+    cityAreasQuery.refetch,
+    eventsQuery.refetch,
+  ]);
 }
