@@ -9,7 +9,7 @@ import { FirstTimeWelcome } from './FirstTimeWelcome';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, getMediaUrl } from '@/lib/utils';
 import { BrandLogo } from './BrandLogoCarousel';
-import { useMemo, ReactNode, useState } from 'react';
+import { useMemo, ReactNode, useState, useCallback } from 'react';
 import { useTags } from '@/lib/hooks/useTags';
 import { Button, Select, SelectItem, Switch, Tooltip } from '@heroui/react';
 import { Map, SlidersHorizontal, HelpCircle } from 'lucide-react';
@@ -186,6 +186,18 @@ export function Sidebar({
   // Only show filter when a location is selected, at least 5 shops, and has special filters
   const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters;
 
+  // Memoize selected keys for Select to prevent re-render loops
+  const shopFilterSelectedKeys = useMemo(() => [shopFilter], [shopFilter]);
+
+  // Memoize the shops to use for WelcomeStats
+  const welcomeStatsShops = useMemo(() => allShops || shops, [allShops, shops]);
+
+  // Memoize the filter change handler
+  const handleFilterChange = useCallback((keys: any) => {
+    const selected = Array.from(keys)[0] as ShopFilterType;
+    if (selected && onShopFilterChange) onShopFilterChange(selected);
+  }, [onShopFilterChange]);
+
   return (
     <aside className={cn('sidebar', isOpen && 'open')}>
       <AnimatedGradientHeader>
@@ -241,11 +253,8 @@ export function Sidebar({
         {/* Shop filter dropdown - hide when "apply my filters" is on */}
         {shouldShowFilter && !applyMyFilters && (
           <Select
-            selectedKeys={[shopFilter]}
-            onSelectionChange={(keys) => {
-              const selected = Array.from(keys)[0] as ShopFilterType;
-              if (selected) onShopFilterChange(selected);
-            }}
+            selectedKeys={shopFilterSelectedKeys}
+            onSelectionChange={handleFilterChange}
             aria-label="Filter shops"
             size="sm"
             variant="flat"
@@ -321,7 +330,7 @@ export function Sidebar({
         ) : !selectedLocation ? (
           <WelcomeStats
             locations={locations}
-            shops={allShops || shops}
+            shops={welcomeStatsShops}
             onShopSelect={onShopSelect}
             onLocationSelect={onLocationChange}
           />
