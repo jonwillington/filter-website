@@ -176,9 +176,15 @@ async function main() {
     fs.writeFileSync(path.join(dataDir, 'city-areas.json'), JSON.stringify(cityAreas, null, 2));
     console.log(`   ✓ ${cityAreas.length} city areas\n`);
 
+    // Fetch tags
+    console.log('4. Fetching tags...');
+    const tags = await fetchAll('tags');
+    fs.writeFileSync(path.join(dataDir, 'tags.json'), JSON.stringify(tags, null, 2));
+    console.log(`   ✓ ${tags.length} tags\n`);
+
     // Fetch brands - Note: nested relations (suppliers, coffee_partner) are fully
     // Populate brands with suppliers including their media fields
-    console.log('4. Fetching brands...');
+    console.log('5. Fetching brands...');
     const brandPopulate = [
       'populate[logo][fields][0]=url',
       'populate[logo][fields][1]=formats',
@@ -198,7 +204,7 @@ async function main() {
     console.log(`   ✓ ${brands.length} brands\n`);
 
     // Also generate a TypeScript module for bundling (Cloudflare Workers don't have fs access)
-    console.log('5. Generating bundled data module...');
+    console.log('6. Generating bundled data module...');
     if (!fs.existsSync(LIB_DATA_DIR)) {
       fs.mkdirSync(LIB_DATA_DIR, { recursive: true });
     }
@@ -221,14 +227,14 @@ export const prefetchedBrands: any[] = [];
 export const PREFETCH_TIMESTAMP = ${Date.now()};
 
 // Stats from last prefetch (for reference only):
-// Shops: ${shops.length}, Countries: ${countries.length}, City Areas: ${cityAreas.length}, Brands: ${brands.length}
+// Shops: ${shops.length}, Countries: ${countries.length}, City Areas: ${cityAreas.length}, Brands: ${brands.length}, Tags: ${tags.length}
 `;
 
     fs.writeFileSync(path.join(LIB_DATA_DIR, 'prefetched.ts'), moduleContent);
     console.log('   ✓ Generated lib/data/prefetched.ts\n');
 
     // Also write to public/data/ for CDN serving (faster than API routes)
-    console.log('6. Generating static JSON files for CDN...');
+    console.log('7. Generating static JSON files for CDN...');
     if (!fs.existsSync(PUBLIC_DATA_DIR)) {
       fs.mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
     }
@@ -238,6 +244,7 @@ export const PREFETCH_TIMESTAMP = ${Date.now()};
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'countries.json'), JSON.stringify(countries));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'city-areas.json'), JSON.stringify(cityAreas));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'brands.json'), JSON.stringify(brands));
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tags.json'), JSON.stringify(tags));
 
     // Extract unique locations from city areas
     const locationMap = new Map();

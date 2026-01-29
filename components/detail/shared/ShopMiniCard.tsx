@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Shop } from '@/lib/types';
-import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { getMediaUrl } from '@/lib/utils';
 
 interface ShopMiniCardProps {
   shop: Shop;
@@ -9,15 +9,16 @@ interface ShopMiniCardProps {
 
 function ShopMiniCardComponent({ shop, onClick }: ShopMiniCardProps) {
   const imageUrl = getMediaUrl(shop.featured_image);
-  const displayName = getShopDisplayName(shop);
+  // Just show prefName or name - brand is already shown in the modal header
+  const displayName = shop.prefName || shop.name;
 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 p-3 hover:bg-surface transition-colors w-full text-left"
+      className="flex items-start gap-4 py-4 px-3 hover:bg-surface transition-colors w-full text-left"
     >
-      {/* Shop Image */}
-      <div className="relative flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/10">
+      {/* Shop Image - wider */}
+      <div className="relative flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden bg-surface">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -32,10 +33,16 @@ function ShopMiniCardComponent({ shop, onClick }: ShopMiniCardProps) {
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <p className="text-sm font-medium text-text truncate">{displayName}</p>
+      <div className="flex-1 min-w-0 flex flex-col py-1">
+        {/* Name */}
+        <p className="text-base font-medium text-primary truncate">{displayName}</p>
+        {/* Description */}
+        {shop.description && (
+          <p className="text-sm text-text-secondary line-clamp-2 mt-1">{shop.description}</p>
+        )}
+        {/* Address - caption at bottom with larger gap */}
         {shop.address && (
-          <p className="text-xs text-textSecondary truncate mt-0.5">{shop.address}</p>
+          <p className="text-xs text-text-secondary truncate mt-auto pt-3">{shop.address}</p>
         )}
       </div>
     </button>

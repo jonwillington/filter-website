@@ -1,11 +1,14 @@
 'use client';
 
+import { useMemo } from 'react';
 import { ModalBody } from '@heroui/react';
-import { Brand, CoffeePartner, Country } from '@/lib/types';
+import { Brand, CoffeePartner, Country, Shop } from '@/lib/types';
 import { ResponsiveModal, CountryChip } from '@/components/ui';
-import { getMediaUrl } from '@/lib/utils';
-import { Globe, Instagram, Facebook, Bean } from 'lucide-react';
+import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { Globe, Instagram, Facebook, Bean, MapPin } from 'lucide-react';
 import { Avatar } from '@heroui/react';
+import { useShopsQuery } from '@/lib/hooks/useDataQueries';
+import { useMapStore } from '@/lib/store/mapStore';
 
 // TikTok icon (not in lucide-react)
 function TikTokIcon({ className }: { className?: string }) {
@@ -63,7 +66,45 @@ function getFoundedYear(founded: string | null | undefined): string | null {
   return match ? match[0] : null;
 }
 
+// Find shops that use a specific supplier
+function useShopsUsingSupplier(supplier: Brand | CoffeePartner | null): Shop[] {
+  const { data: allShops } = useShopsQuery();
+
+  return useMemo(() => {
+    if (!supplier || !allShops) return [];
+
+    return allShops.filter((shop) => {
+      // Check if shop's brand has this supplier
+      const brandSuppliers = shop.brand?.suppliers ?? [];
+      const hasAsSupplier = brandSuppliers.some(
+        (s) => s.documentId === supplier.documentId
+      );
+
+      // Check if shop's brand has this as coffee_partner
+      const brandPartner = shop.brand?.coffee_partner;
+      const hasAsBrandPartner = brandPartner?.documentId === supplier.documentId;
+
+      // Check if shop directly has this coffee_partner
+      const shopPartner = shop.coffee_partner;
+      const hasAsShopPartner = shopPartner?.documentId === supplier.documentId;
+
+      return hasAsSupplier || hasAsBrandPartner || hasAsShopPartner;
+    });
+  }, [supplier, allShops]);
+}
+
 export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps) {
+  const shopsUsingSupplier = useShopsUsingSupplier(supplier);
+  const setSelectedShop = useMapStore((state) => state.setSelectedShop);
+
+  const handleShopClick = (shop: Shop) => {
+    onClose();
+    // Small delay to let modal close animation complete
+    setTimeout(() => {
+      setSelectedShop(shop);
+    }, 150);
+  };
+
   if (!supplier) return null;
 
   const logoUrl = getMediaUrl(supplier.logo);
@@ -220,6 +261,51 @@ export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps)
                   <Globe className="w-5 h-5" />
                 </a>
               )}
+            </div>
+          )}
+
+          {/* Shops Using This Roaster */}
+          {shopsUsingSupplier.length > 0 && (
+            <div className="mt-6 pt-5 border-t border-border-default">
+              <p className="text-xs uppercase tracking-wider text-text-secondary mb-3">
+                Cafés serving their beans
+              </p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {shopsUsingSupplier.map((shop) => (
+                  <button
+                    key={shop.documentId}
+                    type="button"
+                    onClick={() => handleShopClick(shop)}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-border-default transition-colors w-full text-left"
+                  >
+                    {/* Shop image */}
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-border-default flex-shrink-0">
+                      {getMediaUrl(shop.featured_image) ? (
+                        <img
+                          src={getMediaUrl(shop.featured_image)!}
+                          alt={getShopDisplayName(shop)}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-text-secondary" />
+                        </div>
+                      )}
+                    </div>
+                    {/* Shop info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-primary truncate">
+                        {getShopDisplayName(shop)}
+                      </p>
+                      {shop.location?.name && (
+                        <p className="text-xs text-text-secondary truncate">
+                          {shop.location.name}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

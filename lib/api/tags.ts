@@ -40,7 +40,7 @@ function normalizeTag(entry: StrapiTagEntry): Tag | null {
   };
 }
 
-const FALLBACK_TAGS: Tag[] = [
+export const FALLBACK_TAGS: Tag[] = [
   { id: 'specialty-coffee', label: 'Specialty Coffee' },
   { id: 'single-origin', label: 'Single Origin' },
   { id: 'third-wave', label: 'Third Wave' },

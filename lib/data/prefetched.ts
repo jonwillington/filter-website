@@ -10,7 +10,7 @@ export const prefetchedCountries: any[] = [];
 export const prefetchedCityAreas: any[] = [];
 export const prefetchedBrands: any[] = [];
 
-export const PREFETCH_TIMESTAMP = 1769412568315;
+export const PREFETCH_TIMESTAMP = 1769655177477;
 
 // Stats from last prefetch (for reference only):
-// Shops: 753, Countries: 100, City Areas: 77, Brands: 511
+// Shops: 766, Countries: 100, City Areas: 77, Brands: 528, Tags: 56

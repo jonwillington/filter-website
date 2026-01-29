@@ -39,25 +39,25 @@ export function BrandShopsModal({
     >
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b border-border-default">
-        <div className="px-6 py-5 flex items-center gap-3">
+        <div className="px-6 py-6 flex items-center gap-4">
           {brandLogo ? (
             <img
               src={brandLogo}
               alt={brandName}
-              className="w-10 h-10 rounded-lg object-cover"
+              className="w-14 h-14 rounded-xl object-cover"
             />
           ) : (
-            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center">
-              <span className="text-sm font-medium text-text-secondary">
+            <div className="w-14 h-14 rounded-xl bg-surface flex items-center justify-center">
+              <span className="text-lg font-semibold text-text-secondary">
                 {brandName.charAt(0)}
               </span>
             </div>
           )}
           <div>
-            <h2 className="text-lg font-display" style={{ color: 'var(--text)' }}>
+            <h2 className="text-2xl font-display font-semibold text-primary">
               {brandName}
             </h2>
-            <p className="text-sm text-textSecondary">
+            <p className="text-sm text-text-secondary mt-0.5">
               {shops.length} {shops.length === 1 ? 'location' : 'locations'}
             </p>
           </div>
