@@ -17,9 +17,6 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { useShopData } from '@/lib/context/ShopDataContext';
 import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
-
-// Stable empty Map to prevent re-render loops
-const EMPTY_SHOP_MATCH_INFO = new Map<string, string[]>();
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { getCountryCoordinates } from '@/lib/utils/countryCoordinates';
@@ -27,6 +24,9 @@ import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
+
+// Stable empty Map to prevent re-render loops
+const EMPTY_SHOP_MATCH_INFO = new Map<string, string[]>();
 
 // Dynamic imports for modals to reduce initial bundle size
 const SearchModal = dynamic(
