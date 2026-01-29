@@ -151,6 +151,33 @@ if (condition) {
 
 **Prefetch script location:** `scripts/prefetch-data.js`
 
+#### Brand Data Missing in Nested Relations (Fixed: 2026-01-29, commit `d684d3d`)
+
+**The Bug:** Shops' nested `brand` relation only returned 7 fields (id, documentId, name, type, website, instagram, logo) instead of all 50+ fields (story, description, founded, Founder, roastOwnBeans, etc.).
+
+**Root Cause:** Strapi v5 has a bug/limitation where combining `populate[brand][fields]` with `populate[brand][populate]` doesn't work correctly. The explicit fields get ignored or conflict with nested populates.
+
+**The Fix:** Instead of trying to populate all brand fields inline with shops:
+1. Simplify shop brand populate to just `populate[brand][populate][logo]=*`
+2. Fetch full brands separately via `/api/brands`
+3. Merge complete brand data into shops after both fetches complete
+
+```javascript
+// After fetching both shops and brands:
+const brandMap = new Map(brands.map(b => [b.documentId, b]));
+shops = shops.map(shop => {
+  if (shop.brand?.documentId) {
+    const fullBrand = brandMap.get(shop.brand.documentId);
+    if (fullBrand) {
+      shop.brand = { ...fullBrand, logo: shop.brand.logo || fullBrand.logo };
+    }
+  }
+  return shop;
+});
+```
+
+**Rule:** For complex nested relations in Strapi v5, fetch related data separately and merge rather than trying deep inline populates.
+
 ---
 
 ## Dark Mode & Color Tokens
