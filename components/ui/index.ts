@@ -37,3 +37,5 @@ export { StickyDrawerHeader } from './StickyDrawerHeader';
 export { ModalAnnouncementBanner } from './ModalAnnouncementBanner';
 
 export { PropertyRow } from './PropertyRow';
+
+export { InstagramEmbed } from './InstagramEmbed';
