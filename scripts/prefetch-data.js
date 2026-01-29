@@ -162,6 +162,19 @@ async function main() {
     fs.writeFileSync(path.join(dataDir, 'tags.json'), JSON.stringify(tags, null, 2));
     console.log(`   ✓ ${tags.length} tags\n`);
 
+    // Fetch locations directly (not all locations have city areas)
+    console.log('5b. Fetching locations...');
+    const locationPopulate = [
+      'populate[country][fields][0]=documentId',
+      'populate[country][fields][1]=name',
+      'populate[country][fields][2]=code',
+      'populate[background_image][fields][0]=url',
+      'populate[background_image][fields][1]=formats',
+    ].join('&');
+    const locations = await fetchPaginated('locations', locationPopulate);
+    fs.writeFileSync(path.join(dataDir, 'locations.json'), JSON.stringify(locations, null, 2));
+    console.log(`   ✓ ${locations.length} locations\n`);
+
     // Fetch brands with nested relations
     // Note: Keep this simple - Strapi v5 can be finicky with deep nested populates
     console.log('6. Fetching brands...');
@@ -254,15 +267,6 @@ export const PREFETCH_TIMESTAMP = ${Date.now()};
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'city-areas.json'), JSON.stringify(cityAreas));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'brands.json'), JSON.stringify(brands));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tags.json'), JSON.stringify(tags));
-
-    // Extract unique locations from city areas
-    const locationMap = new Map();
-    for (const cityArea of cityAreas) {
-      if (cityArea.location?.documentId) {
-        locationMap.set(cityArea.location.documentId, cityArea.location);
-      }
-    }
-    const locations = Array.from(locationMap.values());
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'locations.json'), JSON.stringify(locations));
 
     console.log('   ✓ Generated public/data/*.json files\n');
