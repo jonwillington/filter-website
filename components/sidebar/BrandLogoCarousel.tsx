@@ -55,12 +55,8 @@ export function BrandLogoCarousel({ logos }: BrandLogoCarouselProps) {
     return logos;
   }, [logos, isDev]);
 
-  // Need at least 8 logos for a good visual (skip check in dev)
-  if (!isDev && effectiveLogos.length < 8) {
-    return null;
-  }
-
   // Shuffle and distribute logos across 4 rows
+  // IMPORTANT: This hook must run before any early returns to maintain consistent hook count
   const rows = useMemo(() => {
     const shuffled = shuffleArray(effectiveLogos);
     const rowCount = 4;
@@ -72,6 +68,12 @@ export function BrandLogoCarousel({ logos }: BrandLogoCarouselProps) {
 
     return result;
   }, [effectiveLogos]);
+
+  // Need at least 8 logos for a good visual (skip check in dev)
+  // This check must be AFTER all hooks to maintain consistent hook count
+  if (!isDev && effectiveLogos.length < 8) {
+    return null;
+  }
 
   return (
     <div
