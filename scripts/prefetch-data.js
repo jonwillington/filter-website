@@ -159,7 +159,7 @@ async function main() {
     fs.writeFileSync(path.join(dataDir, 'regions.json'), JSON.stringify(regions, null, 2));
     console.log(`   ✓ ${regions.length} regions\n`);
 
-    // Fetch countries with region relation populated
+    // Fetch countries with region relation populated (use paginated - there are 200+ countries)
     console.log('3. Fetching countries...');
     const countryPopulate = [
       'populate[region][fields][0]=id',
@@ -167,7 +167,7 @@ async function main() {
       'populate[region][fields][2]=Name',
       'populate[region][fields][3]=comingSoon',
     ].join('&');
-    const countries = await fetchAll('countries', countryPopulate);
+    const countries = await fetchPaginated('countries', countryPopulate);
     fs.writeFileSync(path.join(dataDir, 'countries.json'), JSON.stringify(countries, null, 2));
     console.log(`   ✓ ${countries.length} countries\n`);
 
