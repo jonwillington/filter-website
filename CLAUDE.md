@@ -113,6 +113,44 @@ Example: To add a `group` field to `city_area`:
 #### Preventing breaking production builds
 When we debug why something did not build properly in production lets learn from it, add here what went wrong and make sure this doenst happen in future - we waste time doing this every tikme
 
+#### React Error #310 - Hook Count Mismatch (Fixed: 2026-01-29, commit `aa72030`)
+
+**The Bug:** Early returns BEFORE hooks cause "Rendered more hooks than during the previous render" errors. This happened in `BrandLogoCarousel.tsx`:
+
+```tsx
+// ❌ BAD - Early return BEFORE second useMemo
+const effectiveLogos = useMemo(() => { ... }, [logos]);
+
+if (condition) {
+  return null;  // Returns with 1 hook
+}
+
+const rows = useMemo(() => { ... }, [effectiveLogos]);  // 2nd hook never runs!
+```
+
+```tsx
+// ✅ GOOD - All hooks run before any early return
+const effectiveLogos = useMemo(() => { ... }, [logos]);
+const rows = useMemo(() => { ... }, [effectiveLogos]);
+
+if (condition) {
+  return null;  // Returns with 2 hooks (consistent)
+}
+```
+
+**Why it only appeared on production:** The early return had `if (!isDev && ...)` - dev mode skipped the check, so both hooks always ran locally. Production triggered the early return.
+
+**Rule:** ALWAYS place early returns AFTER all hooks. Never conditionally skip a hook.
+
+#### Prefetch Script - Regions & Countries (Fixed: 2026-01-29, commits `08b5f98`, `442843f`)
+
+**Issues fixed:**
+1. **Regions not fetched** - The `regions` content type was completely missing from prefetch
+2. **Countries missing region relation** - Countries weren't populating the `region` field
+3. **Countries needed pagination** - 200+ countries require `fetchPaginated`, not `fetchAll`
+
+**Prefetch script location:** `scripts/prefetch-data.js`
+
 ---
 
 ## Dark Mode & Color Tokens
