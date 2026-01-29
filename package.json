@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbo",
-    "prefetch": "node scripts/prefetch-data.js",
+    "prefetch": "node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
     "prefetch:prod": "USE_PROD=1 node -r dotenv/config scripts/prefetch-data.js dotenv_config_path=.env.local",
     "build": "npm run prefetch:prod && if [ -f .open-next-building ]; then next build; else touch .open-next-building && npx @opennextjs/cloudflare build && npm run build:routes && rm -f .open-next-building; fi",
     "build:cloudflare": "npm run build",
