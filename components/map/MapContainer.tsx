@@ -82,6 +82,7 @@ export function MapContainer({
     currentZoom,
     countryLayerReady,
     setCountryLayerReady,
+    isChangingStyle,
   } = useMapInstance({
     containerRef: mapContainer,
     center,
@@ -150,6 +151,17 @@ export function MapContainer({
           <Spinner size="sm" color="primary" />
         </div>
       )}
+
+      {/* Style transition overlay - fades during globe/street style switch */}
+      <div
+        className={`absolute inset-0 bg-background pointer-events-none z-[9] ${
+          isChangingStyle ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{
+          transition: 'opacity 250ms cubic-bezier(0.25, 0.1, 0.25, 1)',
+        }}
+        aria-hidden="true"
+      />
 
       {/* Loading spinner overlay */}
       <div

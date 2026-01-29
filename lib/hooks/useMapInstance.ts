@@ -43,6 +43,7 @@ export interface UseMapInstanceReturn {
   currentZoom: number;
   countryLayerReady: boolean;
   setCountryLayerReady: (ready: boolean) => void;
+  isChangingStyle: boolean;
 }
 
 /**
@@ -126,6 +127,7 @@ export function useMapInstance({
   const [mapReady, setMapReady] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [countryLayerReady, setCountryLayerReady] = useState(false);
+  const [isChangingStyle, setIsChangingStyle] = useState(false);
   const initializedRef = useRef(false);
   const countriesRef = useRef(countries);
   // Track current style mode: 'globe' for world view, 'street' for detailed local view
@@ -218,6 +220,7 @@ export function useMapInstance({
         console.log('[useMapInstance] Switching style mode:', currentMode, '->', newMode, 'at zoom:', newZoom);
 
         isChangingStyleRef.current = true;
+        setIsChangingStyle(true);
         currentStyleModeRef.current = newMode;
 
         const newStyle = newMode === 'street'
@@ -242,6 +245,7 @@ export function useMapInstance({
       console.log('[useMapInstance] onStyleLoad called! Mode:', styleMode);
 
       isChangingStyleRef.current = false;
+      setIsChangingStyle(false);
 
       if (styleMode === 'globe') {
         // Globe mode: apply projection and fog for 3D globe effect
@@ -322,6 +326,7 @@ export function useMapInstance({
     currentThemeRef.current = effectiveTheme;
     setMapReady(false);
     setCountryLayerReady(false);
+    setIsChangingStyle(true);
 
     // Use 'once' to handle this specific style load
     map.once('style.load', () => {
@@ -351,6 +356,7 @@ export function useMapInstance({
 
       setMapReady(true);
       setCountryLayerReady(true);
+      setIsChangingStyle(false);
     });
 
     // Change base style
@@ -372,5 +378,6 @@ export function useMapInstance({
     currentZoom,
     countryLayerReady,
     setCountryLayerReady,
+    isChangingStyle,
   };
 }
