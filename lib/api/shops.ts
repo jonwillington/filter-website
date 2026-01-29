@@ -83,48 +83,17 @@ function calculateAllDensities(shops: Shop[], radiusKm: number = 1.5): Map<strin
 }
 
 // Populate params to get all related data including nested city_area.location
+// Note: Strapi v5 has issues with explicit brand[fields] combined with brand[populate]
+// so we simplify brand populate and merge full brand data via getAllBrands() later
 const SHOP_POPULATE = [
-  // Explicitly populate all brand fields (Strapi v5 doesn't fully support populate=* for nested relations)
-  'populate[brand][fields][0]=name',
-  'populate[brand][fields][1]=type',
-  'populate[brand][fields][2]=description',
-  'populate[brand][fields][3]=story',
-  'populate[brand][fields][4]=website',
-  'populate[brand][fields][5]=phone',
-  'populate[brand][fields][6]=instagram',
-  'populate[brand][fields][7]=facebook',
-  'populate[brand][fields][8]=tiktok',
-  'populate[brand][fields][9]=has_wifi',
-  'populate[brand][fields][10]=has_food',
-  'populate[brand][fields][11]=has_outdoor_space',
-  'populate[brand][fields][12]=is_pet_friendly',
-  'populate[brand][fields][13]=has_espresso',
-  'populate[brand][fields][14]=has_filter_coffee',
-  'populate[brand][fields][15]=has_v60',
-  'populate[brand][fields][16]=has_chemex',
-  'populate[brand][fields][17]=has_aeropress',
-  'populate[brand][fields][18]=has_french_press',
-  'populate[brand][fields][19]=has_cold_brew',
-  'populate[brand][fields][20]=has_batch_brew',
-  'populate[brand][fields][21]=roastOwnBeans',
-  'populate[brand][fields][22]=ownRoastDesc',
-  // Populate brand relations
+  // Brand - simple populate, full data comes from getAllBrands() enrichment
   'populate[brand][populate][logo][fields][0]=url',
   'populate[brand][populate][logo][fields][1]=formats',
-  'populate[brand][populate][ownRoastCountry][fields][0]=documentId',
-  'populate[brand][populate][ownRoastCountry][fields][1]=id',
-  'populate[brand][populate][ownRoastCountry][fields][2]=name',
-  'populate[brand][populate][ownRoastCountry][fields][3]=code',
-  // Suppliers - deep populate with level 3 for media
-  'populate[brand][populate][suppliers][populate][0]=logo',
-  'populate[brand][populate][suppliers][populate][1]=bg-image',
-  'populate[brand][populate][suppliers][populate][2]=country',
-  'populate[brand][populate][suppliers][populate][3]=ownRoastCountry',
-  // Coffee partner - deep populate with media
-  'populate[brand][populate][coffee_partner][populate][0]=logo',
-  'populate[brand][populate][coffee_partner][populate][1]=bg-image',
-  'populate[brand][populate][coffee_partner][populate][2]=country',
-  // Other shop fields
+  // Shop's own coffee_partner (can override brand's)
+  'populate[coffee_partner][populate][0]=logo',
+  'populate[coffee_partner][populate][1]=bg-image',
+  'populate[coffee_partner][populate][2]=country',
+  // Shop images
   'populate[featured_image]=*',
   'populate[gallery]=*',
   // Populate city_area with all its fields (including JSON field boundary_coordinates)

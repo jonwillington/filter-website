@@ -87,50 +87,19 @@ async function main() {
   }
 
   try {
-    // Fetch shops with all relations (must match SHOP_POPULATE in lib/api/shops.ts)
+    // Fetch shops with relations
+    // Note: Strapi v5 has issues with explicit brand[fields] combined with brand[populate]
+    // So we fetch brands separately and merge them after
     console.log('1. Fetching shops...');
     const shopPopulate = [
-      // Explicitly populate all brand fields (Strapi v5 doesn't fully support populate=* for nested relations)
-      'populate[brand][fields][0]=name',
-      'populate[brand][fields][1]=type',
-      'populate[brand][fields][2]=description',
-      'populate[brand][fields][3]=story',
-      'populate[brand][fields][4]=website',
-      'populate[brand][fields][5]=phone',
-      'populate[brand][fields][6]=instagram',
-      'populate[brand][fields][7]=facebook',
-      'populate[brand][fields][8]=tiktok',
-      'populate[brand][fields][9]=has_wifi',
-      'populate[brand][fields][10]=has_food',
-      'populate[brand][fields][11]=has_outdoor_space',
-      'populate[brand][fields][12]=is_pet_friendly',
-      'populate[brand][fields][13]=has_espresso',
-      'populate[brand][fields][14]=has_filter_coffee',
-      'populate[brand][fields][15]=has_v60',
-      'populate[brand][fields][16]=has_chemex',
-      'populate[brand][fields][17]=has_aeropress',
-      'populate[brand][fields][18]=has_french_press',
-      'populate[brand][fields][19]=has_cold_brew',
-      'populate[brand][fields][20]=has_batch_brew',
-      'populate[brand][fields][21]=roastOwnBeans',
-      'populate[brand][fields][22]=ownRoastDesc',
-      // Populate brand relations
+      // Brand - simple populate, we'll merge full data from brands fetch later
       'populate[brand][populate][logo][fields][0]=url',
       'populate[brand][populate][logo][fields][1]=formats',
-      'populate[brand][populate][ownRoastCountry][fields][0]=documentId',
-      'populate[brand][populate][ownRoastCountry][fields][1]=id',
-      'populate[brand][populate][ownRoastCountry][fields][2]=name',
-      'populate[brand][populate][ownRoastCountry][fields][3]=code',
-      // Suppliers - deep populate with level 3 for media
-      'populate[brand][populate][suppliers][populate][0]=logo',
-      'populate[brand][populate][suppliers][populate][1]=bg-image',
-      'populate[brand][populate][suppliers][populate][2]=country',
-      'populate[brand][populate][suppliers][populate][3]=ownRoastCountry',
-      // Coffee partner - deep populate with media
-      'populate[brand][populate][coffee_partner][populate][0]=logo',
-      'populate[brand][populate][coffee_partner][populate][1]=bg-image',
-      'populate[brand][populate][coffee_partner][populate][2]=country',
-      // Other shop fields
+      // Shop's own coffee_partner (can override brand's)
+      'populate[coffee_partner][populate][0]=logo',
+      'populate[coffee_partner][populate][1]=bg-image',
+      'populate[coffee_partner][populate][2]=country',
+      // Shop images
       'populate[featured_image]=*',
       'populate[gallery]=*',
       // Populate city_area with all fields including group
@@ -149,9 +118,8 @@ async function main() {
       'populate[location][populate][country]=*',
       'populate[location][populate][background_image]=*',
     ].join('&');
-    const shops = await fetchPaginated('shops', shopPopulate);
-    fs.writeFileSync(path.join(dataDir, 'shops.json'), JSON.stringify(shops, null, 2));
-    console.log(`   ✓ ${shops.length} shops\n`);
+    let shops = await fetchPaginated('shops', shopPopulate);
+    console.log(`   ✓ ${shops.length} shops (brand data will be merged after brands fetch)\n`);
 
     // Fetch regions first (countries reference these)
     console.log('2. Fetching regions...');
@@ -212,6 +180,36 @@ async function main() {
     const brands = await fetchPaginated('brands', brandPopulate);
     fs.writeFileSync(path.join(dataDir, 'brands.json'), JSON.stringify(brands, null, 2));
     console.log(`   ✓ ${brands.length} brands\n`);
+
+    // Merge full brand data into shops
+    // This is necessary because Strapi v5 has issues with explicit fields+populate on nested relations
+    console.log('6b. Merging full brand data into shops...');
+    const brandMap = new Map();
+    for (const brand of brands) {
+      brandMap.set(brand.documentId, brand);
+    }
+
+    let mergedCount = 0;
+    shops = shops.map(shop => {
+      if (shop.brand?.documentId) {
+        const fullBrand = brandMap.get(shop.brand.documentId);
+        if (fullBrand) {
+          // Merge full brand data, preserving shop-level logo if it was populated
+          const shopBrandLogo = shop.brand.logo;
+          shop.brand = { ...fullBrand };
+          // Use the shop's populated logo if it had better data
+          if (shopBrandLogo && (!fullBrand.logo || shopBrandLogo.url)) {
+            shop.brand.logo = shopBrandLogo;
+          }
+          mergedCount++;
+        }
+      }
+      return shop;
+    });
+    console.log(`   ✓ Merged brand data for ${mergedCount} shops\n`);
+
+    // Now save the shops with merged brand data
+    fs.writeFileSync(path.join(dataDir, 'shops.json'), JSON.stringify(shops, null, 2));
 
     // Also generate a TypeScript module for bundling (Cloudflare Workers don't have fs access)
     console.log('7. Generating bundled data module...');

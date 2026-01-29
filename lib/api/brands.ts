@@ -5,13 +5,22 @@ export interface Brand {
   documentId: string;
   name: string;
   type?: string;
+  role?: string;
+  price?: string;
   description?: string;
   story?: string;
+  founded?: string;
+  hq?: string;
+  Founder?: string;
   website?: string;
   phone?: string;
   instagram?: string;
   facebook?: string;
   tiktok?: string;
+  twitter?: string;
+  youtube?: string;
+  whatsapp?: string;
+  line?: string;
   has_wifi?: boolean;
   has_food?: boolean;
   has_outdoor_space?: boolean;
@@ -24,11 +33,23 @@ export interface Brand {
   has_french_press?: boolean;
   has_cold_brew?: boolean;
   has_batch_brew?: boolean;
+  has_siphon?: boolean;
+  oatMilk?: boolean;
+  plantMilk?: boolean;
   roastOwnBeans?: boolean;
   ownRoastDesc?: string;
+  ownBeanLink?: string;
+  specializes_light?: boolean;
+  specializes_medium?: boolean;
+  specializes_dark?: boolean;
+  quality_tier?: string;
+  equipment?: string;
+  awards?: any[];
   logo?: any;
   suppliers?: any[];
   coffee_partner?: any;
+  ownRoastCountry?: any;
+  country?: any;
 }
 
 export interface ApiResponse<T> {
