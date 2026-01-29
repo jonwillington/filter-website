@@ -43,7 +43,12 @@ export interface Brand {
   specializes_medium?: boolean;
   specializes_dark?: boolean;
   quality_tier?: string;
-  equipment?: string;
+  equipment?: {
+    drippers?: string[];
+    espresso?: string[];
+    grinders?: string[];
+    roasters?: string[];
+  } | null;
   awards?: any[];
   logo?: any;
   suppliers?: any[];
