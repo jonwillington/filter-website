@@ -43,6 +43,34 @@ export function LocationDrawer({
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['topShops']));
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Handler to allow only one accordion section open at a time
+  const handleAccordionChange = (keys: Set<string> | 'all') => {
+    // Handle "all" selection (shouldn't happen with our setup, but be safe)
+    if (keys === 'all') {
+      return;
+    }
+
+    // Convert to array for comparison
+    const keysArray = Array.from(keys);
+
+    // If clicking to close the currently open accordion
+    if (keysArray.length === 0) {
+      setExpandedKeys(new Set());
+      return;
+    }
+
+    // Find any new keys that weren't previously expanded
+    const newKeys = keysArray.filter(k => !expandedKeys.has(k));
+
+    if (newKeys.length > 0) {
+      // A new section was opened - only keep that one
+      setExpandedKeys(new Set([newKeys[0]]));
+    } else {
+      // No new keys - this means a key was removed (closed)
+      setExpandedKeys(keys);
+    }
+  };
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
 
@@ -322,8 +350,9 @@ export function LocationDrawer({
           {/* Upcoming Events */}
           {locationEvents.length > 0 && (
             <Accordion
+              selectionMode="multiple"
               selectedKeys={expandedKeys}
-              onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+              onSelectionChange={(keys) => handleAccordionChange(keys as Set<string> | 'all')}
               variant="light"
               className="px-0 gap-0"
               itemClasses={{
@@ -365,8 +394,9 @@ export function LocationDrawer({
           {/* Filter Recommendations */}
           {topRecommendationShops.length > 0 && (
             <Accordion
+              selectionMode="multiple"
               selectedKeys={expandedKeys}
-              onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+              onSelectionChange={(keys) => handleAccordionChange(keys as Set<string> | 'all')}
               variant="light"
               className="px-0 gap-0"
               itemClasses={{
@@ -485,8 +515,9 @@ export function LocationDrawer({
           {/* Insiders Guide */}
           {locationCritics.length > 0 && (
             <Accordion
+              selectionMode="multiple"
               selectedKeys={expandedKeys}
-              onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+              onSelectionChange={(keys) => handleAccordionChange(keys as Set<string> | 'all')}
               variant="light"
               className="px-0 gap-0"
               itemClasses={{

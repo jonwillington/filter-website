@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopCard } from './ShopCard';
 import { ChevronDown } from 'lucide-react';
@@ -36,6 +36,10 @@ export function ShopList({
   const [animationKey, setAnimationKey] = useState(0);
   // Track which city area is currently expanded (only one at a time)
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(null);
+  // Track areas that user has manually collapsed (to prevent auto-expand from overriding)
+  const [manuallyCollapsed, setManuallyCollapsed] = useState<Set<string>>(new Set());
+  // Track previous selected shop to detect changes
+  const prevSelectedShopRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Increment key when filter changes to trigger re-animation
@@ -47,12 +51,22 @@ export function ShopList({
     console.log('[ShopList] handleAreaExpand:', { areaId, isExpanding, currentExpandedAreaId: expandedAreaId });
     if (isExpanding) {
       setExpandedAreaId(areaId);
+      // Remove from manually collapsed when user explicitly expands
+      setManuallyCollapsed(prev => {
+        const next = new Set(prev);
+        next.delete(areaId);
+        return next;
+      });
       // Don't highlight map boundary for "Other" (shops without a city area)
       onCityAreaExpand?.(areaId === '__other__' ? null : areaId);
-    } else if (expandedAreaId === areaId) {
-      // Only clear if this area was the expanded one
-      setExpandedAreaId(null);
-      onCityAreaExpand?.(null);
+    } else {
+      // Track that user manually collapsed this area
+      setManuallyCollapsed(prev => new Set(prev).add(areaId));
+      if (expandedAreaId === areaId) {
+        // Only clear if this area was the expanded one
+        setExpandedAreaId(null);
+        onCityAreaExpand?.(null);
+      }
     }
   };
 
@@ -75,6 +89,29 @@ export function ShopList({
 
     return Array.from(areaMap.values());
   }, [shops]);
+
+  // Auto-expand the area containing the selected shop (when selection changes)
+  useEffect(() => {
+    const currentSelectedId = selectedShop?.documentId ?? null;
+    const prevSelectedId = prevSelectedShopRef.current;
+
+    // Only act when selection actually changes
+    if (currentSelectedId !== prevSelectedId) {
+      prevSelectedShopRef.current = currentSelectedId;
+
+      if (selectedShop) {
+        // Find which area contains the selected shop
+        const cityArea = selectedShop.city_area ?? (selectedShop as any).cityArea;
+        const areaId = cityArea?.documentId ?? '__other__';
+
+        // Only auto-expand if user hasn't manually collapsed this area
+        if (!manuallyCollapsed.has(areaId)) {
+          setExpandedAreaId(areaId);
+          onCityAreaExpand?.(areaId === '__other__' ? null : areaId);
+        }
+      }
+    }
+  }, [selectedShop, manuallyCollapsed, onCityAreaExpand]);
 
   // Group areas by their group field
   const areasByGroup = useMemo(() => {
@@ -259,9 +296,8 @@ function AreaSection({
   onAreaExpand: (areaId: string, isExpanding: boolean) => void;
 }) {
   // Use parent-controlled expansion state (only one area can be expanded at a time for map highlighting)
-  // But also expand if this area contains the selected shop or if filtered
-  const hasSelectedShop = selectedShop && shops.some(s => s.documentId === selectedShop.documentId);
-  const isExpanded = isCurrentlyExpanded || isFiltered || hasSelectedShop;
+  // isFiltered forces all to expand, otherwise respect parent state
+  const isExpanded = isCurrentlyExpanded || isFiltered;
 
   const toggleExpanded = () => {
     const newExpanded = !isCurrentlyExpanded;

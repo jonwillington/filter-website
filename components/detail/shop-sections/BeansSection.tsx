@@ -10,6 +10,7 @@ import { SupplierModal } from '@/components/modals/SupplierModal';
 
 interface BeansSectionProps {
   shop: Shop;
+  onShopSelect?: (shop: Shop) => void;
 }
 
 interface SupplierCardProps {
@@ -78,7 +79,7 @@ function PartnerCard({ partner, onClick }: PartnerCardProps) {
   );
 }
 
-export function BeansSection({ shop }: BeansSectionProps) {
+export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
   const [selectedSupplier, setSelectedSupplier] = useState<Brand | CoffeePartner | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -126,7 +127,7 @@ export function BeansSection({ shop }: BeansSectionProps) {
             showFallback
             fallback={<Bean className="w-4 h-4" />}
           />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-primary">{brand.name}</p>
             <p className="text-sm text-text-secondary flex items-center gap-1.5">
               Roasts their own beans
@@ -135,6 +136,15 @@ export function BeansSection({ shop }: BeansSectionProps) {
               </span>
             </p>
           </div>
+          {/* Learn more button - opens brand as roaster profile */}
+          <button
+            type="button"
+            onClick={() => handleSupplierClick(brand)}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent hover:bg-surface rounded-lg transition-colors flex-shrink-0"
+          >
+            Learn more
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -181,6 +191,7 @@ export function BeansSection({ shop }: BeansSectionProps) {
       isOpen={isModalOpen}
       onClose={handleCloseModal}
       supplier={selectedSupplier}
+      onShopSelect={onShopSelect}
     />
     </>
   );

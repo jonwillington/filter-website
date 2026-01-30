@@ -223,6 +223,11 @@ export function useMapInstance({
         setIsChangingStyle(true);
         currentStyleModeRef.current = newMode;
 
+        // IMPORTANT: Set mapReady to false so clustering effect re-runs after style loads
+        // Without this, markers won't be recreated after setStyle() removes them
+        setMapReady(false);
+        setCountryLayerReady(false);
+
         const newStyle = newMode === 'street'
           ? STREET_STYLES[currentThemeRef.current]
           : GLOBE_STYLES[currentThemeRef.current];

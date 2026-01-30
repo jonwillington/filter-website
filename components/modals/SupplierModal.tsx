@@ -1,20 +1,30 @@
 'use client';
 
-import { useMemo } from 'react';
-import { ModalBody } from '@heroui/react';
-import { Brand, CoffeePartner, Country, Shop } from '@/lib/types';
-import { ResponsiveModal, CountryChip } from '@/components/ui';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { ModalBody, Skeleton } from '@heroui/react';
+import { Brand, CoffeePartner, Country, Shop, Bean } from '@/lib/types';
+import { ResponsiveModal } from '@/components/ui';
 import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
-import { Globe, Instagram, Facebook, Bean, MapPin } from 'lucide-react';
+import {
+  Globe,
+  Instagram,
+  Facebook,
+  Bean as BeanIcon,
+  MapPin,
+  ExternalLink,
+  Coffee,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { Avatar } from '@heroui/react';
 import { useShopsQuery } from '@/lib/hooks/useDataQueries';
-import { useMapStore } from '@/lib/store/mapStore';
+import { useBeansByBrand } from '@/lib/hooks/useBeansByBrand';
 
 // TikTok icon (not in lucide-react)
 function TikTokIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
     </svg>
   );
 }
@@ -23,6 +33,7 @@ interface SupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Brand | CoffeePartner | null;
+  onShopSelect?: (shop: Shop) => void;
 }
 
 // Type guard to check if supplier is a Brand
@@ -37,6 +48,15 @@ function getInstagramUrl(handle: string) {
     .replace('@', '')
     .replace(/^https?:\/\/(www\.)?instagram\.com\//, '');
   return `https://instagram.com/${cleanHandle}`;
+}
+
+// Get Instagram handle for display
+function getInstagramHandle(handle: string) {
+  if (handle.startsWith('http')) {
+    const match = handle.match(/instagram\.com\/([^/?]+)/);
+    return match ? `@${match[1]}` : 'Instagram';
+  }
+  return handle.startsWith('@') ? handle : `@${handle.replace(/^https?:\/\/(www\.)?instagram\.com\//, '')}`;
 }
 
 // Normalize website URL
@@ -58,6 +78,15 @@ function getTikTokUrl(handle: string) {
   return `https://tiktok.com/@${cleanHandle}`;
 }
 
+// Get TikTok handle for display
+function getTikTokHandle(handle: string) {
+  if (handle.startsWith('http')) {
+    const match = handle.match(/tiktok\.com\/@?([^/?]+)/);
+    return match ? `@${match[1]}` : 'TikTok';
+  }
+  return handle.startsWith('@') ? handle : `@${handle}`;
+}
+
 // Extract year from founded date
 function getFoundedYear(founded: string | null | undefined): string | null {
   if (!founded) return null;
@@ -66,7 +95,12 @@ function getFoundedYear(founded: string | null | undefined): string | null {
   return match ? match[0] : null;
 }
 
-// Find shops that use a specific supplier
+// Get flag URL for country code
+function getFlagUrl(code: string) {
+  return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
+}
+
+// Find shops that use a specific supplier (or are owned by this brand)
 function useShopsUsingSupplier(supplier: Brand | CoffeePartner | null): Shop[] {
   const { data: allShops } = useShopsQuery();
 
@@ -74,6 +108,9 @@ function useShopsUsingSupplier(supplier: Brand | CoffeePartner | null): Shop[] {
     if (!supplier || !allShops) return [];
 
     return allShops.filter((shop) => {
+      // Check if shop's brand IS this brand (for brand-owned shops like WatchHouse)
+      const isOwnBrand = shop.brand?.documentId === supplier.documentId;
+
       // Check if shop's brand has this supplier
       const brandSuppliers = shop.brand?.suppliers ?? [];
       const hasAsSupplier = brandSuppliers.some(
@@ -88,20 +125,268 @@ function useShopsUsingSupplier(supplier: Brand | CoffeePartner | null): Shop[] {
       const shopPartner = shop.coffee_partner;
       const hasAsShopPartner = shopPartner?.documentId === supplier.documentId;
 
-      return hasAsSupplier || hasAsBrandPartner || hasAsShopPartner;
+      return isOwnBrand || hasAsSupplier || hasAsBrandPartner || hasAsShopPartner;
     });
   }, [supplier, allShops]);
 }
 
-export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps) {
+// Format roast level for display
+function formatRoastLevel(level: Bean['roastLevel']): string {
+  if (!level) return '';
+  const labels: Record<string, string> = {
+    light: 'Light',
+    'light-medium': 'Light-Medium',
+    medium: 'Medium',
+    'medium-dark': 'Medium-Dark',
+    dark: 'Dark',
+  };
+  return labels[level] || level;
+}
+
+// Bean Card component for grid layout
+function BeanCard({ bean }: { bean: Bean }) {
+  const isBlend = bean.type === 'blend';
+  const origins = bean.origins || [];
+  const flavorTags = bean.flavorTags || [];
+
+  return (
+    <div className="rounded-xl bg-surface hover:bg-border-default transition-colors h-full flex flex-col overflow-hidden">
+      {/* Placeholder packaging image */}
+      <div className="w-full h-24 bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30 flex items-center justify-center">
+        <Coffee className="w-10 h-10 text-amber-600/40 dark:text-amber-400/30" />
+      </div>
+
+      <div className="p-3 flex-1 flex flex-col">
+        {/* Type badge */}
+        <span
+          className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mb-2 w-fit ${
+            isBlend
+              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+          }`}
+        >
+          {isBlend ? 'Blend' : 'Single Origin'}
+        </span>
+
+        {/* Bean name */}
+        <h4 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{bean.name}</h4>
+
+      {/* Roast level */}
+      {bean.roastLevel && (
+        <p className="text-xs text-text-secondary mb-2">
+          {formatRoastLevel(bean.roastLevel)} roast
+        </p>
+      )}
+
+      {/* Origins with flags */}
+      {origins.length > 0 && (
+        <div className="flex items-center gap-1 mb-2 flex-wrap">
+          {origins.slice(0, 2).map((origin) => (
+            <div
+              key={origin.documentId}
+              className="flex items-center gap-1 text-xs text-text-secondary"
+            >
+              <img
+                src={getFlagUrl(origin.code)}
+                alt={origin.name}
+                className="w-3 h-3 rounded-full"
+              />
+              <span>{origin.name}</span>
+            </div>
+          ))}
+          {origins.length > 2 && (
+            <span className="text-xs text-text-secondary">
+              +{origins.length - 2}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Bottom section - always at bottom */}
+      <div className="mt-auto pt-2">
+        {/* Flavor tags */}
+        {flavorTags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {flavorTags.slice(0, 2).map((tag) => (
+              <span
+                key={tag.documentId}
+                className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300 capitalize"
+              >
+                {tag.name}
+              </span>
+            ))}
+            {flavorTags.length > 2 && (
+              <span className="px-1.5 py-0.5 text-xs text-text-secondary">
+                +{flavorTags.length - 2}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Learn more link */}
+        {bean.learnMoreUrl && (
+          <a
+            href={bean.learnMoreUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 mt-2 text-xs text-accent hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Learn more <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+      </div>
+    </div>
+  );
+}
+
+// Bean card skeleton for loading state
+function BeanCardSkeleton() {
+  return (
+    <div className="rounded-xl bg-surface overflow-hidden">
+      <Skeleton className="w-full h-24" />
+      <div className="p-3">
+        <Skeleton className="w-16 h-5 rounded-full mb-2" />
+        <Skeleton className="w-3/4 h-4 rounded mb-1" />
+        <Skeleton className="w-1/2 h-3 rounded mb-2" />
+        <div className="flex gap-1">
+          <Skeleton className="w-12 h-4 rounded" />
+          <Skeleton className="w-14 h-4 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Shop Card component for grid layout
+function ShopCard({ shop, onClick }: { shop: Shop; onClick: () => void }) {
+  const imageUrl = getMediaUrl(shop.featured_image);
+  const displayName = getShopDisplayName(shop);
+
+  return (
+    <button
+      onClick={onClick}
+      className="group text-left transition-transform duration-200 hover:scale-[1.02] h-full"
+    >
+      <div className="bg-surface rounded-xl overflow-hidden h-full flex flex-col">
+        {/* Feature image */}
+        <div className="relative w-full h-24">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-border-default flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-text-secondary" />
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-2.5 flex-1 flex flex-col">
+          <p className="text-sm font-medium text-primary line-clamp-2 mb-0.5">
+            {displayName}
+          </p>
+          {shop.location?.name && (
+            <p className="text-xs text-text-secondary line-clamp-1 mt-auto">
+              {shop.location.name}
+            </p>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// Beans section component with grid layout
+function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
+  const { data: beans, isLoading, isError, refetch } = useBeansByBrand(brandDocumentId);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <BeanCardSkeleton />
+        <BeanCardSkeleton />
+        <BeanCardSkeleton />
+        <BeanCardSkeleton />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-6 text-center">
+        <AlertCircle className="w-6 h-6 text-text-secondary mb-2" />
+        <p className="text-sm text-text-secondary mb-2">
+          Could not load beans
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-accent hover:bg-surface rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!beans || beans.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-6 text-center">
+        <Coffee className="w-6 h-6 text-text-secondary mb-2" />
+        <p className="text-sm text-text-secondary">
+          No beans listed yet
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      {beans.map((bean) => (
+        <BeanCard key={bean.documentId} bean={bean} />
+      ))}
+    </div>
+  );
+}
+
+export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: SupplierModalProps) {
   const shopsUsingSupplier = useShopsUsingSupplier(supplier);
-  const setSelectedShop = useMapStore((state) => state.setSelectedShop);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+
+  // Track scroll position to show/hide sticky header
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      // Show sticky header after scrolling past the hero (roughly 200px)
+      setShowStickyHeader(container.scrollTop > 180);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isOpen]);
+
+  // Reset scroll position when modal opens
+  useEffect(() => {
+    if (isOpen && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+      setShowStickyHeader(false);
+    }
+  }, [isOpen]);
 
   const handleShopClick = (shop: Shop) => {
     onClose();
     // Small delay to let modal close animation complete
     setTimeout(() => {
-      setSelectedShop(shop);
+      // Use the onShopSelect callback to navigate to shop (triggers map pan and drawer)
+      onShopSelect?.(shop);
     }, 150);
   };
 
@@ -112,9 +397,11 @@ export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps)
   const hasStory = supplier.story && supplier.story.trim().length > 0;
   const hasInstagram = supplier.instagram && supplier.instagram.trim().length > 0;
   const hasWebsite = supplier.website && supplier.website.trim().length > 0;
-  const hasFacebook = isBrand(supplier) && supplier.facebook && supplier.facebook.trim().length > 0;
-  const hasTikTok = isBrand(supplier) && supplier.tiktok && supplier.tiktok.trim().length > 0;
-  const hasSocials = hasInstagram || hasWebsite || hasFacebook || hasTikTok;
+  const hasFacebook =
+    isBrand(supplier) && supplier.facebook && supplier.facebook.trim().length > 0;
+  const hasTikTok =
+    isBrand(supplier) && supplier.tiktok && supplier.tiktok.trim().length > 0;
+  const hasSocials = hasInstagram || hasFacebook || hasTikTok;
 
   // Get country - works for both Brand and CoffeePartner
   const country: Country | null | undefined = supplier.country;
@@ -122,192 +409,177 @@ export function SupplierModal({ isOpen, onClose, supplier }: SupplierModalProps)
 
   // Brand-specific fields
   const foundedYear = isBrand(supplier) ? getFoundedYear(supplier.founded) : null;
-  const roastCountries = isBrand(supplier) ? (supplier.ownRoastCountry ?? []) : [];
-  const hasRoastCountries = roastCountries.length > 0;
+  const founderName = isBrand(supplier) ? supplier.founder : null;
+
+  // Only show beans section for Brand type (not CoffeePartner)
+  const showBeansSection = isBrand(supplier);
 
   return (
     <ResponsiveModal
       isOpen={isOpen}
       onClose={onClose}
-      size="md"
+      size="5xl"
       modalClassNames={{
         backdrop: 'bg-black/60 backdrop-blur-sm',
-        base: 'bg-background overflow-hidden',
+        base: 'bg-background overflow-hidden max-h-[90vh]',
+        body: 'p-0',
       }}
     >
-      <ModalBody className="p-0">
-        {/* Hero Header with bg_image */}
-        <div className="relative">
-          <div className="h-[140px] overflow-hidden bg-surface">
-            {bgImageUrl ? (
-              <img
-                src={bgImageUrl}
-                alt={supplier.name}
-                className="w-full h-full object-cover"
+      <ModalBody className="p-0 overflow-hidden">
+        {/* Scrollable container */}
+        <div
+          ref={scrollContainerRef}
+          className="overflow-y-auto max-h-[90vh] relative"
+        >
+          {/* Sticky header - appears on scroll, fixed position within scroll container */}
+          <div
+            className={`sticky top-0 z-20 bg-background border-b border-border-default px-6 py-3 transition-all duration-200 ${
+              showStickyHeader ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden border-0 py-0'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Avatar
+                src={logoUrl || undefined}
+                name={supplier.name}
+                className="w-8 h-8 flex-shrink-0"
+                showFallback
+                fallback={<BeanIcon className="w-4 h-4" />}
               />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20" />
+              <span className="font-medium text-primary truncate">{supplier.name}</span>
+            </div>
+          </div>
+
+          {/* Hero Header */}
+          <div className="relative">
+            <div className="h-48 lg:h-56 overflow-hidden bg-surface rounded-t-2xl">
+              {bgImageUrl ? (
+                <img
+                  src={bgImageUrl}
+                  alt={supplier.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20" />
+              )}
+            </div>
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+            {/* Visit Website button - top right */}
+            {hasWebsite && (
+              <a
+                href={getWebsiteUrl(supplier.website!)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute top-4 right-6 flex items-center gap-1.5 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium hover:bg-white/30 transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+                Visit Website
+              </a>
+            )}
+
+            {/* Logo and brand info at bottom of hero */}
+            <div className="absolute bottom-0 left-0 right-0 px-6 pb-4 pt-5">
+              <div className="flex items-end gap-4">
+                {/* Logo */}
+                <Avatar
+                  src={logoUrl || undefined}
+                  name={supplier.name}
+                  className="w-16 h-16 lg:w-20 lg:h-20 ring-4 ring-white/20 shadow-lg flex-shrink-0"
+                  showFallback
+                  fallback={<BeanIcon className="w-6 h-6 lg:w-8 lg:h-8" />}
+                />
+                {/* Brand name and metadata */}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl lg:text-2xl font-display text-white mb-1 drop-shadow-lg">
+                    {supplier.name}
+                  </h2>
+                  <p className="text-sm text-white/80 drop-shadow">
+                    {founderName && `Founded by ${founderName}`}
+                    {founderName && (countryName || foundedYear) && ' · '}
+                    {countryName}
+                    {countryName && foundedYear && ' · '}
+                    {foundedYear && `Est. ${foundedYear}`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content sections */}
+          <div className="px-6 py-6">
+            {/* Story Section - Full width */}
+            {hasStory && (
+              <div className="mb-8">
+                <p className="text-base text-primary leading-relaxed max-w-prose">
+                  {supplier.story}
+                </p>
+              </div>
+            )}
+
+            {/* Social Links - Inline text style */}
+            {hasSocials && (
+              <div className="flex items-center gap-4 text-sm text-text-secondary mb-8">
+                {hasInstagram && (
+                  <a
+                    href={getInstagramUrl(supplier.instagram!)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                  >
+                    <Instagram className="w-4 h-4" />
+                    <span>{getInstagramHandle(supplier.instagram!)}</span>
+                  </a>
+                )}
+                {hasFacebook && isBrand(supplier) && (
+                  <a
+                    href={getFacebookUrl(supplier.facebook!)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                  >
+                    <Facebook className="w-4 h-4" />
+                    <span>Facebook</span>
+                  </a>
+                )}
+                {hasTikTok && isBrand(supplier) && (
+                  <a
+                    href={getTikTokUrl(supplier.tiktok!)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                  >
+                    <TikTokIcon className="w-4 h-4" />
+                    <span>{getTikTokHandle(supplier.tiktok!)}</span>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Beans Section */}
+            {showBeansSection && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-primary mb-3">
+                  Beans
+                </h3>
+                <BeansSection brandDocumentId={supplier.documentId} />
+              </div>
+            )}
+
+            {/* Shops Section */}
+            {shopsUsingSupplier.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-3">
+                  Cafés Serving Their Beans
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {shopsUsingSupplier.map((shop) => (
+                    <ShopCard key={shop.documentId} shop={shop} onClick={() => handleShopClick(shop)} />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-          {/* Logo positioned at bottom-left of hero */}
-          <div className="absolute bottom-0 left-5 translate-y-1/2">
-            <Avatar
-              src={logoUrl || undefined}
-              name={supplier.name}
-              className="w-16 h-16 ring-4 ring-background shadow-lg"
-              showFallback
-              fallback={<Bean className="w-6 h-6" />}
-            />
-          </div>
-        </div>
-
-        {/* Content - left aligned */}
-        <div className="px-5 pt-12 pb-6">
-          {/* Name */}
-          <h2 className="text-xl font-display text-primary mb-1">
-            {supplier.name}
-          </h2>
-
-          {/* Country & Founded */}
-          {(countryName || foundedYear) && (
-            <p className="text-sm text-text-secondary mb-4">
-              {countryName}
-              {countryName && foundedYear && ' · '}
-              {foundedYear && `Est. ${foundedYear}`}
-            </p>
-          )}
-
-          {/* Story */}
-          {hasStory && (
-            <div className="mt-4">
-              <p className="text-sm text-primary leading-relaxed">
-                {supplier.story}
-              </p>
-            </div>
-          )}
-
-          {/* Roast Countries */}
-          {hasRoastCountries && (
-            <div className="mt-5">
-              <p className="text-xs uppercase tracking-wider text-text-secondary mb-2">
-                Roasting beans from
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {roastCountries.map((c) => (
-                  <CountryChip
-                    key={c.documentId}
-                    code={c.code}
-                    name={c.name}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Social Links - left aligned */}
-          {hasSocials && (
-            <div className="flex items-center gap-3 mt-6">
-              {hasInstagram && (
-                <a
-                  href={getInstagramUrl(supplier.instagram!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                  style={{
-                    background:
-                      'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                  }}
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-5 h-5" />
-                </a>
-              )}
-              {hasFacebook && isBrand(supplier) && (
-                <a
-                  href={getFacebookUrl(supplier.facebook!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                  style={{ background: '#1877F2' }}
-                  aria-label="Facebook"
-                >
-                  <Facebook className="w-5 h-5" />
-                </a>
-              )}
-              {hasTikTok && isBrand(supplier) && (
-                <a
-                  href={getTikTokUrl(supplier.tiktok!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                  style={{ background: '#000000' }}
-                  aria-label="TikTok"
-                >
-                  <TikTokIcon className="w-5 h-5" />
-                </a>
-              )}
-              {hasWebsite && (
-                <a
-                  href={getWebsiteUrl(supplier.website!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-105"
-                  style={{ background: '#374151' }}
-                  aria-label="Website"
-                >
-                  <Globe className="w-5 h-5" />
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Shops Using This Roaster */}
-          {shopsUsingSupplier.length > 0 && (
-            <div className="mt-6 pt-5 border-t border-border-default">
-              <p className="text-xs uppercase tracking-wider text-text-secondary mb-3">
-                Cafés serving their beans
-              </p>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {shopsUsingSupplier.map((shop) => (
-                  <button
-                    key={shop.documentId}
-                    type="button"
-                    onClick={() => handleShopClick(shop)}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-surface hover:bg-border-default transition-colors w-full text-left"
-                  >
-                    {/* Shop image */}
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-border-default flex-shrink-0">
-                      {getMediaUrl(shop.featured_image) ? (
-                        <img
-                          src={getMediaUrl(shop.featured_image)!}
-                          alt={getShopDisplayName(shop)}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <MapPin className="w-4 h-4 text-text-secondary" />
-                        </div>
-                      )}
-                    </div>
-                    {/* Shop info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-primary truncate">
-                        {getShopDisplayName(shop)}
-                      </p>
-                      {shop.location?.name && (
-                        <p className="text-xs text-text-secondary truncate">
-                          {shop.location.name}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </ModalBody>
     </ResponsiveModal>

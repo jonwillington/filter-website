@@ -161,6 +161,9 @@ export interface Brand {
   has_french_press?: boolean;
   has_cold_brew?: boolean;
   has_batch_brew?: boolean;
+
+  // Beans (populated from prefetch)
+  beans?: Bean[];
 }
 
 export interface OpeningHoursPeriod {
@@ -329,4 +332,29 @@ export interface CriticPick {
   rank?: 1 | 2 | 3 | null;
   critic?: Critic;
   shop?: Shop;
+}
+
+export interface FlavorTag {
+  id: number;
+  documentId: string;
+  name: string;
+}
+
+export interface Varietal {
+  id: number;
+  documentId: string;
+  name: string;
+}
+
+export interface Bean {
+  id: number;
+  documentId: string;
+  name: string;
+  type: 'single-origin' | 'blend';
+  roastLevel?: 'light' | 'light-medium' | 'medium' | 'medium-dark' | 'dark' | null;
+  process?: string | null;
+  shortDescription?: string | null;
+  learnMoreUrl?: string | null;
+  origins?: Country[];
+  flavorTags?: FlavorTag[];
 }

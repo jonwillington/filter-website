@@ -179,6 +179,8 @@ async function main() {
     const brandPopulate = [
       'populate[logo][fields][0]=url',
       'populate[logo][fields][1]=formats',
+      'populate[bg-image][fields][0]=url',
+      'populate[bg-image][fields][1]=formats',
       'populate[suppliers][populate][logo][fields][0]=url',
       'populate[suppliers][populate][logo][fields][1]=formats',
       'populate[suppliers][populate][country][fields][0]=name',
@@ -188,9 +190,51 @@ async function main() {
       'populate[ownRoastCountry][fields][0]=name',
       'populate[ownRoastCountry][fields][1]=code',
     ].join('&');
-    const brands = await fetchPaginated('brands', brandPopulate);
-    fs.writeFileSync(path.join(dataDir, 'brands.json'), JSON.stringify(brands, null, 2));
+    let brands = await fetchPaginated('brands', brandPopulate);
     console.log(`   ✓ ${brands.length} brands\n`);
+
+    // Fetch beans separately (Strapi v5 doesn't handle deep nested populates well)
+    console.log('6b. Fetching beans...');
+    const beansPopulate = [
+      'populate[brand][fields][0]=documentId',
+      'populate[origins][fields][0]=id',
+      'populate[origins][fields][1]=documentId',
+      'populate[origins][fields][2]=name',
+      'populate[origins][fields][3]=code',
+      'populate[flavorTags][fields][0]=id',
+      'populate[flavorTags][fields][1]=documentId',
+      'populate[flavorTags][fields][2]=name',
+    ].join('&');
+    const beans = await fetchPaginated('beans', beansPopulate);
+    console.log(`   ✓ ${beans.length} beans\n`);
+
+    // Group beans by brand documentId
+    console.log('6c. Merging beans into brands...');
+    const beansByBrand = new Map();
+    for (const bean of beans) {
+      const brandDocId = bean.brand?.documentId;
+      if (brandDocId) {
+        if (!beansByBrand.has(brandDocId)) {
+          beansByBrand.set(brandDocId, []);
+        }
+        // Remove brand from bean to avoid circular reference
+        const { brand, ...beanWithoutBrand } = bean;
+        beansByBrand.get(brandDocId).push(beanWithoutBrand);
+      }
+    }
+
+    // Merge beans into brands
+    let beansAddedCount = 0;
+    brands = brands.map(brand => {
+      const brandBeans = beansByBrand.get(brand.documentId) || [];
+      if (brandBeans.length > 0) {
+        beansAddedCount += brandBeans.length;
+      }
+      return { ...brand, beans: brandBeans };
+    });
+    console.log(`   ✓ Added ${beansAddedCount} beans to brands\n`);
+
+    fs.writeFileSync(path.join(dataDir, 'brands.json'), JSON.stringify(brands, null, 2));
 
     // Merge full brand data into shops
     // This is necessary because Strapi v5 has issues with explicit fields+populate on nested relations
@@ -219,7 +263,45 @@ async function main() {
     });
     console.log(`   ✓ Merged brand data for ${mergedCount} shops\n`);
 
-    // Now save the shops with merged brand data
+    // Merge city_area group field into shops (Strapi v5 doesn't include all fields with nested populate)
+    // Try to use public/data/city-areas.json first if it has groups (from production), fallback to fetched data
+    console.log('6c. Merging city_area groups into shops...');
+    let cityAreasWithGroups = cityAreas;
+    try {
+      const publicCityAreas = JSON.parse(fs.readFileSync(path.join(PUBLIC_DATA_DIR, 'city-areas.json'), 'utf8'));
+      const hasGroups = publicCityAreas.some(a => a.group);
+      if (hasGroups) {
+        console.log('   Using city-areas from public/data (has groups)');
+        cityAreasWithGroups = publicCityAreas;
+      }
+    } catch (e) {
+      // No public data, use fetched data
+    }
+
+    const cityAreaMap = new Map();
+    for (const area of cityAreasWithGroups) {
+      cityAreaMap.set(area.documentId, area);
+    }
+
+    let cityAreaMergedCount = 0;
+    shops = shops.map(shop => {
+      const shopCityArea = shop.city_area || shop.cityArea;
+      if (shopCityArea?.documentId) {
+        const fullCityArea = cityAreaMap.get(shopCityArea.documentId);
+        if (fullCityArea) {
+          // Only add the group field to avoid bloating the data
+          shop.city_area = {
+            ...shopCityArea,
+            group: fullCityArea.group || null,
+          };
+          cityAreaMergedCount++;
+        }
+      }
+      return shop;
+    });
+    console.log(`   ✓ Merged city_area groups for ${cityAreaMergedCount} shops\n`);
+
+    // Now save the shops with merged brand and city_area data
     fs.writeFileSync(path.join(dataDir, 'shops.json'), JSON.stringify(shops, null, 2));
 
     // Also generate a TypeScript module for bundling (Cloudflare Workers don't have fs access)
