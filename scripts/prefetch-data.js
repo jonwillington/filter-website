@@ -140,17 +140,13 @@ async function main() {
     console.log(`   ✓ ${countries.length} countries\n`);
 
     // Fetch city areas with locations
+    // Note: Strapi v5 doesn't allow mixing populate[location][fields] with populate[location][populate]
+    // Use * for location to get all fields, then nest country/background_image populates
     console.log('4. Fetching city areas...');
     const cityAreaPopulate = [
+      'populate[location]=*',
       'populate[location][populate][country]=*',
       'populate[location][populate][background_image]=*',
-      'populate[location][fields][0]=id',
-      'populate[location][fields][1]=documentId',
-      'populate[location][fields][2]=name',
-      'populate[location][fields][3]=coordinates',
-      'populate[location][fields][4]=rating_stars',
-      'populate[location][fields][5]=headline',
-      'populate[location][fields][6]=story',
     ].join('&');
     const cityAreas = await fetchPaginated('city-areas', cityAreaPopulate);
     fs.writeFileSync(path.join(dataDir, 'city-areas.json'), JSON.stringify(cityAreas, null, 2));
@@ -168,6 +164,8 @@ async function main() {
       'populate[country][fields][0]=documentId',
       'populate[country][fields][1]=name',
       'populate[country][fields][2]=code',
+      'populate[country][fields][3]=primaryColor',
+      'populate[country][fields][4]=secondaryColor',
       'populate[background_image][fields][0]=url',
       'populate[background_image][fields][1]=formats',
     ].join('&');
