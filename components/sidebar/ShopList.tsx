@@ -5,6 +5,32 @@ import { Shop } from '@/lib/types';
 import { ShopCard } from './ShopCard';
 import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getShopDisplayName } from '@/lib/utils';
+
+// Check if shop is a top/area recommendation
+function isTopRecommendation(shop: Shop): boolean {
+  const anyShop = shop as any;
+  return anyShop.cityAreaRec === true ||
+         anyShop.city_area_rec === true ||
+         anyShop.cityarearec === true;
+}
+
+// Sort shops: top recommendations first, then alphabetically by name
+function sortShops(shops: Shop[]): Shop[] {
+  return [...shops].sort((a, b) => {
+    const aIsTop = isTopRecommendation(a);
+    const bIsTop = isTopRecommendation(b);
+
+    // Top recommendations first
+    if (aIsTop && !bIsTop) return -1;
+    if (!aIsTop && bIsTop) return 1;
+
+    // Then alphabetically by display name
+    const aName = getShopDisplayName(a);
+    const bName = getShopDisplayName(b);
+    return aName.localeCompare(bName);
+  });
+}
 
 interface ShopListProps {
   shops: Shop[];
@@ -244,7 +270,7 @@ export function ShopList({
       {areasByGroup.map(([groupName, areas], index) => (
         <div key={groupName || 'ungrouped'} className={index > 0 ? 'mt-3' : ''}>
           {groupName && (
-            <div className="px-4 pt-4 pb-2">
+            <div className="pt-4 pb-2">
               <h4 className="text-[10px] font-medium text-accent/60 dark:text-accent/50 uppercase tracking-wider">
                 {groupName}
               </h4>
@@ -299,6 +325,9 @@ function AreaSection({
   // isFiltered forces all to expand, otherwise respect parent state
   const isExpanded = isCurrentlyExpanded || isFiltered;
 
+  // Sort shops: top recommendations first, then alphabetically
+  const sortedShops = useMemo(() => sortShops(shops), [shops]);
+
   const toggleExpanded = () => {
     const newExpanded = !isCurrentlyExpanded;
     console.log('[AreaSection] Toggle:', { areaName, areaDocumentId, newExpanded, wasExpanded: isCurrentlyExpanded });
@@ -311,7 +340,7 @@ function AreaSection({
     <div className="border-b border-border-default last:border-b-0">
       <button
         onClick={toggleExpanded}
-        className={`w-full flex items-center justify-between px-4 py-2 transition-colors ${
+        className={`w-full flex items-center justify-between py-2 transition-colors ${
           isExpanded
             ? 'bg-accent/10 dark:bg-accent/20'
             : 'hover:bg-accent/5 dark:hover:bg-white/5'
@@ -331,7 +360,7 @@ function AreaSection({
       {isExpanded && (
         <div className="pb-1">
           <AnimatePresence mode="popLayout" initial={false}>
-            {shops.map((shop, index) => (
+            {sortedShops.map((shop, index) => (
               <motion.div
                 key={`${shop.documentId}-${animationKey}`}
                 initial={{ opacity: 0, y: 8 }}

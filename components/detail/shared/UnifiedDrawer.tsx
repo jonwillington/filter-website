@@ -17,7 +17,6 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
     // Only animate entering if drawer hasn't been shown yet in this session
     const [isEntering, setIsEntering] = useState(!hasDrawerBeenShown);
     const [isExiting, setIsExiting] = useState(false);
-    const [isContentTransitioning, setIsContentTransitioning] = useState(false);
     const [displayedChildren, setDisplayedChildren] = useState(children);
     const scrollRef = useRef<HTMLDivElement>(null);
     const previousContentTypeRef = useRef(contentType);
@@ -40,25 +39,15 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
       }
     }, [isVisible, isExiting]);
 
-    // Handle content type transition (location <-> shop) with fade animation
+    // Handle content type transition (location <-> shop)
+    // No fade animation - just update content immediately and scroll to top
+    // The content is different enough that fading just causes a visual flash
     useEffect(() => {
       if (contentType !== previousContentTypeRef.current) {
-        // Start fade out
-        setIsContentTransitioning(true);
-
-        // After fade out, update content and scroll
-        const timeout = setTimeout(() => {
-          setDisplayedChildren(children);
-          scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
-          previousContentTypeRef.current = contentType;
-
-          // Fade back in
-          requestAnimationFrame(() => {
-            setIsContentTransitioning(false);
-          });
-        }, 200);
-
-        return () => clearTimeout(timeout);
+        // Update content immediately
+        setDisplayedChildren(children);
+        scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+        previousContentTypeRef.current = contentType;
       } else {
         // Same content type - update children immediately
         setDisplayedChildren(children);
@@ -78,10 +67,7 @@ export const UnifiedDrawer = forwardRef<HTMLDivElement, UnifiedDrawerProps>(
         if (typeof ref === 'function') ref(node);
         else if (ref) ref.current = node;
       }} className={classNames}>
-        <div
-          className="transition-opacity duration-200 ease-in-out flex-1 flex flex-col"
-          style={{ opacity: isContentTransitioning ? 0 : 1 }}
-        >
+        <div className="flex-1 flex flex-col">
           {displayedChildren}
         </div>
       </div>

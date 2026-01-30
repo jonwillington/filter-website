@@ -146,7 +146,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         <ShopHeader shop={currentShop} />
 
         {/* Rest of content with padding - staggered animation */}
-        <div key={currentShop.documentId} className="p-5 pb-20 stagger-fade-in">
+        <div key={currentShop.documentId} className="p-5 pb-20">
           {/* City Area Recommendation Award - at top */}
           {isTopChoice && (
             <AwardBox
@@ -170,7 +170,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           <BrewMethods shop={currentShop} />
 
           {/* Coffee Sourcing */}
-          <BeansSection shop={currentShop} />
+          <BeansSection shop={currentShop} onShopSelect={onShopSelect} />
 
           {/* Amenities */}
           <AmenityList shop={currentShop} />
