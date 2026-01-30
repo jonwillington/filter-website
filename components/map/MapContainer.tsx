@@ -107,6 +107,7 @@ export function MapContainer({
   // Handle map position (center/zoom) transitions
   useMapPosition({
     map,
+    mapReady,
     center,
     zoom,
     isLoading,

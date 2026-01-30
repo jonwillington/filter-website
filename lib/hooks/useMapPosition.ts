@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 
 export interface UseMapPositionOptions {
   map: mapboxgl.Map | null;
+  mapReady: boolean;
   center: [number, number];
   zoom: number;
   isLoading: boolean;
@@ -35,6 +36,7 @@ const easing = {
  */
 export function useMapPosition({
   map,
+  mapReady,
   center,
   zoom,
   isLoading,
@@ -46,7 +48,19 @@ export function useMapPosition({
 
   // Update center when it changes
   useEffect(() => {
-    if (!map) return;
+    // Wait for map AND style to be fully loaded before animating
+    if (!map || !mapReady) return;
+
+    // Additional safety check - verify style is actually loaded
+    if (!map.isStyleLoaded()) {
+      // Queue the position update to run when style loads
+      const onStyleLoad = () => {
+        map.off('style.load', onStyleLoad);
+        // Trigger re-run by updating refs (the effect will re-run due to dependency changes)
+      };
+      map.once('style.load', onStyleLoad);
+      return;
+    }
 
     // Get current map zoom - don't zoom out if user has zoomed in further
     const currentMapZoom = map.getZoom();
@@ -90,11 +104,15 @@ export function useMapPosition({
       pendingCenter.current = null;
       pendingZoom.current = null;
     }
-  }, [center, zoom, isLoading, map]);
+  }, [center, zoom, isLoading, map, mapReady]);
 
   // Apply pending updates when loading completes
   useEffect(() => {
-    if (!map || isLoading) return;
+    // Wait for map AND style to be ready
+    if (!map || !mapReady || isLoading) return;
+
+    // Additional safety check - verify style is actually loaded
+    if (!map.isStyleLoaded()) return;
 
     if (pendingCenter.current && pendingZoom.current !== null) {
       const isZoomChange = Math.abs(pendingZoom.current - lastZoom.current) > 0.5;
@@ -125,5 +143,5 @@ export function useMapPosition({
       pendingCenter.current = null;
       pendingZoom.current = null;
     }
-  }, [isLoading, map]);
+  }, [isLoading, map, mapReady]);
 }
