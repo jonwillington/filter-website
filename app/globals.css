@@ -342,6 +342,16 @@ h1, h2 {
   background: var(--text-secondary);
 }
 
+/* Hide scrollbar utility - for horizontal scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(100%);
@@ -466,6 +476,32 @@ h1, h2 {
 .shop-marker.selected {
   transform: scale(1.25);
   z-index: 20 !important;
+}
+
+/* Logo Badge Visibility - GPU-accelerated transitions for smooth fade */
+.logo-badge {
+  will-change: opacity, transform;
+  transition: opacity 0.2s ease-out;
+  contain: layout style paint;
+}
+
+.logo-badge.badge-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.logo-badge.badge-visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .logo-badge {
+    transition: none;
+  }
 }
 
 /* Area Headers */

@@ -6,6 +6,85 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Calculate distance between two coordinates using Haversine formula.
+ * @returns Distance in kilometers
+ */
+function calculateDistance(point1, point2) {
+  const [lng1, lat1] = point1;
+  const [lng2, lat2] = point2;
+
+  const toRad = (deg) => deg * Math.PI / 180;
+  const R = 6371; // Earth's radius in km
+
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Get coordinates from a shop for density calculation.
+ */
+function getShopCoordsForDensity(shop) {
+  if (shop.coordinates?.lng && shop.coordinates?.lat) {
+    return [shop.coordinates.lng, shop.coordinates.lat];
+  }
+  if (shop.longitude && shop.latitude) {
+    return [shop.longitude, shop.latitude];
+  }
+  return null;
+}
+
+/**
+ * Pre-calculate local density for all shops.
+ * This is O(n²) but runs once at build time, not on every request.
+ */
+function calculateAllDensities(shops, radiusKm = 1.5) {
+  const densities = new Map();
+
+  // Build coordinate lookup for efficiency
+  const coordsMap = new Map();
+  for (const shop of shops) {
+    const coords = getShopCoordsForDensity(shop);
+    if (coords) {
+      coordsMap.set(shop.documentId, coords);
+    }
+  }
+
+  // Calculate density for each shop
+  for (const shop of shops) {
+    const coords = coordsMap.get(shop.documentId);
+    if (!coords) {
+      densities.set(shop.documentId, 0);
+      continue;
+    }
+
+    let nearbyCount = 0;
+    // Iterate through all shops to find nearby ones
+    for (const otherShop of shops) {
+      if (otherShop.documentId === shop.documentId) continue;
+
+      const otherCoords = coordsMap.get(otherShop.documentId);
+      if (!otherCoords) continue;
+
+      const distance = calculateDistance(coords, otherCoords);
+      if (distance <= radiusKm) {
+        nearbyCount++;
+      }
+    }
+
+    densities.set(shop.documentId, nearbyCount);
+  }
+
+  return densities;
+}
+
 // Output directory for bundled data (will be imported at build time)
 const LIB_DATA_DIR = path.join(__dirname, '../lib/data');
 // Output directory for static JSON files (served from CDN)
@@ -301,7 +380,16 @@ async function main() {
     });
     console.log(`   ✓ Merged city_area groups for ${cityAreaMergedCount} shops\n`);
 
-    // Now save the shops with merged brand and city_area data
+    // Pre-calculate local density for all shops (O(n²) but runs once at build time)
+    console.log('6d. Calculating local densities...');
+    const densities = calculateAllDensities(shops);
+    for (const shop of shops) {
+      shop.localDensity = densities.get(shop.documentId) ?? 0;
+    }
+    const shopsWithDensity = shops.filter(s => s.localDensity > 0).length;
+    console.log(`   ✓ Calculated densities for ${shops.length} shops (${shopsWithDensity} have nearby shops)\n`);
+
+    // Now save the shops with merged brand, city_area, and density data
     fs.writeFileSync(path.join(dataDir, 'shops.json'), JSON.stringify(shops, null, 2));
 
     // Also generate a TypeScript module for bundling (Cloudflare Workers don't have fs access)

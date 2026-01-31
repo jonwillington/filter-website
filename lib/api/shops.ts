@@ -393,11 +393,8 @@ export async function getAllShops(): Promise<Shop[]> {
       }
     }
 
-    // Pre-calculate local density for all shops (avoids O(n²) on client)
-    const densities = calculateAllDensities(prefetched);
-    for (const shop of prefetched) {
-      shop.localDensity = densities.get(shop.documentId) ?? 0;
-    }
+    // Note: localDensity is pre-calculated at build time in prefetch-data.js
+    // No need to calculate here - shops already have localDensity from the prefetched JSON
 
     setCache(cacheKey, prefetched);
     return prefetched;
@@ -488,7 +485,8 @@ export async function getAllShops(): Promise<Shop[]> {
       }
     }
 
-    // Pre-calculate local density for all shops (avoids O(n²) on client)
+    // Calculate local density at runtime for non-prefetched data
+    // (This path is only used when prefetched data is unavailable)
     const densities = calculateAllDensities(allShops);
     for (const shop of allShops) {
       shop.localDensity = densities.get(shop.documentId) ?? 0;

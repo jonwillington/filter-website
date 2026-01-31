@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Shop } from '@/lib/types';
 import { ShopCard } from './ShopCard';
 import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getShopDisplayName } from '@/lib/utils';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 // Check if shop is a top/area recommendation
 function isTopRecommendation(shop: Shop): boolean {
@@ -189,6 +190,28 @@ export function ShopList({
     // Only show header when filtered or has match info, not for plain "All shops"
     const showHeader = hasMatchInfo || isFiltered;
 
+    // Sort and split into recommended vs regular shops
+    const sortedShops = sortShops(shops);
+    const recommendedShops = sortedShops.filter(isTopRecommendation);
+    const regularShops = sortedShops.filter(shop => !isTopRecommendation(shop));
+
+    // Use virtualization for large lists (50+ shops), regular rendering for smaller lists
+    const useVirtualization = shops.length >= 50;
+
+    if (useVirtualization) {
+      return (
+        <VirtualizedShopList
+          shops={sortedShops}
+          selectedShop={selectedShop}
+          onShopSelect={onShopSelect}
+          isLoading={isLoading}
+          shopMatchInfo={shopMatchInfo}
+          showHeader={showHeader}
+          hasMatchInfo={hasMatchInfo ?? false}
+        />
+      );
+    }
+
     return (
       <div
         className="transition-opacity duration-300"
@@ -202,8 +225,20 @@ export function ShopList({
           </div>
         )}
         <div className="py-1">
+          {/* Top Recommendations Section */}
+          {recommendedShops.length > 0 && (
+            <RecommendedShopsSection
+              shops={recommendedShops}
+              selectedShop={selectedShop}
+              onShopSelect={onShopSelect}
+              isLoading={isLoading}
+              shopMatchInfo={shopMatchInfo}
+              animationKey={animationKey}
+            />
+          )}
+          {/* Regular Shops */}
           <AnimatePresence mode="popLayout" initial={false}>
-            {shops.map((shop, index) => (
+            {regularShops.map((shop, index) => (
               <motion.div
                 key={shop.documentId}
                 initial={{ opacity: 0, y: 8 }}
@@ -297,6 +332,155 @@ export function ShopList({
   );
 }
 
+// Recommended shops section with visual distinction
+function RecommendedShopsSection({
+  shops,
+  selectedShop,
+  onShopSelect,
+  isLoading,
+  shopMatchInfo,
+  animationKey = 0,
+}: {
+  shops: Shop[];
+  selectedShop: Shop | null;
+  onShopSelect: (shop: Shop) => void;
+  isLoading?: boolean;
+  shopMatchInfo?: Map<string, string[]>;
+  animationKey?: number;
+}) {
+  if (shops.length === 0) return null;
+
+  return (
+    <div className="mt-3 mb-2">
+      <div className="relative rounded-lg border border-dashed border-accent/30 dark:border-accent/40 bg-surface-warm pb-2 pt-7">
+        <span className="absolute top-0 left-0 px-2.5 py-1 text-[9px] font-bold text-white uppercase tracking-wider rounded-br-md rounded-tl-lg" style={{ backgroundColor: '#683b1d' }}>
+          Top Choices
+        </span>
+        <AnimatePresence mode="popLayout" initial={false}>
+          {shops.map((shop, index) => (
+            <motion.div
+              key={`${shop.documentId}-${animationKey}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{
+                duration: 0.3,
+                delay: index * 0.03,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
+            >
+              <ShopCard
+                shop={shop}
+                isSelected={selectedShop?.documentId === shop.documentId}
+                onClick={() => onShopSelect(shop)}
+                disabled={isLoading}
+                matchedFilters={shopMatchInfo?.get(shop.documentId)}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+// Virtualized shop list for large lists (50+ items)
+function VirtualizedShopList({
+  shops,
+  selectedShop,
+  onShopSelect,
+  isLoading,
+  shopMatchInfo,
+  showHeader,
+  hasMatchInfo,
+}: {
+  shops: Shop[];
+  selectedShop: Shop | null;
+  onShopSelect: (shop: Shop) => void;
+  isLoading?: boolean;
+  shopMatchInfo?: Map<string, string[]>;
+  showHeader: boolean;
+  hasMatchInfo: boolean;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Estimated row height for shop cards (adjust if needed)
+  const ESTIMATED_ROW_HEIGHT = 76;
+  const OVERSCAN = 5;
+
+  const virtualizer = useVirtualizer({
+    count: shops.length,
+    getScrollElement: () => {
+      // Find the scrollable sidebar container (.sidebar-content has overflow-y: auto)
+      return parentRef.current?.closest('.sidebar-content') as HTMLElement | null;
+    },
+    estimateSize: useCallback(() => ESTIMATED_ROW_HEIGHT, []),
+    overscan: OVERSCAN,
+  });
+
+  const items = virtualizer.getVirtualItems();
+
+  // Scroll selected shop into view
+  useEffect(() => {
+    if (selectedShop) {
+      const index = shops.findIndex(s => s.documentId === selectedShop.documentId);
+      if (index !== -1) {
+        virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+      }
+    }
+  }, [selectedShop, shops, virtualizer]);
+
+  return (
+    <div
+      className="transition-opacity duration-300"
+      style={{ opacity: isLoading ? 0.4 : 1 }}
+    >
+      {showHeader && (
+        <div className="area-header">
+          <h3 className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
+            {hasMatchInfo ? `${shops.length} matching shops` : `${shops.length} shops`}
+          </h3>
+        </div>
+      )}
+      <div ref={parentRef} className="py-1">
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {items.map((virtualRow) => {
+            const shop = shops[virtualRow.index];
+            return (
+              <div
+                key={shop.documentId}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <ShopCard
+                  shop={shop}
+                  isSelected={selectedShop?.documentId === shop.documentId}
+                  onClick={() => onShopSelect(shop)}
+                  disabled={isLoading}
+                  matchedFilters={shopMatchInfo?.get(shop.documentId)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Collapsible area section component
 function AreaSection({
   areaName,
@@ -327,6 +511,10 @@ function AreaSection({
 
   // Sort shops: top recommendations first, then alphabetically
   const sortedShops = useMemo(() => sortShops(shops), [shops]);
+
+  // Split into recommended and regular shops
+  const recommendedShops = useMemo(() => sortedShops.filter(isTopRecommendation), [sortedShops]);
+  const regularShops = useMemo(() => sortedShops.filter(shop => !isTopRecommendation(shop)), [sortedShops]);
 
   const toggleExpanded = () => {
     const newExpanded = !isCurrentlyExpanded;
@@ -359,8 +547,19 @@ function AreaSection({
       </button>
       {isExpanded && (
         <div className="pb-1">
+          {/* Top Recommendations Section */}
+          {recommendedShops.length > 0 && (
+            <RecommendedShopsSection
+              shops={recommendedShops}
+              selectedShop={selectedShop}
+              onShopSelect={onShopSelect}
+              isLoading={isLoading}
+              animationKey={animationKey}
+            />
+          )}
+          {/* Regular Shops */}
           <AnimatePresence mode="popLayout" initial={false}>
-            {sortedShops.map((shop, index) => (
+            {regularShops.map((shop, index) => (
               <motion.div
                 key={`${shop.documentId}-${animationKey}`}
                 initial={{ opacity: 0, y: 8 }}

@@ -20,6 +20,7 @@
     "@heroui/react": "2.6.14",
     "@heroui/theme": "2.4.6",
     "@tanstack/react-query": "^5.62.0",
+    "@tanstack/react-virtual": "^3.13.18",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "firebase": "^12.7.0",

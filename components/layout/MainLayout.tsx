@@ -18,6 +18,7 @@ import { useShopData } from '@/lib/context/ShopDataContext';
 import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
+import { useModalState } from '@/lib/hooks/useModalState';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { getCountryCoordinates } from '@/lib/utils/countryCoordinates';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
@@ -133,14 +134,10 @@ export function MainLayout({
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20]);
   const [mapZoom, setMapZoom] = useState<number>(2);
   const [unsupportedCountry, setUnsupportedCountry] = useState<{ name: string; code: string } | null>(null);
-  const [showUnsupportedCountryModal, setShowUnsupportedCountryModal] = useState(false);
   const [emptySupportedCountry, setEmptySupportedCountry] = useState<{ name: string; code: string } | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showMobileCityGuide, setShowMobileCityGuide] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showExploreModal, setShowExploreModal] = useState(false);
-  const [showFilterPreferencesModal, setShowFilterPreferencesModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  // Consolidated modal state (reduces 7 useState calls to 1)
+  const { modals, openModal, closeModal } = useModalState();
   const [isDesktop, setIsDesktop] = useState(false);
   const [isLocationDrawerClosing, setIsLocationDrawerClosing] = useState(false);
   const [expandedCityAreaId, setExpandedCityAreaId] = useState<string | null>(null);
@@ -849,7 +846,7 @@ export function MainLayout({
     } else if (selectedLocation) {
       // No history - go back to location drawer (city guide)
       setSelectedShop(null);
-      setShowMobileCityGuide(true); // Keep drawer open on mobile to show city guide
+      openModal('mobileCityGuide'); // Keep drawer open on mobile to show city guide
 
       // Update URL to location page
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
@@ -928,7 +925,7 @@ export function MainLayout({
   }, [handleWelcomeFindNearMe]);
 
   const handleFirstTimeExplore = useCallback(() => {
-    setShowExploreModal(true);
+    openModal('explore');
   }, []);
 
   const handleMapTransitionComplete = useCallback(() => {
@@ -943,7 +940,7 @@ export function MainLayout({
   const handleUnsupportedCountryClick = useCallback((countryName: string, countryCode: string) => {
     console.log('[MainLayout] handleUnsupportedCountryClick called:', countryName, countryCode);
     setUnsupportedCountry({ name: countryName, code: countryCode });
-    setShowUnsupportedCountryModal(true); // Show modal for map clicks
+    openModal('unsupportedCountry'); // Show modal for map clicks
   }, []);
 
   const handleEmptySupportedCountryClick = useCallback((countryName: string, countryCode: string) => {
@@ -980,8 +977,8 @@ export function MainLayout({
       {/* WelcomeModal replaced by FirstTimeWelcome inline in sidebar */}
 
       <ExploreModal
-        isOpen={showExploreModal}
-        onClose={() => setShowExploreModal(false)}
+        isOpen={modals.explore}
+        onClose={() => closeModal('explore')}
         locations={cachedLocations}
         countries={cachedCountries}
         allShops={cachedShops}
@@ -993,7 +990,7 @@ export function MainLayout({
             setIsFirstTimeVisitor(false);
           }
           handleLocationChange(location);
-          setShowExploreModal(false);
+          closeModal('explore');
           // Clear unsupported state when user selects a supported city
           setIsAreaUnsupported(false);
           setUnsupportedCountry(null);
@@ -1001,15 +998,15 @@ export function MainLayout({
       />
 
       <LoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
+        isOpen={modals.login}
+        onClose={() => closeModal('login')}
       />
 
       <UnsupportedCountryModal
-        isOpen={showUnsupportedCountryModal}
+        isOpen={modals.unsupportedCountry}
         countryName={unsupportedCountry?.name || ''}
         countryCode={unsupportedCountry?.code || ''}
-        onClose={() => setShowUnsupportedCountryModal(false)}
+        onClose={() => closeModal('unsupportedCountry')}
         variant="coming-soon"
       />
 
@@ -1027,20 +1024,20 @@ export function MainLayout({
       />
 
       <SearchModal
-        isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
+        isOpen={modals.search}
+        onClose={() => closeModal('search')}
         locations={cachedLocations}
         shops={cachedShops}
       />
 
       <FilterPreferencesModal
-        isOpen={showFilterPreferencesModal}
-        onClose={() => setShowFilterPreferencesModal(false)}
+        isOpen={modals.filterPreferences}
+        onClose={() => closeModal('filterPreferences')}
       />
 
       <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
+        isOpen={modals.settings}
+        onClose={() => closeModal('settings')}
       />
 
       {/* Mobile menu toggle */}
@@ -1074,9 +1071,9 @@ export function MainLayout({
           shopFilter={shopFilter}
           onShopFilterChange={setShopFilter}
           isAreaUnsupported={isAreaUnsupported}
-          onOpenCityGuide={() => setShowMobileCityGuide(true)}
+          onOpenCityGuide={() => openModal('mobileCityGuide')}
           unsupportedCountry={unsupportedCountry}
-          onOpenExploreModal={() => setShowExploreModal(true)}
+          onOpenExploreModal={() => openModal('explore')}
           applyMyFilters={applyMyFilters}
           onApplyMyFiltersChange={setApplyMyFilters}
           hasUserFilters={!!(
@@ -1109,7 +1106,7 @@ export function MainLayout({
                 isIconOnly
                 variant="flat"
                 radius="full"
-                onPress={() => setShowSearchModal(true)}
+                onPress={() => openModal('search')}
                 size="sm"
                 aria-label="Search"
                 isDisabled={authLoading}
@@ -1124,20 +1121,20 @@ export function MainLayout({
                     isIconOnly
                     variant="flat"
                     radius="full"
-                    onPress={() => setShowFilterPreferencesModal(true)}
+                    onPress={() => openModal('filterPreferences')}
                     size="sm"
                     aria-label="Filter preferences"
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                   </Button>
-                  <UserMenu onOpenSettings={() => setShowSettingsModal(true)} />
+                  <UserMenu onOpenSettings={() => openModal('settings')} />
                 </>
               ) : (
                 <Button
                   isIconOnly
                   variant="flat"
                   radius="full"
-                  onPress={() => setShowLoginModal(true)}
+                  onPress={() => openModal('login')}
                   size="sm"
                   aria-label="Sign in"
                 >
@@ -1174,7 +1171,7 @@ export function MainLayout({
           cityAreas={cityAreas}
         />
 
-        {(selectedShop || (selectedLocation && !isNearbyMode && (showMobileCityGuide || isDesktop)) || isLocationDrawerClosing) && (
+        {(selectedShop || (selectedLocation && !isNearbyMode && (modals.mobileCityGuide || isDesktop)) || isLocationDrawerClosing) && (
           <UnifiedDrawer
             key="unified-drawer"
             contentType={selectedShop ? 'shop' : 'location'}
@@ -1187,7 +1184,7 @@ export function MainLayout({
                 allShops={cachedShops}
                 onClose={handleCloseDrawer}
                 onShopSelect={handleShopSelect}
-                onOpenLoginModal={() => setShowLoginModal(true)}
+                onOpenLoginModal={() => openModal('login')}
                 onBack={selectedLocation || shopHistory.length > 0 ? handleShopBack : undefined}
                 previousShop={shopHistory.length > 0 ? shopHistory[shopHistory.length - 1] : undefined}
                 useWrapper={false}
@@ -1202,7 +1199,7 @@ export function MainLayout({
                 onClose={() => {
                   // Start exit animation
                   setIsLocationDrawerClosing(true);
-                  setShowMobileCityGuide(false);
+                  closeModal('mobileCityGuide');
                   // After animation, clear location and reset closing state
                   setTimeout(() => {
                     setSelectedLocation(null);

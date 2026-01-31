@@ -1,6 +1,6 @@
 import { Location, Shop, CityArea } from '../types';
 import { deslugify } from '../utils';
-import { getCached, setCache } from './cache';
+import { getCached, setCache, getPrefetched } from './cache';
 
 export interface ApiResponse<T> {
   data: T;
@@ -34,8 +34,16 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
   }
 }
 
-// Fetch all locations directly from Strapi
+// Fetch all locations directly from Strapi (with static file fallback in dev mode)
 async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
+  // In development, try static file first for faster/more reliable loading
+  if (process.env.NODE_ENV === 'development') {
+    const staticLocations = await getPrefetched<Location[]>('locations');
+    if (staticLocations && staticLocations.length > 0) {
+      return staticLocations;
+    }
+  }
+
   try {
     const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
     const fetchOptions = {

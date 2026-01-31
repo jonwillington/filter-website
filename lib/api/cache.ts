@@ -55,6 +55,39 @@ async function loadPrefetchedData(): Promise<Map<string, unknown>> {
   return prefetchedData;
 }
 
+// Fetch from static JSON files (used in dev mode when bundled data is empty)
+async function fetchStaticData<T>(key: string): Promise<T | null> {
+  // Map keys to file names
+  const fileMap: Record<string, string> = {
+    shops: 'shops.json',
+    countries: 'countries.json',
+    'city-areas': 'city-areas.json',
+    brands: 'brands.json',
+    locations: 'locations.json',
+    regions: 'regions.json',
+  };
+
+  const fileName = fileMap[key];
+  if (!fileName) return null;
+
+  // In development, read directly from filesystem (more reliable than fetching)
+  if (typeof process !== 'undefined' && process.cwd) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const filePath = path.join(process.cwd(), 'public', 'data', fileName);
+      const fileContent = await fs.readFile(filePath, 'utf-8');
+      const data = JSON.parse(fileContent);
+      console.log(`[Cache] Loaded ${key} from static file: ${Array.isArray(data) ? data.length : 1} items`);
+      return data as T;
+    } catch (e) {
+      console.log(`[Cache] Could not load ${key} from static file:`, e);
+    }
+  }
+
+  return null;
+}
+
 // Synchronous version that returns cached result (call loadPrefetchedData first)
 function getPrefetchedSync(): Map<string, unknown> {
   return prefetchedData || new Map();
@@ -62,7 +95,23 @@ function getPrefetchedSync(): Map<string, unknown> {
 
 export async function getPrefetched<T>(key: string): Promise<T | null> {
   const data = await loadPrefetchedData();
-  return (data.get(key) as T) || null;
+  const bundled = data.get(key) as T;
+
+  console.log(`[getPrefetched] key=${key}, hasBundled=${!!bundled}, NODE_ENV=${process.env.NODE_ENV}`);
+
+  if (bundled) return bundled;
+
+  // Fallback to static JSON files (dev mode when bundled data is empty)
+  // Also try in production if bundled data is missing (placeholder module)
+  const staticData = await fetchStaticData<T>(key);
+  if (staticData) {
+    // Cache it for subsequent calls
+    data.set(key, staticData);
+    return staticData;
+  }
+
+  console.log(`[getPrefetched] No data found for ${key}`);
+  return null;
 }
 
 export function getPrefetchedImmediate<T>(key: string): T | null {

@@ -100,33 +100,46 @@ function getFlagUrl(code: string) {
   return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
 }
 
-// Find shops that use a specific supplier (or are owned by this brand)
-function useShopsUsingSupplier(supplier: Brand | CoffeePartner | null): Shop[] {
+// Find shops that use a specific supplier, separated into own shops and partner shops
+function useShopsUsingSupplier(supplier: Brand | CoffeePartner | null): {
+  ownShops: Shop[];
+  partnerShops: Shop[];
+} {
   const { data: allShops } = useShopsQuery();
 
   return useMemo(() => {
-    if (!supplier || !allShops) return [];
+    if (!supplier || !allShops) return { ownShops: [], partnerShops: [] };
 
-    return allShops.filter((shop) => {
-      // Check if shop's brand IS this brand (for brand-owned shops like WatchHouse)
+    const ownShops: Shop[] = [];
+    const partnerShops: Shop[] = [];
+
+    allShops.forEach((shop) => {
+      // Brand's own shops - shop's brand IS this brand (e.g., WatchHouse locations)
       const isOwnBrand = shop.brand?.documentId === supplier.documentId;
 
-      // Check if shop's brand has this supplier
+      if (isOwnBrand) {
+        ownShops.push(shop);
+        return;
+      }
+
+      // Partner shops - use beans but are a different brand
       const brandSuppliers = shop.brand?.suppliers ?? [];
       const hasAsSupplier = brandSuppliers.some(
         (s) => s.documentId === supplier.documentId
       );
 
-      // Check if shop's brand has this as coffee_partner
       const brandPartner = shop.brand?.coffee_partner;
       const hasAsBrandPartner = brandPartner?.documentId === supplier.documentId;
 
-      // Check if shop directly has this coffee_partner
       const shopPartner = shop.coffee_partner;
       const hasAsShopPartner = shopPartner?.documentId === supplier.documentId;
 
-      return isOwnBrand || hasAsSupplier || hasAsBrandPartner || hasAsShopPartner;
+      if (hasAsSupplier || hasAsBrandPartner || hasAsShopPartner) {
+        partnerShops.push(shop);
+      }
     });
+
+    return { ownShops, partnerShops };
   }, [supplier, allShops]);
 }
 
@@ -147,19 +160,15 @@ function formatRoastLevel(level: Bean['roastLevel']): string {
 function BeanCard({ bean }: { bean: Bean }) {
   const isBlend = bean.type === 'blend';
   const origins = bean.origins || [];
-  const flavorTags = bean.flavorTags || [];
 
   return (
     <div className="rounded-xl bg-surface hover:bg-border-default transition-colors h-full flex flex-col overflow-hidden">
-      {/* Placeholder packaging image */}
-      <div className="w-full h-24 bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30 flex items-center justify-center">
+      {/* Header with type badge */}
+      <div className="relative w-full h-24 bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30 flex items-center justify-center">
         <Coffee className="w-10 h-10 text-amber-600/40 dark:text-amber-400/30" />
-      </div>
-
-      <div className="p-3 flex-1 flex flex-col">
         {/* Type badge */}
         <span
-          className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mb-2 w-fit ${
+          className={`absolute bottom-2 left-3 px-2 py-0.5 text-xs font-medium rounded-full ${
             isBlend
               ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
               : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
@@ -167,75 +176,40 @@ function BeanCard({ bean }: { bean: Bean }) {
         >
           {isBlend ? 'Blend' : 'Single Origin'}
         </span>
+      </div>
 
+      <div className="p-4 flex-1 flex flex-col">
         {/* Bean name */}
         <h4 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{bean.name}</h4>
 
-      {/* Roast level */}
-      {bean.roastLevel && (
-        <p className="text-xs text-text-secondary mb-2">
-          {formatRoastLevel(bean.roastLevel)} roast
-        </p>
-      )}
+        {/* Short description */}
+        {bean.shortDescription && (
+          <p className="text-xs text-text-secondary mb-2 line-clamp-2">
+            {bean.shortDescription}
+          </p>
+        )}
 
-      {/* Origins with flags */}
-      {origins.length > 0 && (
-        <div className="flex items-center gap-1 mb-2 flex-wrap">
-          {origins.slice(0, 2).map((origin) => (
-            <div
-              key={origin.documentId}
-              className="flex items-center gap-1 text-xs text-text-secondary"
-            >
-              <img
-                src={getFlagUrl(origin.code)}
-                alt={origin.name}
-                className="w-3 h-3 rounded-full"
-              />
-              <span>{origin.name}</span>
+        {/* Bottom section - always at bottom */}
+        <div className="mt-auto pt-2">
+          {/* Origin chips */}
+          {origins.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {origins.slice(0, 2).map((origin) => (
+                <span
+                  key={origin.documentId}
+                  className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300"
+                >
+                  {origin.name}
+                </span>
+              ))}
+              {origins.length > 2 && (
+                <span className="px-1.5 py-0.5 text-xs text-text-secondary">
+                  +{origins.length - 2}
+                </span>
+              )}
             </div>
-          ))}
-          {origins.length > 2 && (
-            <span className="text-xs text-text-secondary">
-              +{origins.length - 2}
-            </span>
           )}
         </div>
-      )}
-
-      {/* Bottom section - always at bottom */}
-      <div className="mt-auto pt-2">
-        {/* Flavor tags */}
-        {flavorTags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {flavorTags.slice(0, 2).map((tag) => (
-              <span
-                key={tag.documentId}
-                className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300 capitalize"
-              >
-                {tag.name}
-              </span>
-            ))}
-            {flavorTags.length > 2 && (
-              <span className="px-1.5 py-0.5 text-xs text-text-secondary">
-                +{flavorTags.length - 2}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Learn more link */}
-        {bean.learnMoreUrl && (
-          <a
-            href={bean.learnMoreUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-2 text-xs text-accent hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Learn more <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-      </div>
       </div>
     </div>
   );
@@ -246,7 +220,7 @@ function BeanCardSkeleton() {
   return (
     <div className="rounded-xl bg-surface overflow-hidden">
       <Skeleton className="w-full h-24" />
-      <div className="p-3">
+      <div className="p-4">
         <Skeleton className="w-16 h-5 rounded-full mb-2" />
         <Skeleton className="w-3/4 h-4 rounded mb-1" />
         <Skeleton className="w-1/2 h-3 rounded mb-2" />
@@ -263,6 +237,10 @@ function BeanCardSkeleton() {
 function ShopCard({ shop, onClick }: { shop: Shop; onClick: () => void }) {
   const imageUrl = getMediaUrl(shop.featured_image);
   const displayName = getShopDisplayName(shop);
+  const brandLogoUrl = getMediaUrl(shop.brand?.logo);
+  const cityArea = shop.city_area?.name;
+  const location = shop.location?.name;
+  const locationText = [cityArea, location].filter(Boolean).join(', ');
 
   return (
     <button
@@ -283,16 +261,28 @@ function ShopCard({ shop, onClick }: { shop: Shop; onClick: () => void }) {
               <MapPin className="w-5 h-5 text-text-secondary" />
             </div>
           )}
+          {/* Brand logo */}
+          {brandLogoUrl && (
+            <div className="absolute bottom-2 left-3.5">
+              <Avatar
+                src={brandLogoUrl}
+                name={shop.brand?.name}
+                className="w-6 h-6 ring-2 ring-white/80 shadow-sm"
+                showFallback
+                fallback={<Coffee className="w-3 h-3" />}
+              />
+            </div>
+          )}
         </div>
 
         {/* Content */}
-        <div className="p-2.5 flex-1 flex flex-col">
+        <div className="p-3.5 flex-1 flex flex-col">
           <p className="text-sm font-medium text-primary line-clamp-2 mb-0.5">
             {displayName}
           </p>
-          {shop.location?.name && (
+          {locationText && (
             <p className="text-xs text-text-secondary line-clamp-1 mt-auto">
-              {shop.location.name}
+              {locationText}
             </p>
           )}
         </div>
@@ -301,13 +291,35 @@ function ShopCard({ shop, onClick }: { shop: Shop; onClick: () => void }) {
   );
 }
 
-// Beans section component with grid layout
+// Bean filter type
+type BeanFilter = 'all' | 'blend' | 'single-origin';
+
+// Beans section component with grid layout and filter chips
 function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
   const { data: beans, isLoading, isError, refetch } = useBeansByBrand(brandDocumentId);
+  const [filter, setFilter] = useState<BeanFilter>('all');
+  const [expanded, setExpanded] = useState(false);
+
+  // Filter beans based on selected type
+  const filteredBeans = useMemo(() => {
+    if (!beans) return [];
+    if (filter === 'all') return beans;
+    if (filter === 'blend') return beans.filter(b => b.type === 'blend');
+    return beans.filter(b => b.type !== 'blend'); // single-origin
+  }, [beans, filter]);
+
+  // Limit to 2 rows (8 items at lg:4 cols) unless expanded
+  const MAX_VISIBLE = 8;
+  const displayedBeans = expanded ? filteredBeans : filteredBeans.slice(0, MAX_VISIBLE);
+  const hasMore = filteredBeans.length > MAX_VISIBLE;
+
+  // Count beans by type for chip labels
+  const blendsCount = useMemo(() => beans?.filter(b => b.type === 'blend').length ?? 0, [beans]);
+  const singleOriginsCount = useMemo(() => beans?.filter(b => b.type !== 'blend').length ?? 0, [beans]);
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <BeanCardSkeleton />
         <BeanCardSkeleton />
         <BeanCardSkeleton />
@@ -346,16 +358,67 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      {beans.map((bean) => (
-        <BeanCard key={bean.documentId} bean={bean} />
-      ))}
+    <div className="space-y-4">
+      {/* Filter chips */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            filter === 'all'
+              ? 'bg-contrastBlock text-contrastText'
+              : 'bg-surface text-text-secondary hover:bg-border-default'
+          }`}
+        >
+          All
+        </button>
+        {singleOriginsCount > 0 && (
+          <button
+            onClick={() => setFilter('single-origin')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              filter === 'single-origin'
+                ? 'bg-contrastBlock text-contrastText'
+                : 'bg-surface text-text-secondary hover:bg-border-default'
+            }`}
+          >
+            Single Origin
+          </button>
+        )}
+        {blendsCount > 0 && (
+          <button
+            onClick={() => setFilter('blend')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              filter === 'blend'
+                ? 'bg-contrastBlock text-contrastText'
+                : 'bg-surface text-text-secondary hover:bg-border-default'
+            }`}
+          >
+            Blend
+          </button>
+        )}
+      </div>
+
+      {/* Beans grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {displayedBeans.map((bean) => (
+          <BeanCard key={bean.documentId} bean={bean} />
+        ))}
+      </div>
+
+      {/* View more/less button */}
+      {hasMore && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-sm text-text-secondary hover:text-primary transition-colors"
+        >
+          {expanded ? 'View less' : `View all ${filteredBeans.length} beans`}
+        </button>
+      )}
     </div>
   );
 }
 
 export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: SupplierModalProps) {
-  const shopsUsingSupplier = useShopsUsingSupplier(supplier);
+  const { ownShops, partnerShops } = useShopsUsingSupplier(supplier);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
 
@@ -451,7 +514,7 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
 
           {/* Hero Header */}
           <div className="relative">
-            <div className="h-48 lg:h-56 overflow-hidden bg-surface rounded-t-2xl">
+            <div className="h-48 lg:h-56 overflow-hidden bg-surface">
               {bgImageUrl ? (
                 <img
                   src={bgImageUrl}
@@ -479,19 +542,19 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
             )}
 
             {/* Logo and brand info at bottom of hero */}
-            <div className="absolute bottom-0 left-0 right-0 px-6 pb-4 pt-5">
-              <div className="flex items-end gap-4">
+            <div className="absolute bottom-0 left-0 right-0 px-6 pb-5 pt-5">
+              <div className="flex flex-col gap-3">
                 {/* Logo */}
                 <Avatar
                   src={logoUrl || undefined}
                   name={supplier.name}
-                  className="w-16 h-16 lg:w-20 lg:h-20 ring-4 ring-white/20 shadow-lg flex-shrink-0"
+                  className="w-14 h-14 lg:w-16 lg:h-16 ring-4 ring-white/20 shadow-lg"
                   showFallback
-                  fallback={<BeanIcon className="w-6 h-6 lg:w-8 lg:h-8" />}
+                  fallback={<BeanIcon className="w-5 h-5 lg:w-6 lg:h-6" />}
                 />
                 {/* Brand name and metadata */}
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl lg:text-2xl font-display text-white mb-1 drop-shadow-lg">
+                <div>
+                  <h2 className="text-3xl lg:text-4xl font-bold text-white mb-1 drop-shadow-lg">
                     {supplier.name}
                   </h2>
                   <p className="text-sm text-white/80 drop-shadow">
@@ -507,10 +570,10 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
           </div>
 
           {/* Content sections */}
-          <div className="px-6 py-6">
+          <div className="px-6 py-8">
             {/* Story Section - Full width */}
             {hasStory && (
-              <div className="mb-8">
+              <div className="mb-10">
                 <p className="text-base text-primary leading-relaxed max-w-prose">
                   {supplier.story}
                 </p>
@@ -519,7 +582,7 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
 
             {/* Social Links - Inline text style */}
             {hasSocials && (
-              <div className="flex items-center gap-4 text-sm text-text-secondary mb-8">
+              <div className="flex items-center gap-4 text-sm text-text-secondary mb-12">
                 {hasInstagram && (
                   <a
                     href={getInstagramUrl(supplier.instagram!)}
@@ -558,22 +621,36 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
 
             {/* Beans Section */}
             {showBeansSection && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-primary mb-3">
+              <div className="mb-12">
+                <h3 className="text-lg font-semibold text-primary mb-4">
                   Beans
                 </h3>
                 <BeansSection brandDocumentId={supplier.documentId} />
               </div>
             )}
 
-            {/* Shops Section */}
-            {shopsUsingSupplier.length > 0 && (
+            {/* Brand's Own Shops */}
+            {ownShops.length > 0 && (
+              <div className="mb-12">
+                <h3 className="text-lg font-semibold text-primary mb-4">
+                  {supplier.name} Locations
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {ownShops.map((shop) => (
+                    <ShopCard key={shop.documentId} shop={shop} onClick={() => handleShopClick(shop)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Partner Cafés */}
+            {partnerShops.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold text-primary mb-3">
+                <h3 className="text-lg font-semibold text-primary mb-4">
                   Cafés Serving Their Beans
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {shopsUsingSupplier.map((shop) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {partnerShops.map((shop) => (
                     <ShopCard key={shop.documentId} shop={shop} onClick={() => handleShopClick(shop)} />
                   ))}
                 </div>

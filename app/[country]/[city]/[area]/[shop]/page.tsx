@@ -10,6 +10,9 @@ import { slugify, getMediaUrl } from '@/lib/utils';
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
 
+// Allow dynamic params that aren't pre-generated
+export const dynamicParams = true;
+
 // Pre-render all shop pages at build time
 export async function generateStaticParams() {
   const allShops = await getAllShops();

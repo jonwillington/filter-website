@@ -336,7 +336,7 @@ export function Sidebar({
           />
         ) : (
           <div className="p-3">
-            <div className="bg-surface-warm rounded-2xl overflow-hidden">
+            <div className="rounded-2xl overflow-hidden">
               <ShopList
                 shops={shops}
                 selectedShop={selectedShop}

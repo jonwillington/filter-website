@@ -20,18 +20,20 @@ interface SupplierCardProps {
 
 function SupplierCard({ supplier, onClick }: SupplierCardProps) {
   const logoUrl = getMediaUrl(supplier.logo);
+  const shortDescription = supplier.description;
+  const country = supplier.country;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
+      className="w-full flex items-start gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
     >
       <Avatar
         src={logoUrl || undefined}
         name={supplier.name}
         size="sm"
-        className="flex-shrink-0"
+        className="flex-shrink-0 mt-0.5"
         showFallback
         fallback={<Bean className="w-4 h-4" />}
       />
@@ -40,8 +42,16 @@ function SupplierCard({ supplier, onClick }: SupplierCardProps) {
           Beans from
         </p>
         <p className="text-sm font-medium text-text truncate">{supplier.name}</p>
+        {shortDescription && (
+          <p className="text-xs text-text-secondary mt-1 line-clamp-2">{shortDescription}</p>
+        )}
+        {country && (
+          <div className="mt-2">
+            <CountryChip code={country.code} name={country.name} />
+          </div>
+        )}
       </div>
-      <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
     </button>
   );
 }
@@ -53,18 +63,20 @@ interface PartnerCardProps {
 
 function PartnerCard({ partner, onClick }: PartnerCardProps) {
   const logoUrl = getMediaUrl(partner.logo);
+  const shortDescription = partner.story;
+  const country = partner.country;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-2 -mx-2 rounded-lg transition-colors hover:bg-surface cursor-pointer text-left group"
+      className="w-full flex items-start gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
     >
       <Avatar
         src={logoUrl || undefined}
         name={partner.name}
         size="sm"
-        className="flex-shrink-0"
+        className="flex-shrink-0 mt-0.5"
         showFallback
         fallback={<Bean className="w-4 h-4" />}
       />
@@ -73,8 +85,16 @@ function PartnerCard({ partner, onClick }: PartnerCardProps) {
           Beans from
         </p>
         <p className="text-sm font-medium text-text truncate">{partner.name}</p>
+        {shortDescription && (
+          <p className="text-xs text-text-secondary mt-1 line-clamp-2">{shortDescription}</p>
+        )}
+        {country && (
+          <div className="mt-2">
+            <CountryChip code={country.code} name={country.name} />
+          </div>
+        )}
       </div>
-      <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
     </button>
   );
 }
@@ -116,9 +136,13 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
         Roasting
       </h3>
 
-      {/* In-house roasting badge */}
+      {/* In-house roasting badge - clickable to open brand modal */}
       {hasInHouseRoast && brand && (
-        <div className="flex items-center gap-3 py-3">
+        <button
+          type="button"
+          onClick={() => handleSupplierClick(brand)}
+          className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
+        >
           <Avatar
             src={getMediaUrl(brand.logo) || undefined}
             name={brand.name}
@@ -136,16 +160,8 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
               </span>
             </p>
           </div>
-          {/* Learn more button - opens brand as roaster profile */}
-          <button
-            type="button"
-            onClick={() => handleSupplierClick(brand)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent hover:bg-surface rounded-lg transition-colors flex-shrink-0"
-          >
-            Learn more
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+          <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+        </button>
       )}
 
       {/* Suppliers (Brand objects) */}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import mapboxgl, { MapSourceDataEvent, MapLayerMouseEvent } from 'mapbox-gl';
 import { Shop } from '../types';
 import {
@@ -21,6 +21,7 @@ export interface UseMapClusteringOptions {
   onShopSelect: (shop: Shop) => void;
   onTransitionComplete?: () => void;
   isLoading: boolean;
+  expandedCityAreaId?: string | null;
 }
 
 /**
@@ -40,6 +41,7 @@ export function useMapClustering({
   onShopSelect,
   onTransitionComplete,
   isLoading,
+  expandedCityAreaId = null,
 }: UseMapClusteringOptions): void {
   // Refs for logo badges and state tracking
   const logoBadges = useRef<Map<string, mapboxgl.Marker>>(new Map());
@@ -50,6 +52,7 @@ export function useMapClustering({
   const hasCalledTransitionComplete = useRef<boolean>(false);
   const wasAboveZoomThreshold = useRef(getZoomBracket(currentZoom));
   const previousShopIdsRef = useRef<string>('');
+  const previousCityAreaIdRef = useRef<string | null>(null);
   const badgeShowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProgrammaticMove = useRef<boolean>(false);
 
@@ -61,6 +64,19 @@ export function useMapClustering({
     onShopSelectRef.current = onShopSelect;
     onTransitionCompleteRef.current = onTransitionComplete;
   }, [onShopSelect, onTransitionComplete]);
+
+  // Memoize shop IDs string to detect actual data changes (not just reference changes)
+  // This prevents the clustering effect from re-running when shops array reference
+  // changes but the actual shop data is identical
+  const shopIdsString = useMemo(() => {
+    return shops.map(s => s.documentId).sort().join(',');
+  }, [shops]);
+
+  // Keep a stable reference to shops array when IDs haven't changed
+  const shopsRef = useRef(shops);
+  useEffect(() => {
+    shopsRef.current = shops;
+  }, [shops]);
 
   // Track loading state changes
   useEffect(() => {
@@ -75,15 +91,20 @@ export function useMapClustering({
 
   // Setup clustering source and layers
   // IMPORTANT: This effect depends on mapReady to ensure it runs AFTER the map is initialized
+  // Using shopIdsString instead of shops array prevents re-runs when only the reference changes
   useEffect(() => {
     if (!map || !mapReady) return;
 
-    // Check if shops actually changed (by IDs, not reference)
-    const currentShopIds = shops.map(s => s.documentId).sort().join(',');
-    const shopsChanged = currentShopIds !== previousShopIdsRef.current;
-    previousShopIdsRef.current = currentShopIds;
+    // Get current shops from ref (updated separately via useEffect above)
+    const currentShops = shopsRef.current;
 
-    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'badgeCount:', logoBadges.current.size);
+    // Check if shops actually changed (by IDs, not reference)
+    const shopsChanged = shopIdsString !== previousShopIdsRef.current;
+    const cityAreaChanged = expandedCityAreaId !== previousCityAreaIdRef.current;
+    previousShopIdsRef.current = shopIdsString;
+    previousCityAreaIdRef.current = expandedCityAreaId;
+
+    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'cityAreaChanged:', cityAreaChanged, 'badgeCount:', logoBadges.current.size);
 
     const m = map;
 
@@ -94,21 +115,23 @@ export function useMapClustering({
         return;
       }
 
-      // Only recreate layers/badges if shops actually changed or first run
+      // Only recreate layers/badges if shops actually changed, city area changed, or first run
       const sourceExists = !!m.getSource('shops');
-      const needsRecreation = shopsChanged || !sourceExists;
+      const needsRecreation = shopsChanged || cityAreaChanged || !sourceExists;
 
-      console.log('[setupClustering] sourceExists:', sourceExists, 'needsRecreation:', needsRecreation);
+      console.log('[setupClustering] sourceExists:', sourceExists, 'needsRecreation:', needsRecreation, 'expandedCityAreaId:', expandedCityAreaId);
 
       if (needsRecreation) {
-        console.log('[Clustering] Setting up with', shops.length, 'shops');
+        console.log('[Clustering] Setting up with', currentShops.length, 'shops');
 
         // Remove existing source and layers if they exist
         try {
           if (m.getLayer('cluster-count')) m.removeLayer('cluster-count');
           if (m.getLayer('unclustered-point')) m.removeLayer('unclustered-point');
           if (m.getLayer('clusters')) m.removeLayer('clusters');
+          if (m.getLayer('city-area-points')) m.removeLayer('city-area-points');
           if (m.getSource('shops')) m.removeSource('shops');
+          if (m.getSource('city-area-shops')) m.removeSource('city-area-shops');
         } catch (e) {
           console.warn('Error removing existing layers:', e);
         }
@@ -122,9 +145,24 @@ export function useMapClustering({
 
       // Only create layers if shops actually changed
       if (needsRecreation) {
-        // Create GeoJSON from displayed shops with country color
-        const features: GeoJSON.Feature[] = [];
-        shops.forEach((shop) => {
+        // Split shops: city area shops (unclustered) vs other shops (clustered)
+        const cityAreaShops: Shop[] = [];
+        const otherShops: Shop[] = [];
+
+        currentShops.forEach((shop) => {
+          const shopCityAreaId = shop.city_area?.documentId || shop.cityArea?.documentId;
+          if (expandedCityAreaId && shopCityAreaId === expandedCityAreaId) {
+            cityAreaShops.push(shop);
+          } else {
+            otherShops.push(shop);
+          }
+        });
+
+        console.log('[Clustering] Split shops - cityArea:', cityAreaShops.length, 'other:', otherShops.length);
+
+        // Create GeoJSON for clustered shops (not in expanded city area)
+        const clusteredFeatures: GeoJSON.Feature[] = [];
+        otherShops.forEach((shop) => {
           const coords = getShopCoords(shop);
           if (!coords) return;
 
@@ -133,7 +171,7 @@ export function useMapClustering({
             shop.city_area?.location?.country?.primaryColor ||
             '#8B6F47';
 
-          features.push({
+          clusteredFeatures.push({
             type: 'Feature',
             properties: {
               id: shop.documentId,
@@ -146,18 +184,47 @@ export function useMapClustering({
           });
         });
 
-        const geojson: GeoJSON.FeatureCollection = {
+        // Create GeoJSON for city area shops (unclustered)
+        const cityAreaFeatures: GeoJSON.Feature[] = [];
+        cityAreaShops.forEach((shop) => {
+          const coords = getShopCoords(shop);
+          if (!coords) return;
+
+          const countryColor =
+            shop.location?.country?.primaryColor ||
+            shop.city_area?.location?.country?.primaryColor ||
+            '#8B6F47';
+
+          cityAreaFeatures.push({
+            type: 'Feature',
+            properties: {
+              id: shop.documentId,
+              countryColor: countryColor,
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: coords,
+            },
+          });
+        });
+
+        const clusteredGeojson: GeoJSON.FeatureCollection = {
           type: 'FeatureCollection',
-          features,
+          features: clusteredFeatures,
         };
 
-        console.log('[Clustering] Created GeoJSON with', features.length, 'features');
+        const cityAreaGeojson: GeoJSON.FeatureCollection = {
+          type: 'FeatureCollection',
+          features: cityAreaFeatures,
+        };
+
+        console.log('[Clustering] Created GeoJSON - clustered:', clusteredFeatures.length, 'cityArea:', cityAreaFeatures.length);
 
         // Add clustered source with industry-standard configuration
         try {
           m.addSource('shops', {
             type: 'geojson',
-            data: geojson,
+            data: clusteredGeojson,
             cluster: true,
             clusterRadius: CLUSTER_RADIUS,
             clusterMaxZoom: CLUSTER_MAX_ZOOM,
@@ -165,6 +232,15 @@ export function useMapClustering({
               clusterColor: ['coalesce', ['get', 'countryColor'], '#8B6F47'],
             },
           });
+
+          // Add unclustered source for city area shops
+          if (cityAreaFeatures.length > 0) {
+            m.addSource('city-area-shops', {
+              type: 'geojson',
+              data: cityAreaGeojson,
+              cluster: false,
+            });
+          }
 
           // Add cluster circle layer with dynamic country colors and zoom-based sizing
           // Clusters should always be larger than individual markers at each zoom level
@@ -265,11 +341,76 @@ export function useMapClustering({
                 11, 0.9,
                 13, 0.9,
                 14, 0.9,
-                // Stay visible at high zoom
-                18, 0.9,
+                // Fade out when logo badges appear (zoom 15+)
+                14.5, 0.6,
+                15, 0,
+              ],
+              'circle-stroke-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                14, 1,
+                14.5, 0.6,
+                15, 0,
               ],
             },
           });
+
+          // Add city area points layer (unclustered, for expanded city area)
+          if (m.getSource('city-area-shops')) {
+            m.addLayer({
+              id: 'city-area-points',
+              type: 'circle',
+              source: 'city-area-shops',
+              paint: {
+                'circle-color': ['coalesce', ['get', 'countryColor'], '#8B6F47'],
+                'circle-radius': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  0, 4,
+                  3, 5,
+                  4, 6,
+                  5, 8,
+                  9, 10,
+                  12, 11,
+                  14, 12,
+                  16, 14,
+                  18, 16,
+                ],
+                'circle-stroke-width': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  0, 1.5,
+                  5, 2,
+                  12, 2,
+                  14, 2.5,
+                  16, 3,
+                ],
+                'circle-stroke-color': '#fff',
+                'circle-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  0, 0.75,
+                  5, 0.9,
+                  14, 0.9,
+                  // Fade out when logo badges appear (zoom 15+)
+                  14.5, 0.6,
+                  15, 0,
+                ],
+                'circle-stroke-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  14, 1,
+                  14.5, 0.6,
+                  15, 0,
+                ],
+              },
+            });
+          }
 
           // Add cluster count label
           m.addLayer({
@@ -365,7 +506,7 @@ export function useMapClustering({
         if (!features.length) return;
 
         const shopId = features[0].properties?.id;
-        const shop = shops.find((s) => s.documentId === shopId);
+        const shop = shopsRef.current.find((s) => s.documentId === shopId);
         if (shop) {
           // Mark as programmatic move so badges stay visible
           isProgrammaticMove.current = true;
@@ -392,6 +533,39 @@ export function useMapClustering({
         m.getCanvas().style.cursor = '';
       };
 
+      // Click on city area point to select the shop
+      const handleCityAreaClick = (e: MapLayerMouseEvent) => {
+        const features = m.queryRenderedFeatures(e.point, {
+          layers: ['city-area-points'],
+        });
+        if (!features.length) return;
+
+        const shopId = features[0].properties?.id;
+        const shop = shopsRef.current.find((s) => s.documentId === shopId);
+        if (shop) {
+          isProgrammaticMove.current = true;
+          onShopSelectRef.current(shop);
+          const geometry = features[0].geometry as GeoJSON.Point;
+          const currentMapZoom = m.getZoom();
+          const targetZoom = Math.max(currentMapZoom, 14);
+          m.flyTo({
+            center: geometry.coordinates as [number, number],
+            zoom: targetZoom,
+            duration: currentMapZoom >= 14 ? 800 : 1200,
+            padding: { left: 200, right: 0, top: 0, bottom: 0 },
+            essential: true,
+            easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+          });
+        }
+      };
+
+      const handleCityAreaEnter = () => {
+        m.getCanvas().style.cursor = 'pointer';
+      };
+      const handleCityAreaLeave = () => {
+        m.getCanvas().style.cursor = '';
+      };
+
       // Add layer event listeners (only if layers exist)
       if (m.getLayer('clusters')) {
         m.on('click', 'clusters', handleClusterClick);
@@ -403,11 +577,17 @@ export function useMapClustering({
         m.on('mouseenter', 'unclustered-point', handleUnclusteredEnter);
         m.on('mouseleave', 'unclustered-point', handleUnclusteredLeave);
       }
+      if (m.getLayer('city-area-points')) {
+        m.on('click', 'city-area-points', handleCityAreaClick);
+        m.on('mouseenter', 'city-area-points', handleCityAreaEnter);
+        m.on('mouseleave', 'city-area-points', handleCityAreaLeave);
+      }
 
       // Track whether badges have been created yet (lazy creation)
       let badgesCreated = false;
 
       // Update logo badge visibility based on zoom and movement state
+      // Uses CSS class toggling for GPU-accelerated transitions instead of JS-driven opacity
       const updateBadgeVisibility = (forceHide: boolean = false) => {
         const currentMapZoom = m.getZoom();
         const shouldShow = !forceHide && currentMapZoom >= LOGO_BADGE_ZOOM && !isZooming.current && !isDragging.current;
@@ -431,32 +611,19 @@ export function useMapClustering({
           badgeShowTimeoutRef.current = setTimeout(() => {
             logoBadges.current.forEach((marker) => {
               const el = marker.getElement();
-              // First make visible but transparent
-              el.style.display = '';
-              el.style.opacity = '0';
-              el.style.pointerEvents = '';
               // Lazy load the logo image when badge becomes visible
               loadLogoBadgeImage(el);
-              // Then fade in after a frame (allows CSS transition to work)
-              requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                  el.style.opacity = '1';
-                });
-              });
+              // Use CSS class for GPU-accelerated transition
+              el.classList.remove('badge-hidden');
+              el.classList.add('badge-visible');
             });
           }, delay);
         } else {
-          // Fade out gracefully
+          // Use CSS class for smooth fade out
           logoBadges.current.forEach((marker) => {
             const el = marker.getElement();
-            el.style.opacity = '0';
-            el.style.pointerEvents = 'none';
-            // Hide after fade out transition completes (matches 0.5s CSS transition)
-            setTimeout(() => {
-              if (el.style.opacity === '0') {
-                el.style.display = 'none';
-              }
-            }, 500);
+            el.classList.remove('badge-visible');
+            el.classList.add('badge-hidden');
           });
         }
       };
@@ -467,7 +634,7 @@ export function useMapClustering({
         const existingCount = logoBadges.current.size;
         let createdCount = 0;
 
-        shops.forEach((shop) => {
+        shopsRef.current.forEach((shop) => {
           const id = shop.documentId;
           const coords = getShopCoords(shop);
           if (!coords) return;
@@ -484,8 +651,8 @@ export function useMapClustering({
           if (!el) return;
           createdCount++;
 
-          el.style.display = 'none';
-          el.style.opacity = '0';
+          // Add CSS class for styling and start hidden
+          el.classList.add('logo-badge', 'badge-hidden');
 
           const marker = new mapboxgl.Marker({
             element: el,
@@ -519,12 +686,11 @@ export function useMapClustering({
             clearTimeout(badgeShowTimeoutRef.current);
             badgeShowTimeoutRef.current = null;
           }
-          // Hide immediately
+          // Hide immediately using CSS class
           logoBadges.current.forEach((marker) => {
             const el = marker.getElement();
-            el.style.opacity = '0';
-            el.style.pointerEvents = 'none';
-            el.style.display = 'none';
+            el.classList.remove('badge-visible');
+            el.classList.add('badge-hidden');
           });
         }
       };
@@ -649,6 +815,11 @@ export function useMapClustering({
           m.off('mouseenter', 'unclustered-point', handleUnclusteredEnter);
           m.off('mouseleave', 'unclustered-point', handleUnclusteredLeave);
         }
+        if (m.getLayer('city-area-points')) {
+          m.off('click', 'city-area-points', handleCityAreaClick);
+          m.off('mouseenter', 'city-area-points', handleCityAreaEnter);
+          m.off('mouseleave', 'city-area-points', handleCityAreaLeave);
+        }
       };
     };
 
@@ -682,7 +853,7 @@ export function useMapClustering({
       // Note: Don't remove layers here - they should persist until setupClustering
       // runs again with new data. Removing them here causes a flash.
     };
-  }, [shops, mapReady, map, effectiveTheme]);
+  }, [shopIdsString, mapReady, map, effectiveTheme, expandedCityAreaId]);
 
   // Update selected logo badge styling
   useEffect(() => {
@@ -690,21 +861,16 @@ export function useMapClustering({
 
     const selectedId = selectedShop?.documentId || null;
 
-    // Update all badges - selected one gets highlight, others get grayscale
+    // Update all badges - selected one gets highlight
     logoBadges.current.forEach((marker, id) => {
       const el = marker.getElement();
       const isSelected = id === selectedId;
 
       updateLogoBadgeStyle(el, isSelected);
 
-      // Apply grayscale to non-selected badges when something is selected
-      if (selectedId) {
-        el.style.filter = isSelected ? 'none' : 'grayscale(1)';
-        el.style.opacity = isSelected ? '1' : '0.7';
-      } else {
-        el.style.filter = 'none';
-        el.style.opacity = '1';
-      }
+      // Keep all badges at full opacity, no grayscale
+      el.style.filter = 'none';
+      el.style.opacity = '1';
     });
 
     selectedMarkerRef.current = selectedId;

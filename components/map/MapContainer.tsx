@@ -124,6 +124,7 @@ export function MapContainer({
     onShopSelect,
     onTransitionComplete,
     isLoading,
+    expandedCityAreaId,
   });
 
   // Show user's GPS location on the map
