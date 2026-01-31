@@ -9,3 +9,6 @@ export * from './shop-sections';
 
 // Shared components
 export * from './shared';
+
+// Inline components (for left panel layout)
+export { ShopDetailInline } from './ShopDetailInline';

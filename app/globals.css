@@ -94,7 +94,7 @@ h1, h2 {
   font-weight: 500;
 }
 
-/* Main Layout */
+/* Main Layout - Desktop uses CSS Grid for 33%/66% split */
 .main-layout {
   position: fixed;
   left: 0;
@@ -107,11 +107,71 @@ h1, h2 {
   padding-bottom: 48px;
 }
 
+/* Desktop: grid layout with fixed-width left panel and flexible map */
+@media (min-width: 1024px) {
+  .main-layout {
+    display: grid;
+    grid-template-columns: 480px 1fr;
+  }
+}
+
 .main-layout.drawer-open {
   /* No grid changes needed - drawers float on top */
 }
 
-/* Sidebar */
+/* Left Panel - Desktop only (33% column) */
+.left-panel {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--background);
+    overflow: hidden;
+    z-index: 100;
+    border-right: 1px solid var(--border);
+  }
+
+  .left-panel-header {
+    flex-shrink: 0;
+  }
+
+  .left-panel-controls {
+    flex-shrink: 0;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .left-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    min-height: 0;
+  }
+
+  .left-panel-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .left-panel-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .left-panel-content::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  .left-panel-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+  }
+}
+
+/* Sidebar - hidden on desktop (replaced by left-panel), visible on mobile */
 .sidebar {
   position: fixed;
   left: 20px;
@@ -127,6 +187,13 @@ h1, h2 {
   z-index: 1000;
   overflow: hidden;
   backdrop-filter: blur(20px);
+}
+
+/* Hide traditional floating sidebar on desktop - use left-panel instead */
+@media (min-width: 1024px) {
+  .sidebar {
+    display: none;
+  }
 }
 
 .dark .sidebar {
@@ -287,7 +354,7 @@ h1, h2 {
   will-change: background-color, background-image;
 }
 
-/* Shop Drawer */
+/* Shop Drawer - hidden on desktop (content shows inline in left panel) */
 .shop-drawer {
   position: fixed;
   right: 20px;
@@ -306,6 +373,13 @@ h1, h2 {
   scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
+}
+
+/* Hide shop drawer on desktop - content shows inline in left panel */
+@media (min-width: 1024px) {
+  .shop-drawer {
+    display: none;
+  }
 }
 
 .shop-drawer::-webkit-scrollbar {
@@ -397,6 +471,41 @@ h1, h2 {
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out both;
+}
+
+/* Shop card stagger animation */
+@keyframes shopSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shop-card-animate {
+  animation: shopSlideIn 0.3s ease-out both;
+}
+
+/* Left panel content transitions */
+.left-panel-fade-enter {
+  opacity: 0;
+}
+
+.left-panel-fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease-out;
+}
+
+.left-panel-fade-exit {
+  opacity: 1;
+}
+
+.left-panel-fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
 }
 
 .stagger-fade-in > *:not(hr):not([role="separator"]) {
@@ -653,6 +762,17 @@ h1, h2 {
 /* When drawer is not open */
 .main-layout:not(.drawer-open) .mapboxgl-ctrl-top-right {
   right: 20px !important;
+}
+
+/* Desktop: map controls always on the right side of the 66% map area */
+@media (min-width: 1024px) {
+  .mapboxgl-ctrl-top-right {
+    right: 20px !important;
+  }
+
+  .mapboxgl-ctrl-bottom-right {
+    right: 20px !important;
+  }
 }
 
 /* Loading skeleton */

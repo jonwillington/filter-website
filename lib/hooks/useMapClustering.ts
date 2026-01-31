@@ -220,6 +220,10 @@ export function useMapClustering({
 
         console.log('[Clustering] Created GeoJSON - clustered:', clusteredFeatures.length, 'cityArea:', cityAreaFeatures.length);
 
+        // Opacity for shops outside the focused city area (hidden when area is expanded)
+        const outsideAreaOpacity = expandedCityAreaId ? 0 : 0.9;
+        const outsideAreaStrokeOpacity = expandedCityAreaId ? 0 : 1;
+
         // Add clustered source with industry-standard configuration
         try {
           m.addSource('shops', {
@@ -279,19 +283,8 @@ export function useMapClustering({
                 16, 1.5,
               ],
               'circle-stroke-color': '#fff',
-              'circle-opacity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                0, 0.75,
-                4, 0.85,
-                5, 0.9,
-                11, 0.9,
-                13, 0.85,
-                14, 0.9,
-                // Stay visible at high zoom
-                18, 0.9,
-              ],
+              'circle-opacity': outsideAreaOpacity,
+              'circle-stroke-opacity': outsideAreaStrokeOpacity,
               'circle-color-transition': { duration: 0 },
               'circle-radius-transition': { duration: 0 },
               'circle-stroke-width-transition': { duration: 0 },
@@ -332,27 +325,31 @@ export function useMapClustering({
                 16, 3,
               ],
               'circle-stroke-color': '#fff',
-              'circle-opacity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                0, 0.75,
-                5, 0.9,
-                11, 0.9,
-                13, 0.9,
-                14, 0.9,
-                // Fade out when logo badges appear (zoom 15+)
-                14.5, 0.6,
-                15, 0,
-              ],
-              'circle-stroke-opacity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                14, 1,
-                14.5, 0.6,
-                15, 0,
-              ],
+              'circle-opacity': expandedCityAreaId
+                ? outsideAreaOpacity
+                : [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    0, 0.75,
+                    5, 0.9,
+                    11, 0.9,
+                    13, 0.9,
+                    14, 0.9,
+                    // Fade out when logo badges appear (zoom 15+)
+                    14.5, 0.6,
+                    15, 0,
+                  ],
+              'circle-stroke-opacity': expandedCityAreaId
+                ? outsideAreaStrokeOpacity
+                : [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, 1,
+                    14.5, 0.6,
+                    15, 0,
+                  ],
             },
           });
 
@@ -438,18 +435,20 @@ export function useMapClustering({
             },
             paint: {
               'text-color': '#ffffff',
-              'text-opacity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                0, 0,
-                4, 0,
-                5, 1,
-                11, 1,
-                13, 0.9,
-                14, 0.5,
-                15, 0,
-              ],
+              'text-opacity': expandedCityAreaId
+                ? outsideAreaOpacity
+                : [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    0, 0,
+                    4, 0,
+                    5, 1,
+                    11, 1,
+                    13, 0.9,
+                    14, 0.5,
+                    15, 0,
+                  ],
             },
           });
           console.log('[Clustering] Layers added successfully');
@@ -653,6 +652,14 @@ export function useMapClustering({
 
           // Add CSS class for styling and start hidden
           el.classList.add('logo-badge', 'badge-hidden');
+
+          // Hide badges for shops not in the expanded city area
+          const shopCityAreaId = shop.city_area?.documentId || (shop as any).cityArea?.documentId;
+          const isInExpandedArea = !expandedCityAreaId || shopCityAreaId === expandedCityAreaId;
+          if (!isInExpandedArea) {
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+          }
 
           const marker = new mapboxgl.Marker({
             element: el,

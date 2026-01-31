@@ -151,23 +151,32 @@ export function useCityAreaBoundaries({
       return;
     }
 
-    // Determine mode: single expanded area or all areas overview
+    // Determine mode: single expanded area or no overlay
     const expandedArea = expandedCityAreaId
       ? areasWithBoundaries.find((area) => area.documentId === expandedCityAreaId)
       : null;
 
-    console.log('[CityAreaBoundaries] Expanded area found:', expandedArea?.name ?? 'none (overview mode)');
+    console.log('[CityAreaBoundaries] Expanded area found:', expandedArea?.name ?? 'none (no overlay)');
 
-    const isOverviewMode = !expandedArea;
-    const displayAreas = expandedArea ? [expandedArea] : areasWithBoundaries;
+    // If no area is expanded, fade out the overlay completely
+    if (!expandedArea) {
+      if (currentExpandedIdRef.current !== null) {
+        console.log('[CityAreaBoundaries] No area expanded, fading out overlay');
+        fadeOutAndCleanup(map);
+        currentExpandedIdRef.current = null;
+      }
+      return;
+    }
 
     // Create a stable key for the current display state
-    const displayKey = isOverviewMode ? 'overview' : expandedCityAreaId;
+    const displayKey = expandedCityAreaId;
 
     // Skip if same state is already displayed
     if (currentExpandedIdRef.current === displayKey) {
       return;
     }
+
+    const displayAreas = [expandedArea];
 
     // Get primary color from first area's location country
     const primaryColor =
@@ -209,42 +218,8 @@ export function useCityAreaBoundaries({
       [-180, -90],
     ];
 
-    // Create mask hole - use location boundary in overview, city area boundary when expanded
-    let maskHoleCoords: number[][] | null = null;
-
-    if (isOverviewMode) {
-      // Try to get location boundary from the first city area's location
-      const location = displayAreas[0]?.location;
-
-      // Check both boundary_coordinates (new) and coordinates (old) fields
-      const locationBoundary = location?.boundary_coordinates || location?.coordinates;
-
-      console.log('[CityAreaBoundaries] Location data for overview mode:', {
-        locationName: location?.name,
-        locationDocumentId: location?.documentId,
-        allKeys: location ? Object.keys(location) : [],
-        hasBoundaryCoords: !!location?.boundary_coordinates,
-        boundaryCoordsSample: location?.boundary_coordinates?.slice(0, 2),
-        boundaryLength: location?.boundary_coordinates?.length,
-        hasCoords: !!location?.coordinates,
-        coordsLength: Array.isArray(location?.coordinates) ? location.coordinates.length : 'not array',
-        coordsSample: Array.isArray(location?.coordinates) ? location.coordinates.slice(0, 2) : location?.coordinates,
-      });
-
-      // Check if we have boundary data (array with at least 3 points)
-      if (Array.isArray(locationBoundary) && locationBoundary.length >= 3 && 'lat' in locationBoundary[0]) {
-        maskHoleCoords = locationBoundary.map((coord: { lat: number; lng: number }) => [coord.lng, coord.lat]);
-        // Close polygon if needed
-        if (
-          maskHoleCoords[0][0] !== maskHoleCoords[maskHoleCoords.length - 1][0] ||
-          maskHoleCoords[0][1] !== maskHoleCoords[maskHoleCoords.length - 1][1]
-        ) {
-          maskHoleCoords.push(maskHoleCoords[0]);
-        }
-      }
-    } else {
-      maskHoleCoords = allAreaCoordinates[0];
-    }
+    // Create mask hole using city area boundary
+    const maskHoleCoords = allAreaCoordinates[0];
 
     const maskGeojson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
@@ -267,15 +242,13 @@ export function useCityAreaBoundaries({
       features: outlineFeatures,
     };
 
-    // Target opacities - show mask if we have coordinates (location or city area)
+    // Target opacities for single city area highlight
     const hasMask = maskHoleCoords !== null;
     const targetMaskOpacity = hasMask
-      ? (isOverviewMode
-          ? (effectiveTheme === 'dark' ? 0.25 : 0.18) // Lighter for location overview
-          : (effectiveTheme === 'dark' ? 0.35 : 0.25)) // Stronger for single city area
+      ? (effectiveTheme === 'dark' ? 0.35 : 0.25)
       : 0;
-    const targetLineOpacity = isOverviewMode ? 0.4 : 0.7;
-    const lineWidth = isOverviewMode ? 1.5 : 2;
+    const targetLineOpacity = 0.7;
+    const lineWidth = 2;
 
     // Remove existing layers
     cleanupLayersInstant(map);
@@ -335,16 +308,13 @@ export function useCityAreaBoundaries({
         }
       });
 
-      // Zoom to fit bounds - all areas in overview, single area when expanded
-      if (expandedArea) {
-        const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
-        map.fitBounds(areaBounds, {
-          padding: { top: 80, bottom: 80, left: 80, right: 80 },
-          duration: 800,
-          maxZoom: 15,
-        });
-      }
-      // In overview mode, don't change zoom - let the location selection handle it
+      // Zoom to fit the expanded city area bounds
+      const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
+      map.fitBounds(areaBounds, {
+        padding: { top: 80, bottom: 80, left: 80, right: 80 },
+        duration: 800,
+        maxZoom: 15,
+      });
 
       currentExpandedIdRef.current = displayKey;
     } catch (err) {

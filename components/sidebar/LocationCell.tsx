@@ -33,17 +33,17 @@ function LocationCellComponent({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg px-4 py-3 cursor-pointer transition-colors min-h-[48px] text-left"
+      className="w-full flex items-center gap-3 py-2 cursor-pointer transition-colors text-left group"
       aria-label={locationName ? `${locationName}. Click to change location.` : 'Select location'}
     >
       {/* Flag */}
       {showFlag && flagCode && (
-        <span className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+        <span className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
           <Image
             src={getFlagUrl(flagCode)}
             alt=""
-            width={24}
-            height={24}
+            width={32}
+            height={32}
             className="object-cover w-full h-full"
             unoptimized
           />
@@ -52,13 +52,13 @@ function LocationCellComponent({
 
       {/* Text content */}
       <div className="flex-1 min-w-0">
-        <p className="text-base font-medium text-primary truncate">
+        <p className="text-[1.5rem] font-medium text-primary truncate leading-tight group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
           {locationName || 'Select location'}
         </p>
       </div>
 
       {/* Chevron */}
-      <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />
+      <ChevronRight className="w-5 h-5 text-text-secondary flex-shrink-0" />
     </button>
   );
 }

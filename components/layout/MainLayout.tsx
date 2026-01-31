@@ -4,19 +4,20 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Sidebar, ShopFilterType } from '../sidebar/Sidebar';
+import { LeftPanel } from './LeftPanel';
 
 // Dynamic import to prevent mapbox-gl from being bundled server-side (uses eval)
 const MapContainer = dynamic(
   () => import('../map/MapContainer').then(mod => ({ default: mod.MapContainer })),
   { ssr: false, loading: () => <div className="flex-1 bg-surface animate-pulse" /> }
 );
-import { ShopDrawer, LocationDrawer, UnifiedDrawer } from '../detail';
+import { ShopDrawer, LocationDrawer, UnifiedDrawer, ShopDetailInline } from '../detail';
 import { Footer } from './Footer';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useShopData } from '@/lib/context/ShopDataContext';
 import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
-import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
+import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates, getMediaUrl } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { useModalState } from '@/lib/hooks/useModalState';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
@@ -25,6 +26,12 @@ import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
 import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
+import { ShopList } from '../sidebar/ShopList';
+import { AreaList } from '../sidebar/AreaList';
+import { WelcomeStats } from '../sidebar/WelcomeStats';
+import { FirstTimeWelcome } from '../sidebar/FirstTimeWelcome';
+import { useTags } from '@/lib/hooks/useTags';
+import { BrandLogo } from '../sidebar/BrandLogoCarousel';
 
 // Stable empty Map to prevent re-render loops
 const EMPTY_SHOP_MATCH_INFO = new Map<string, string[]>();
@@ -143,8 +150,15 @@ export function MainLayout({
   const [expandedCityAreaId, setExpandedCityAreaId] = useState<string | null>(null);
   const [isFirstTimeVisitor, setIsFirstTimeVisitor] = useState(false);
 
+  // City area drill-down navigation (desktop left panel)
+  const [selectedCityAreaId, setSelectedCityAreaId] = useState<string | null>(null);
+  const [selectedCityAreaName, setSelectedCityAreaName] = useState<string | null>(null);
+  // Animation key - increment when entering a city area to trigger stagger animation
+  const [shopListAnimationKey, setShopListAnimationKey] = useState(0);
+
   const { coordinates, requestLocation, isPermissionBlocked, clearPermissionBlocked } = useGeolocation();
   const { user, userProfile, loading: authLoading } = useAuth();
+  const { tags } = useTags();
 
   // Track desktop/mobile viewport
   useEffect(() => {
@@ -414,6 +428,32 @@ export function MainLayout({
             }
           }
 
+          // If 3 segments, try to match city area: /{country}/{city}/{area}
+          if (segments.length >= 3) {
+            const areaSlug = segments[2];
+            const matchedArea = cachedCityAreas.find(
+              (area) =>
+                slugify(area.name) === areaSlug &&
+                area.location?.documentId === matchedLocation.documentId
+            );
+
+            if (matchedArea) {
+              setSelectedCityAreaId(matchedArea.documentId);
+              setSelectedCityAreaName(matchedArea.name);
+              setExpandedCityAreaId(matchedArea.documentId);
+            } else {
+              // Clear city area if not found
+              setSelectedCityAreaId(null);
+              setSelectedCityAreaName(null);
+              setExpandedCityAreaId(null);
+            }
+          } else {
+            // Only 2 segments - clear city area
+            setSelectedCityAreaId(null);
+            setSelectedCityAreaName(null);
+            setExpandedCityAreaId(null);
+          }
+
           // Location only - clear shop, center on location
           setSelectedShop(null);
           setShopHistory([]);
@@ -448,6 +488,10 @@ export function MainLayout({
       if (prev?.documentId === initialLocation?.documentId) {
         return prev; // Keep same reference to avoid re-render
       }
+      // Clear city area selection and map highlight when location changes
+      setSelectedCityAreaId(null);
+      setSelectedCityAreaName(null);
+      setExpandedCityAreaId(null);
       return initialLocation;
     });
   }, [initialLocation]);
@@ -475,6 +519,12 @@ export function MainLayout({
       setIsNearbyMode(false);
       setIsExploreMode(false);
       setShopFilter('all');
+      // Clear city area selection and map highlight
+      setSelectedCityAreaId(null);
+      setSelectedCityAreaName(null);
+      setExpandedCityAreaId(null);
+      // Trigger stagger animation for shop/area list
+      setShopListAnimationKey(prev => prev + 1);
 
       // Set location state first to ensure consistency
       setSelectedLocation(location);
@@ -953,24 +1003,320 @@ export function MainLayout({
     setExpandedCityAreaId(cityAreaId);
   }, []);
 
+  // Handle area selection in drill-down navigation (desktop left panel)
+  const handleAreaSelect = useCallback((areaId: string, areaName: string) => {
+    setSelectedCityAreaId(areaId);
+    setSelectedCityAreaName(areaName);
+    // Highlight area on map
+    setExpandedCityAreaId(areaId);
+    // Trigger stagger animation for shop list
+    setShopListAnimationKey(prev => prev + 1);
+    // Update URL to include area
+    if (selectedLocation) {
+      const countrySlug = slugify(selectedLocation.country?.name ?? '');
+      const citySlug = slugify(selectedLocation.name);
+      const areaSlug = slugify(areaName);
+      window.history.pushState(null, '', `/${countrySlug}/${citySlug}/${areaSlug}`);
+    }
+  }, [selectedLocation]);
+
+  // Handle back from area to area list
+  const handleBackToAreaList = useCallback(() => {
+    setSelectedCityAreaId(null);
+    setSelectedCityAreaName(null);
+    // Clear map highlight
+    setExpandedCityAreaId(null);
+    // Update URL back to just city
+    if (selectedLocation) {
+      const countrySlug = slugify(selectedLocation.country?.name ?? '');
+      const citySlug = slugify(selectedLocation.name);
+      window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
+    }
+  }, [selectedLocation]);
+
   // Filter city areas to only those in the selected location
-  // Use cachedCityAreas for stable reference
   const cityAreas = useMemo(() => {
     if (!selectedLocation) return [];
 
-    // Filter to city areas that belong to this location
-    const filtered = cachedCityAreas.filter(
+    return cachedCityAreas.filter(
       (area) => area.location?.documentId === selectedLocation.documentId
     );
-
-    // Debug: log first city area's full object to see what fields exist
-    if (filtered.length > 0) {
-      console.log('[MainLayout] First city area from prop:', filtered[0]);
-      console.log('[MainLayout] City area keys:', Object.keys(filtered[0]));
-      console.log('[MainLayout] Has boundary_coordinates:', !!filtered[0].boundary_coordinates);
-    }
-    return filtered;
   }, [cachedCityAreas, selectedLocation]);
+
+  // Filter sidebar shops by selected city area (for drill-down navigation)
+  const areaFilteredShops = useMemo(() => {
+    if (!selectedCityAreaId) return sidebarShops;
+    return sidebarShops.filter((shop) => {
+      const areaId = shop.city_area?.documentId ?? (shop as any).cityArea?.documentId;
+      return areaId === selectedCityAreaId;
+    });
+  }, [sidebarShops, selectedCityAreaId]);
+
+  // Count unique city areas from shops (for area list condition)
+  const uniqueShopAreaCount = useMemo(() => {
+    const areaIds = new Set<string>();
+    sidebarShops.forEach((shop) => {
+      const cityArea = shop.city_area ?? (shop as any).cityArea;
+      if (cityArea?.documentId) {
+        areaIds.add(cityArea.documentId);
+      }
+    });
+    return areaIds.size;
+  }, [sidebarShops]);
+
+  // Compute filter counts for LeftPanel filter dropdown
+  const filterCounts = useMemo(() => {
+    const shopsToCount = locationFilteredShops;
+    const counts: Record<ShopFilterType, number> = {
+      all: shopsToCount.length,
+      topPicks: 0,
+      working: 0,
+      interior: 0,
+      brewing: 0,
+    };
+
+    shopsToCount.forEach((shop) => {
+      const anyShop = shop as any;
+      if (anyShop.cityAreaRec === true || anyShop.city_area_rec === true || anyShop.cityarearec === true) {
+        counts.topPicks++;
+      }
+      if (anyShop.workingRec === true || anyShop.working_rec === true || anyShop.workingrec === true) {
+        counts.working++;
+      }
+      if (anyShop.interiorRec === true || anyShop.interior_rec === true || anyShop.interiorrec === true) {
+        counts.interior++;
+      }
+      if (anyShop.brewingRec === true || anyShop.brewing_rec === true || anyShop.brewingrec === true) {
+        counts.brewing++;
+      }
+    });
+
+    return counts;
+  }, [locationFilteredShops]);
+
+  // Build user filter summary from preferences (for LeftPanel tooltip)
+  const userFilterSummary = useMemo(() => {
+    const preferences = userProfile?.preferences;
+    if (!preferences) return undefined;
+    const parts: string[] = [];
+
+    if (preferences.preferIndependentOnly) {
+      parts.push('Independent only');
+    }
+
+    if (preferences.preferRoastsOwnBeans) {
+      parts.push('Roasts own beans');
+    }
+
+    // Format brew methods nicely
+    preferences.preferredBrewMethods?.forEach((method) => {
+      const formatted = method === 'v60' ? 'V60'
+        : method === 'aeropress' ? 'AeroPress'
+        : method.charAt(0).toUpperCase() + method.slice(1).replace(/_/g, ' ');
+      parts.push(formatted);
+    });
+
+    // Look up tag labels from tags data
+    preferences.preferredTags?.forEach((tagId) => {
+      const tag = tags.find(t => t.id === tagId);
+      if (tag) {
+        parts.push(tag.label);
+      }
+    });
+
+    return parts.length > 0 ? parts.join(', ') : undefined;
+  }, [userProfile?.preferences, tags]);
+
+  // Check if user has any filters set
+  const hasUserFilters = !!(
+    userProfile?.preferences?.preferIndependentOnly ||
+    userProfile?.preferences?.preferRoastsOwnBeans ||
+    (userProfile?.preferences?.preferredTags?.length ?? 0) > 0 ||
+    (userProfile?.preferences?.preferredBrewMethods?.length ?? 0) > 0
+  );
+
+  // Extract unique brand logos for first-time welcome carousel
+  const brandLogos = useMemo<BrandLogo[]>(() => {
+    const shopsToUse = locationFilteredShops.length > 0 ? locationFilteredShops : cachedShops;
+    const seen = new Set<string>();
+    const logos: BrandLogo[] = [];
+
+    for (const shop of shopsToUse) {
+      if (!shop.brand?.documentId || !shop.brand.logo) continue;
+      if (seen.has(shop.brand.documentId)) continue;
+
+      const logoUrl = getMediaUrl(shop.brand.logo);
+      if (!logoUrl) continue;
+
+      seen.add(shop.brand.documentId);
+      logos.push({
+        name: shop.brand.name,
+        logoUrl,
+      });
+
+      // Cap at 60 logos for performance
+      if (logos.length >= 60) break;
+    }
+
+    return logos;
+  }, [locationFilteredShops, cachedShops]);
+
+  // Auth component shared between mobile sidebar and desktop left panel
+  const authComponent = (
+    <div className="flex items-center gap-3">
+      <Button
+        isIconOnly
+        variant="flat"
+        radius="full"
+        onPress={handleNearbyToggle}
+        size="sm"
+        aria-label="Find nearby"
+        isDisabled={authLoading}
+      >
+        <MapPin className="w-4 h-4" />
+      </Button>
+      <Button
+        isIconOnly
+        variant="flat"
+        radius="full"
+        onPress={() => openModal('search')}
+        size="sm"
+        aria-label="Search"
+        isDisabled={authLoading}
+      >
+        <Search className="w-4 h-4" />
+      </Button>
+      {authLoading ? (
+        <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
+      ) : user ? (
+        <>
+          <Button
+            isIconOnly
+            variant="flat"
+            radius="full"
+            onPress={() => openModal('filterPreferences')}
+            size="sm"
+            aria-label="Filter preferences"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </Button>
+          <UserMenu onOpenSettings={() => openModal('settings')} />
+        </>
+      ) : (
+        <Button
+          isIconOnly
+          variant="flat"
+          radius="full"
+          onPress={() => openModal('login')}
+          size="sm"
+          aria-label="Sign in"
+        >
+          <LogIn className="w-4 h-4" />
+        </Button>
+      )}
+    </div>
+  );
+
+  // Render left panel content based on state
+  const renderLeftPanelContent = () => {
+    if (isFirstTimeVisitor) {
+      return (
+        <FirstTimeWelcome
+          onFindNearMe={handleFirstTimeFindNearMe}
+          onExplore={handleFirstTimeExplore}
+          brandLogos={brandLogos}
+          visitorCountry={visitorCountry}
+        />
+      );
+    }
+
+    if (isLoading && !selectedLocation && !isAreaUnsupported) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-text-secondary">Finding your location...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (isAreaUnsupported) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-8 text-center">
+          <div className="flex flex-col items-center">
+            {unsupportedCountry?.code && (
+              <img
+                src={`https://flagcdn.com/w80/${unsupportedCountry.code.toLowerCase()}.png`}
+                alt={`${unsupportedCountry.name} flag`}
+                className="w-16 h-12 object-cover rounded mb-4"
+              />
+            )}
+            <p className="text-xl font-semibold text-primary mb-2">
+              Coming Soon to {unsupportedCountry?.name || 'your area'}!
+            </p>
+            <p className="text-sm text-text-secondary">
+              Select a city above to explore other locations.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Shop detail view (replaces list view on desktop)
+    if (selectedShop) {
+      return (
+        <ShopDetailInline
+          shop={selectedShop}
+          allShops={cachedShops}
+          onShopSelect={handleShopSelect}
+          onOpenLoginModal={() => openModal('login')}
+        />
+      );
+    }
+
+    // Location selected - show area list or shop list
+    if (selectedLocation) {
+      // If shops span multiple city areas, no area selected, and no filter active - show area list first
+      if (uniqueShopAreaCount > 1 && !selectedCityAreaId && shopFilter === 'all') {
+        return (
+          <AreaList
+            shops={sidebarShops}
+            onAreaSelect={handleAreaSelect}
+            animationKey={shopListAnimationKey}
+          />
+        );
+      }
+
+      // Show shop list (filtered by area if area is selected)
+      return (
+        <div className="p-4">
+          <ShopList
+            shops={areaFilteredShops}
+            selectedShop={selectedShop}
+            onShopSelect={handleShopSelect}
+            isLoading={isLoading}
+            isFiltered={applyMyFilters || shopFilter !== 'all'}
+            shopMatchInfo={shopMatchInfo}
+            onCityAreaExpand={handleCityAreaExpand}
+            variant="large"
+            animationKey={shopListAnimationKey}
+            isFilteredView={shopFilter !== 'all'}
+          />
+        </div>
+      );
+    }
+
+    // No location - show welcome stats
+    return (
+      <WelcomeStats
+        locations={cachedLocations}
+        shops={cachedShops}
+        onShopSelect={handleShopSelect}
+        onLocationSelect={handleLocationChange}
+      />
+    );
+  };
 
   return (
     <>
@@ -1057,6 +1403,32 @@ export function MainLayout({
       </div>
 
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>
+        {/* Desktop: Left Panel (33% width) - replaces floating sidebar */}
+        <LeftPanel
+          authComponent={authComponent}
+          selectedLocation={selectedLocation}
+          unsupportedCountry={unsupportedCountry}
+          isAreaUnsupported={isAreaUnsupported}
+          onOpenExploreModal={() => openModal('explore')}
+          selectedCityAreaName={selectedCityAreaName}
+          onBackToAreaList={handleBackToAreaList}
+          shopFilter={shopFilter}
+          onShopFilterChange={setShopFilter}
+          filterCounts={filterCounts}
+          applyMyFilters={applyMyFilters}
+          onApplyMyFiltersChange={setApplyMyFilters}
+          hasUserFilters={hasUserFilters}
+          userFilterSummary={userFilterSummary}
+          selectedShop={selectedShop}
+          previousShop={shopHistory.length > 0 ? shopHistory[shopHistory.length - 1] : undefined}
+          onBack={selectedShop ? handleShopBack : undefined}
+          isLoading={isLoading}
+          isFirstTimeVisitor={isFirstTimeVisitor}
+        >
+          {renderLeftPanelContent()}
+        </LeftPanel>
+
+        {/* Mobile: Traditional floating sidebar (hidden on desktop via CSS) */}
         <Sidebar
           locations={cachedLocations}
           countries={cachedCountries}
@@ -1076,12 +1448,7 @@ export function MainLayout({
           onOpenExploreModal={() => openModal('explore')}
           applyMyFilters={applyMyFilters}
           onApplyMyFiltersChange={setApplyMyFilters}
-          hasUserFilters={!!(
-            userProfile?.preferences?.preferIndependentOnly ||
-            userProfile?.preferences?.preferRoastsOwnBeans ||
-            (userProfile?.preferences?.preferredTags?.length ?? 0) > 0 ||
-            (userProfile?.preferences?.preferredBrewMethods?.length ?? 0) > 0
-          )}
+          hasUserFilters={hasUserFilters}
           userPreferences={userProfile?.preferences ?? undefined}
           shopMatchInfo={shopMatchInfo}
           onCityAreaExpand={handleCityAreaExpand}
@@ -1089,60 +1456,7 @@ export function MainLayout({
           onFirstTimeFindNearMe={handleFirstTimeFindNearMe}
           onFirstTimeExplore={handleFirstTimeExplore}
           visitorCountry={visitorCountry}
-          authComponent={
-            <div className="flex items-center gap-3">
-              <Button
-                isIconOnly
-                variant="flat"
-                radius="full"
-                onPress={handleNearbyToggle}
-                size="sm"
-                aria-label="Find nearby"
-                isDisabled={authLoading}
-              >
-                <MapPin className="w-4 h-4" />
-              </Button>
-              <Button
-                isIconOnly
-                variant="flat"
-                radius="full"
-                onPress={() => openModal('search')}
-                size="sm"
-                aria-label="Search"
-                isDisabled={authLoading}
-              >
-                <Search className="w-4 h-4" />
-              </Button>
-              {authLoading ? (
-                <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
-              ) : user ? (
-                <>
-                  <Button
-                    isIconOnly
-                    variant="flat"
-                    radius="full"
-                    onPress={() => openModal('filterPreferences')}
-                    size="sm"
-                    aria-label="Filter preferences"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                  </Button>
-                  <UserMenu onOpenSettings={() => openModal('settings')} />
-                </>
-              ) : (
-                <Button
-                  isIconOnly
-                  variant="flat"
-                  radius="full"
-                  onPress={() => openModal('login')}
-                  size="sm"
-                  aria-label="Sign in"
-                >
-                  <LogIn className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          }
+          authComponent={authComponent}
         />
 
         {/* First-time visitor map overlay */}
@@ -1171,7 +1485,9 @@ export function MainLayout({
           cityAreas={cityAreas}
         />
 
-        {(selectedShop || (selectedLocation && !isNearbyMode && (modals.mobileCityGuide || isDesktop)) || isLocationDrawerClosing) && (
+        {/* Mobile-only drawers - shop drawer and location drawer (city guide) */}
+        {/* On desktop, shop detail is inline in LeftPanel and city guide is not shown as a drawer */}
+        {!isDesktop && (selectedShop || (selectedLocation && !isNearbyMode && modals.mobileCityGuide) || isLocationDrawerClosing) && (
           <UnifiedDrawer
             key="unified-drawer"
             contentType={selectedShop ? 'shop' : 'location'}

@@ -218,11 +218,12 @@ async function main() {
     fs.writeFileSync(path.join(dataDir, 'countries.json'), JSON.stringify(countries, null, 2));
     console.log(`   ✓ ${countries.length} countries\n`);
 
-    // Fetch city areas with locations
+    // Fetch city areas with locations and boundary data
     // Note: Strapi v5 doesn't allow mixing populate[location][fields] with populate[location][populate]
     // Use * for location to get all fields, then nest country/background_image populates
     console.log('4. Fetching city areas...');
     const cityAreaPopulate = [
+      'populate=*',  // Get all fields including boundary_coordinates JSON
       'populate[location]=*',
       'populate[location][populate][country]=*',
       'populate[location][populate][background_image]=*',
