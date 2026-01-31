@@ -84,6 +84,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
                 key={idx}
                 label={award.year}
                 value={award.award}
+                caption={award.organizingBody}
                 showDivider={idx > 0}
               />
             ))}

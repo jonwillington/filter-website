@@ -876,7 +876,7 @@ export function useMapClustering({
       updateLogoBadgeStyle(el, isSelected);
 
       // Add transition for smooth fading
-      el.style.transition = 'opacity 300ms ease-out';
+      el.style.transition = 'opacity 800ms ease-out';
 
       // Fade non-selected badges completely when a shop is selected
       if (selectedId) {
@@ -908,7 +908,7 @@ export function useMapClustering({
     const selectedOpacity = 1;
     const unselectedOpacity = 0;
     const noSelectionOpacity = 0.9;
-    const fadeDuration = 300; // ms
+    const fadeDuration = 800; // ms - slow fade to match map pan
 
     try {
       // Set transition duration for smooth fading

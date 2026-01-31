@@ -118,7 +118,9 @@ export function ShopList({
     return Array.from(areaMap.values());
   }, [shops]);
 
-  // Auto-expand the area containing the selected shop (when selection changes)
+  // Auto-expand the LOCAL accordion for the area containing the selected shop
+  // NOTE: We only update the local expandedAreaId state, NOT the map highlight (onCityAreaExpand)
+  // The map highlight should stay frozen when viewing a shop to maintain visual context
   useEffect(() => {
     const currentSelectedId = selectedShop?.documentId ?? null;
     const prevSelectedId = prevSelectedShopRef.current;
@@ -135,11 +137,11 @@ export function ShopList({
         // Only auto-expand if user hasn't manually collapsed this area
         if (!manuallyCollapsed.has(areaId)) {
           setExpandedAreaId(areaId);
-          onCityAreaExpand?.(areaId === '__other__' ? null : areaId);
+          // Don't call onCityAreaExpand here - keep map highlight frozen when viewing shop
         }
       }
     }
-  }, [selectedShop, manuallyCollapsed, onCityAreaExpand]);
+  }, [selectedShop, manuallyCollapsed]);
 
   // Group areas by their group field
   const areasByGroup = useMemo(() => {

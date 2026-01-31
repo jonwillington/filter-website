@@ -122,6 +122,7 @@ export function useCityAreaBoundaries({
   effectiveTheme,
 }: UseCityAreaBoundariesOptions): void {
   const currentExpandedIdRef = useRef<string | null>(null);
+  const lastBoundaryDataRef = useRef<Array<{ lat: number; lng: number }> | null>(null);
 
   useEffect(() => {
     if (!map || !mapReady) {
@@ -131,50 +132,55 @@ export function useCityAreaBoundaries({
 
     console.log('[CityAreaBoundaries] Running effect:', {
       expandedCityAreaId,
+      currentExpandedIdRef: currentExpandedIdRef.current,
       cityAreasCount: cityAreas.length,
-      cityAreaIds: cityAreas.map(a => a.documentId),
     });
+
+    // CRITICAL: If expandedCityAreaId hasn't changed, don't modify anything
+    // This prevents the boundary from flickering when cityAreas array reference changes
+    if (expandedCityAreaId === currentExpandedIdRef.current && currentExpandedIdRef.current !== null) {
+      console.log('[CityAreaBoundaries] expandedCityAreaId unchanged, keeping current boundary');
+      return;
+    }
 
     // Get city areas with valid boundaries
     const areasWithBoundaries = cityAreas.filter(
       (area) => area.boundary_coordinates && area.boundary_coordinates.length >= 3
     );
 
-    console.log('[CityAreaBoundaries] Areas with boundaries:', areasWithBoundaries.length,
-      areasWithBoundaries.map(a => ({ id: a.documentId, name: a.name })));
+    console.log('[CityAreaBoundaries] Areas with boundaries:', areasWithBoundaries.length);
 
-    // No boundaries to show at all
-    if (areasWithBoundaries.length === 0) {
-      console.log('[CityAreaBoundaries] No areas with boundaries, cleaning up');
-      fadeOutAndCleanup(map);
-      currentExpandedIdRef.current = null;
-      return;
-    }
-
-    // Determine mode: single expanded area or no overlay
-    const expandedArea = expandedCityAreaId
-      ? areasWithBoundaries.find((area) => area.documentId === expandedCityAreaId)
-      : null;
-
-    console.log('[CityAreaBoundaries] Expanded area found:', expandedArea?.name ?? 'none (no overlay)');
-
-    // If no area is expanded, fade out the overlay completely
-    if (!expandedArea) {
+    // If expandedCityAreaId is null, fade out
+    if (!expandedCityAreaId) {
       if (currentExpandedIdRef.current !== null) {
-        console.log('[CityAreaBoundaries] No area expanded, fading out overlay');
+        console.log('[CityAreaBoundaries] expandedCityAreaId is null, fading out');
         fadeOutAndCleanup(map);
         currentExpandedIdRef.current = null;
+        lastBoundaryDataRef.current = null;
       }
       return;
     }
 
-    // Create a stable key for the current display state
-    const displayKey = expandedCityAreaId;
+    // Find the expanded area
+    const expandedArea = areasWithBoundaries.find((area) => area.documentId === expandedCityAreaId);
 
-    // Skip if same state is already displayed
-    if (currentExpandedIdRef.current === displayKey) {
+    // If area not found in current cityAreas but we have it cached, keep showing it
+    if (!expandedArea) {
+      if (lastBoundaryDataRef.current && currentExpandedIdRef.current === expandedCityAreaId) {
+        console.log('[CityAreaBoundaries] Area not in cityAreas but cached, keeping boundary');
+        return;
+      }
+      console.log('[CityAreaBoundaries] Area not found and not cached, clearing');
+      fadeOutAndCleanup(map);
+      currentExpandedIdRef.current = null;
+      lastBoundaryDataRef.current = null;
       return;
     }
+
+    console.log('[CityAreaBoundaries] Drawing boundary for:', expandedArea.name);
+
+    // Cache the boundary data
+    lastBoundaryDataRef.current = expandedArea.boundary_coordinates!;
 
     const displayAreas = [expandedArea];
 
@@ -316,7 +322,7 @@ export function useCityAreaBoundaries({
         maxZoom: 15,
       });
 
-      currentExpandedIdRef.current = displayKey;
+      currentExpandedIdRef.current = expandedCityAreaId;
     } catch (err) {
       console.error('[CityAreaBoundaries] Error adding layers:', err);
     }

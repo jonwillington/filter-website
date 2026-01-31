@@ -255,20 +255,17 @@ export function MainLayout({
     }
   }, [initialShop, initialLocation, shops]); // Update when initialShop changes
 
-  // Update map center and zoom when selectedShop changes (for same-location navigation via pushState)
-  const MIN_SHOP_ZOOM = 14;
+  // Update map center when selectedShop changes (for same-location navigation via pushState)
+  // Note: No zoom change - just pan to center on the shop
   useEffect(() => {
     if (selectedShop && selectedShop.documentId !== initialShop?.documentId) {
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        // Only zoom in if currently zoomed out - don't zoom out if user has zoomed in further
-        if (mapZoom < MIN_SHOP_ZOOM) {
-          setMapZoom(MIN_SHOP_ZOOM);
-        }
+        // Don't change zoom - keep current zoom level
       }
     }
-  }, [selectedShop, initialShop, mapZoom]);
+  }, [selectedShop, initialShop]);
 
   // Detect if user is in a supported area when coordinates are received
   useEffect(() => {
@@ -831,7 +828,10 @@ export function MainLayout({
 
   const handleShopSelect = useCallback(
     (shop: Shop) => {
-      const isSameLocation = shop.location?.documentId === selectedLocation?.documentId;
+      // Only consider it a different location if both have valid documentIds and they differ
+      const shopLocationId = shop.location?.documentId;
+      const currentLocationId = selectedLocation?.documentId;
+      const isSameLocation = !shopLocationId || !currentLocationId || shopLocationId === currentLocationId;
 
       // Track shop history for back navigation (only when navigating from one shop to another)
       if (selectedShop && selectedShop.documentId !== shop.documentId) {
@@ -841,12 +841,15 @@ export function MainLayout({
       setSelectedShop(shop);
       setIsMobileSidebarOpen(false);
 
-      // Update selected location to match the shop's location
-      if (shop.location && !isSameLocation) {
+      // Update selected location only if navigating to a genuinely different location
+      // Don't change location if shop's location data is incomplete (missing documentId)
+      if (shop.location?.documentId && !isSameLocation) {
         setSelectedLocation(shop.location);
         setIsNearbyMode(false);
         setIsExploreMode(false);
       }
+
+      // Note: Map zoom/center and city area highlighting handled by useEffect on selectedShop change
 
       const countrySlug = slugify(shop.location?.country?.name ?? '');
       const citySlug = slugify(shop.location?.name ?? '');
@@ -866,9 +869,13 @@ export function MainLayout({
   const handleCloseDrawer = useCallback(() => {
     setSelectedShop(null);
     setShopHistory([]); // Clear history when closing drawer
+    // Note: Keep expandedCityAreaId unchanged - preserve the area highlight
 
-    // Stay on the city view when closing a shop drawer (shallow URL update)
+    // Zoom out slightly to show the area
     if (selectedLocation) {
+      setMapZoom(CITY_AREA_ZOOM);
+
+      // Stay on the city view when closing a shop drawer (shallow URL update)
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
       const citySlug = slugify(selectedLocation.name);
       window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
@@ -882,6 +889,7 @@ export function MainLayout({
       const previousShop = shopHistory[shopHistory.length - 1];
       setShopHistory((prev) => prev.slice(0, -1));
       setSelectedShop(previousShop);
+      // Note: Map zoom/center and city area highlighting handled by useEffect on selectedShop change
 
       // Update URL
       const countrySlug = slugify(previousShop.location?.country?.name ?? '');
@@ -894,9 +902,13 @@ export function MainLayout({
         window.history.pushState({}, '', newUrl);
       }
     } else if (selectedLocation) {
-      // No history - go back to location drawer (city guide)
+      // No history - go back to area list view
       setSelectedShop(null);
       openModal('mobileCityGuide'); // Keep drawer open on mobile to show city guide
+      // Note: Keep expandedCityAreaId unchanged - preserve the area highlight
+
+      // Zoom out slightly to show the area (not the whole city)
+      setMapZoom(CITY_AREA_ZOOM);
 
       // Update URL to location page
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
@@ -1026,6 +1038,7 @@ export function MainLayout({
     setSelectedCityAreaName(null);
     // Clear map highlight
     setExpandedCityAreaId(null);
+
     // Update URL back to just city
     if (selectedLocation) {
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
