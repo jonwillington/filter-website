@@ -88,7 +88,7 @@ export function SourcesSection({ shop }: SourcesSectionProps) {
           className="w-full flex items-center justify-between py-2 text-left group"
         >
           <span className="text-sm font-medium text-text-secondary">
-            Sources ({allSources.length})
+            Learn more ({allSources.length})
           </span>
           <ChevronDown
             className={`w-4 h-4 text-text-secondary transition-transform duration-200 ${
