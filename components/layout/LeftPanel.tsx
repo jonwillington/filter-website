@@ -27,10 +27,6 @@ interface LeftPanelProps {
   isAreaUnsupported?: boolean;
   onOpenExploreModal: () => void;
 
-  // City guide view
-  showCityGuide?: boolean;
-  onBackToCityGuide?: () => void;
-
   // City area drill-down navigation
   selectedCityAreaName?: string | null;
   onBackToAreaList?: () => void;
@@ -63,8 +59,6 @@ export function LeftPanel({
   unsupportedCountry,
   isAreaUnsupported = false,
   onOpenExploreModal,
-  showCityGuide = false,
-  onBackToCityGuide,
   selectedCityAreaName,
   onBackToAreaList,
   shopFilter,
@@ -176,8 +170,8 @@ export function LeftPanel({
     if (onShopFilterChange) onShopFilterChange(filter);
   }, [onShopFilterChange]);
 
-  // Show controls unless viewing shop detail, first time visitor, city guide, or viewing shops within a city area
-  const showControls = !selectedShop && !isFirstTimeVisitor && !selectedCityAreaName && !showCityGuide;
+  // Show controls unless viewing shop detail, first time visitor, or viewing shops within a city area
+  const showControls = !selectedShop && !isFirstTimeVisitor && !selectedCityAreaName;
 
   return (
     <div className="left-panel">
@@ -255,19 +249,6 @@ export function LeftPanel({
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Back button to city guide (when on area list or flat shop list) */}
-      {!showCityGuide && !selectedCityAreaName && !selectedShop && selectedLocation && onBackToCityGuide && (
-        <div className="flex-shrink-0 px-4 py-3">
-          <button
-            onClick={onBackToCityGuide}
-            className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>City Guide</span>
-          </button>
         </div>
       )}
 

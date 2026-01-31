@@ -30,7 +30,6 @@ import { ShopList } from '../sidebar/ShopList';
 import { AreaList } from '../sidebar/AreaList';
 import { WelcomeStats } from '../sidebar/WelcomeStats';
 import { FirstTimeWelcome } from '../sidebar/FirstTimeWelcome';
-import { CityGuideInline } from '../sidebar/CityGuideInline';
 import { useTags } from '@/lib/hooks/useTags';
 import { BrandLogo } from '../sidebar/BrandLogoCarousel';
 
@@ -156,8 +155,6 @@ export function MainLayout({
   const [selectedCityAreaName, setSelectedCityAreaName] = useState<string | null>(null);
   // Animation key - increment when entering a city area to trigger stagger animation
   const [shopListAnimationKey, setShopListAnimationKey] = useState(0);
-  // City guide view - shown when first entering a city (but not if we have an initial shop)
-  const [showCityGuide, setShowCityGuide] = useState(!initialShop && !!initialLocation);
 
   const { coordinates, requestLocation, isPermissionBlocked, clearPermissionBlocked } = useGeolocation();
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -526,8 +523,6 @@ export function MainLayout({
       setSelectedCityAreaId(null);
       setSelectedCityAreaName(null);
       setExpandedCityAreaId(null);
-      // Show city guide when entering a new location
-      setShowCityGuide(!!location);
       // Trigger stagger animation for shop/area list
       setShopListAnimationKey(prev => prev + 1);
 
@@ -1025,17 +1020,8 @@ export function MainLayout({
     }
   }, [selectedLocation]);
 
-  // Handle back from area to area list (or city guide if came from "View All Shops")
+  // Handle back from area to area list
   const handleBackToAreaList = useCallback(() => {
-    // If we're in flat view (__all__), go back to city guide
-    if (selectedCityAreaId === '__all__') {
-      setShowCityGuide(true);
-      setSelectedCityAreaId(null);
-      setSelectedCityAreaName(null);
-      setShopListAnimationKey(prev => prev + 1);
-      return;
-    }
-
     setSelectedCityAreaId(null);
     setSelectedCityAreaName(null);
     // Clear map highlight
@@ -1046,7 +1032,7 @@ export function MainLayout({
       const citySlug = slugify(selectedLocation.name);
       window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
     }
-  }, [selectedLocation, selectedCityAreaId]);
+  }, [selectedLocation]);
 
   // Filter city areas to only those in the selected location
   const cityAreas = useMemo(() => {
@@ -1058,9 +1044,8 @@ export function MainLayout({
   }, [cachedCityAreas, selectedLocation]);
 
   // Filter sidebar shops by selected city area (for drill-down navigation)
-  // '__all__' is a special value meaning "show all shops" (skip area filtering)
   const areaFilteredShops = useMemo(() => {
-    if (!selectedCityAreaId || selectedCityAreaId === '__all__') return sidebarShops;
+    if (!selectedCityAreaId) return sidebarShops;
     return sidebarShops.filter((shop) => {
       const areaId = shop.city_area?.documentId ?? (shop as any).cityArea?.documentId;
       return areaId === selectedCityAreaId;
@@ -1290,30 +1275,6 @@ export function MainLayout({
       );
     }
 
-    // City Guide view - shown when first entering a location
-    if (selectedLocation && showCityGuide) {
-      return (
-        <CityGuideInline
-          location={selectedLocation}
-          allShops={cachedShops}
-          events={cachedEvents}
-          critics={cachedCritics}
-          hasMultipleAreas={uniqueShopAreaCount > 1}
-          onBrowseByArea={() => {
-            setShowCityGuide(false);
-            setShopListAnimationKey(prev => prev + 1);
-          }}
-          onViewAllShops={() => {
-            setShowCityGuide(false);
-            // Skip area list and go directly to flat shop list
-            setSelectedCityAreaId('__all__');
-            setShopListAnimationKey(prev => prev + 1);
-          }}
-          onShopSelect={handleShopSelect}
-        />
-      );
-    }
-
     // Location selected - show area list or shop list
     if (selectedLocation) {
       // If shops span multiple city areas, no area selected, and no filter active - show area list first
@@ -1340,7 +1301,7 @@ export function MainLayout({
             onCityAreaExpand={handleCityAreaExpand}
             variant="large"
             animationKey={shopListAnimationKey}
-            isFilteredView={shopFilter !== 'all' || selectedCityAreaId === '__all__'}
+            isFilteredView={shopFilter !== 'all'}
           />
         </div>
       );
@@ -1449,13 +1410,6 @@ export function MainLayout({
           unsupportedCountry={unsupportedCountry}
           isAreaUnsupported={isAreaUnsupported}
           onOpenExploreModal={() => openModal('explore')}
-          showCityGuide={showCityGuide}
-          onBackToCityGuide={() => {
-            setShowCityGuide(true);
-            setSelectedCityAreaId(null);
-            setSelectedCityAreaName(null);
-            setShopListAnimationKey(prev => prev + 1);
-          }}
           selectedCityAreaName={selectedCityAreaName}
           onBackToAreaList={handleBackToAreaList}
           shopFilter={shopFilter}
