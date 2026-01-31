@@ -11,4 +11,5 @@ export { ShopInfo } from './ShopInfo';
 export { ShopProperties } from './ShopProperties';
 export { ShopReviewsSection } from './ShopReviewsSection';
 export { SocialLinks } from './SocialLinks';
+export { SourcesSection } from './SourcesSection';
 export { UserPhotosSection } from './UserPhotosSection';

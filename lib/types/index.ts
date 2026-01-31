@@ -2,6 +2,12 @@
 
 export type { Event } from './event';
 
+export interface CitedSource {
+  url: string;
+  title: string;
+  publisher?: string;
+}
+
 export interface MediaFormat {
   url?: string;
   width?: number;
@@ -164,6 +170,9 @@ export interface Brand {
 
   // Beans (populated from prefetch)
   beans?: Bean[];
+
+  // Cited sources
+  citedSources?: CitedSource[] | null;
 }
 
 export interface OpeningHoursPeriod {
@@ -260,6 +269,9 @@ export interface Shop {
 
   // Pre-calculated for performance (set server-side)
   localDensity?: number;
+
+  // Cited sources
+  citedSources?: CitedSource[] | null;
 }
 
 export interface NearbyShop {

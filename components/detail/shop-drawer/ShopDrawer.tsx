@@ -14,6 +14,7 @@ import {
   ShopProperties,
   UserPhotosSection,
   ShopReviewsSection,
+  SourcesSection,
 } from '../shop-sections';
 import { ActionBar, BrandShopCard } from '../shared';
 import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
@@ -221,6 +222,9 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
 
           {/* Address & Opening Hours */}
           <ShopInfo shop={currentShop} />
+
+          {/* Sources */}
+          <SourcesSection shop={currentShop} />
 
           {/* Disclaimer */}
           <p className="mt-8 text-xs text-text-secondary text-center">

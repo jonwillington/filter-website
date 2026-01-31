@@ -14,6 +14,7 @@ import {
   ShopProperties,
   UserPhotosSection,
   ShopReviewsSection,
+  SourcesSection,
 } from './shop-sections';
 import { ActionBar, BrandShopCard } from './shared';
 import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
@@ -163,8 +164,13 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
           <ShopInfo shop={shop} />
         </div>
 
+        {/* Sources */}
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 14 : 13)}>
+          <SourcesSection shop={shop} />
+        </div>
+
         {/* Disclaimer */}
-        <p className="mt-8 text-xs text-text-secondary text-center shop-card-animate" style={staggerStyle(isTopChoice ? 14 : 13)}>
+        <p className="mt-8 text-xs text-text-secondary text-center shop-card-animate" style={staggerStyle(isTopChoice ? 15 : 14)}>
           This information is the most up to date we have as of{' '}
           {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
           {' '}Notice something incorrect?{' '}
