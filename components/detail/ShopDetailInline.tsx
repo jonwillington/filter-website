@@ -32,6 +32,9 @@ interface ShopDetailInlineProps {
   onOpenLoginModal?: () => void;
 }
 
+// Helper to generate animation style with stagger delay
+const staggerStyle = (index: number) => ({ animationDelay: `${index * 50}ms` });
+
 /**
  * ShopDetailInline - Shop detail content for inline display in the left panel.
  * This is a simplified version of ShopDrawer without fixed positioning or drawer-specific styles.
@@ -53,58 +56,82 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
   const isTopChoice = hasCityAreaRecommendation(shop);
 
   return (
-    <div className="relative">
-      {/* Header with hero image */}
-      <ShopHeader shop={shop} />
+    <div className="relative" key={shop.documentId}>
+      {/* Header with hero image - first to animate */}
+      <div className="shop-card-animate" style={staggerStyle(0)}>
+        <ShopHeader shop={shop} />
+      </div>
 
       {/* Content with padding */}
-      <div className="p-5 pb-24">
+      <div className="px-5 py-4 pb-24">
         {/* City Area Recommendation Award */}
         {isTopChoice && (
-          <AwardBox
-            title={`Filter recommendation in ${areaName || shop.location?.name || 'this area'}`}
-          />
+          <div className="mb-4 shop-card-animate" style={staggerStyle(1)}>
+            <AwardBox
+              title={`Filter recommendation in ${areaName || shop.location?.name || 'this area'}`}
+            />
+          </div>
         )}
 
         {/* Action bar */}
-        <ActionBar shop={shop} />
+        <div className="mb-4 shop-card-animate" style={staggerStyle(isTopChoice ? 2 : 1)}>
+          <ActionBar shop={shop} />
+        </div>
 
         {/* About/Description */}
-        <AboutSection shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 3 : 2)}>
+          <AboutSection shop={shop} />
+        </div>
 
         {/* Branch-specific description for branded shops */}
-        <BranchAboutSection shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 4 : 3)}>
+          <BranchAboutSection shop={shop} />
+        </div>
 
         {/* Shop Properties (Architects, Price) */}
-        <ShopProperties shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 5 : 4)}>
+          <ShopProperties shop={shop} />
+        </div>
 
         {/* Brew Methods */}
-        <BrewMethods shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 6 : 5)}>
+          <BrewMethods shop={shop} />
+        </div>
 
         {/* Coffee Sourcing */}
-        <BeansSection shop={shop} onShopSelect={onShopSelect} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 7 : 6)}>
+          <BeansSection shop={shop} onShopSelect={onShopSelect} />
+        </div>
 
         {/* Amenities */}
-        <AmenityList shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 8 : 7)}>
+          <AmenityList shop={shop} />
+        </div>
 
         {/* Brand Info (Equipment & Awards) */}
-        <BrandInfoSection shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 9 : 8)}>
+          <BrandInfoSection shop={shop} />
+        </div>
 
         {/* User Photos */}
-        <UserPhotosSection
-          images={userImages}
-          onPhotoPress={(_, index) => setSelectedUserImageIndex(index)}
-          loading={userImagesLoading}
-        />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 10 : 9)}>
+          <UserPhotosSection
+            images={userImages}
+            onPhotoPress={(_, index) => setSelectedUserImageIndex(index)}
+            loading={userImagesLoading}
+          />
+        </div>
 
         {/* Reviews */}
-        <ShopReviewsSection shop={shop} onOpenLoginModal={onOpenLoginModal} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 11 : 10)}>
+          <ShopReviewsSection shop={shop} onOpenLoginModal={onOpenLoginModal} />
+        </div>
 
         {/* More from Brand */}
         {moreFromBrand.length > 0 && shop.brand && (
-          <div>
+          <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 12 : 11)}>
             <Divider className="my-5 opacity-30" />
-            <h3 className="text-lg font-semibold text-primary mb-4">
+            <h3 className="text-lg font-medium text-primary mb-4">
               More from {shop.brand.name}
             </h3>
 
@@ -132,10 +159,12 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
         )}
 
         {/* Address & Opening Hours */}
-        <ShopInfo shop={shop} />
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 13 : 12)}>
+          <ShopInfo shop={shop} />
+        </div>
 
         {/* Disclaimer */}
-        <p className="mt-8 text-xs text-text-secondary text-center">
+        <p className="mt-8 text-xs text-text-secondary text-center shop-card-animate" style={staggerStyle(isTopChoice ? 14 : 13)}>
           This information is the most up to date we have as of{' '}
           {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
           {' '}Notice something incorrect?{' '}

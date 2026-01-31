@@ -31,7 +31,7 @@ export function BrewMethods({ shop }: BrewMethodsProps) {
     <>
       <Divider className="my-5 opacity-30" />
       <div>
-      <h3 className="text-lg font-semibold text-primary mb-3">
+      <h3 className="text-lg font-medium text-primary mb-3">
         Brew Methods
       </h3>
       <div className="flex flex-wrap gap-2">

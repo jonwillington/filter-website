@@ -120,6 +120,7 @@ export function LeftPanel({
   const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters;
 
   // Handle transition between list and detail views
+  // No fade transition - stagger animation in ShopDetailInline handles the visual transition
   useEffect(() => {
     const currentShopId = selectedShop?.documentId ?? null;
     const prevShopId = prevSelectedShopRef.current;
@@ -130,22 +131,15 @@ export function LeftPanel({
         scrollPositionRef.current = contentRef.current.scrollTop;
       }
 
-      // Trigger fade transition
-      setIsTransitioning(true);
-      const timer = setTimeout(() => {
-        setIsTransitioning(false);
-
-        // Restore scroll position when returning to list view
-        if (!currentShopId && prevShopId && contentRef.current) {
-          contentRef.current.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
-        } else if (currentShopId && contentRef.current) {
-          // Scroll to top when viewing a shop
-          contentRef.current.scrollTo({ top: 0, behavior: 'instant' });
-        }
-      }, 200);
+      // Restore scroll position when returning to list view, or scroll to top for detail
+      if (!currentShopId && prevShopId && contentRef.current) {
+        contentRef.current.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
+      } else if (currentShopId && contentRef.current) {
+        // Scroll to top when viewing a shop
+        contentRef.current.scrollTo({ top: 0, behavior: 'instant' });
+      }
 
       prevSelectedShopRef.current = currentShopId;
-      return () => clearTimeout(timer);
     }
   }, [selectedShop]);
 

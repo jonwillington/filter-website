@@ -53,7 +53,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
 
       {equipmentItems.length > 0 && equipment && (
         <div>
-          <h3 className="text-lg font-semibold text-primary mb-1">
+          <h3 className="text-lg font-medium text-primary mb-1">
             Equipment
           </h3>
           <div>
@@ -75,7 +75,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
 
       {sortedAwards.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-primary mb-1">
+          <h3 className="text-lg font-medium text-primary mb-1">
             Awards
           </h3>
           <div>

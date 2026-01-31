@@ -132,7 +132,7 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
       <Divider className="my-5 opacity-30" />
       <div className="space-y-4">
       {/* Roasting header */}
-      <h3 className="text-lg font-semibold text-primary mb-2">
+      <h3 className="text-lg font-medium text-primary mb-2">
         Roasting
       </h3>
 

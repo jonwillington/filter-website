@@ -18,7 +18,7 @@ export function SocialLinks({ shop }: SocialLinksProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-primary mb-3">
+      <h3 className="text-lg font-medium text-primary mb-3">
         Links
       </h3>
       <div className="flex flex-wrap gap-2">

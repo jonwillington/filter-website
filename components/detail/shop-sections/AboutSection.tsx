@@ -36,7 +36,7 @@ export function AboutSection({ shop }: AboutSectionProps) {
 
   return (
     <div className="mt-5">
-      <h3 className="text-lg font-semibold text-primary mb-3">
+      <h3 className="text-lg font-medium text-primary mb-3">
         About the {storeName} store
       </h3>
       <p className="text-sm text-text leading-snug whitespace-pre-line">
