@@ -1,12 +1,14 @@
 'use client';
 
-import { ReactNode, useRef, useEffect, useState, useCallback } from 'react';
+import { ReactNode, useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { LocationCard } from '../sidebar/LocationCard';
 import { Switch, Tooltip } from '@heroui/react';
-import { ChevronLeft, SlidersHorizontal, HelpCircle } from 'lucide-react';
-import { Location, Shop, Country } from '@/lib/types';
+import { ChevronLeft, SlidersHorizontal, HelpCircle, Calendar, UserCheck } from 'lucide-react';
+import { Location, Shop, Country, Event, Critic } from '@/lib/types';
 import { cn, getShopDisplayName } from '@/lib/utils';
 import { ShopFilterType } from '../sidebar/Sidebar';
+import { EventCard, EventModal } from '@/components/events';
+import { CriticCard, CriticModal } from '@/components/critics';
 
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
   { key: 'all', label: 'All Shops' },
@@ -41,6 +43,11 @@ interface LeftPanelProps {
   selectedShop: Shop | null;
   previousShop?: Shop;
   onBack?: () => void;
+  onShopSelect?: (shop: Shop) => void;
+
+  // Events and Critics
+  events?: Event[];
+  critics?: Critic[];
 
   // Content
   children: ReactNode;
@@ -68,6 +75,9 @@ export function LeftPanel({
   selectedShop,
   previousShop,
   onBack,
+  onShopSelect,
+  events = [],
+  critics = [],
   children,
   isLoading,
   isFirstTimeVisitor = false,
@@ -78,6 +88,34 @@ export function LeftPanel({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const prevSelectedShopRef = useRef<string | null>(null);
   const prevSelectedAreaRef = useRef<string | null>(null);
+
+  // Modal state for events and critics
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedCritic, setSelectedCritic] = useState<Critic | null>(null);
+
+  // Filter events for current location (only future events, sorted by date)
+  const locationEvents = useMemo(() => {
+    if (!selectedLocation) return [];
+    const now = new Date();
+    return events
+      .filter((event) => {
+        if (event.city?.documentId !== selectedLocation.documentId) return false;
+        const startDate = new Date(event.start_date);
+        return startDate >= now;
+      })
+      .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+  }, [events, selectedLocation]);
+
+  // Filter critics for current location
+  const locationCritics = useMemo(() => {
+    if (!selectedLocation) return [];
+    return critics.filter((critic) =>
+      critic.locations?.some((loc) => loc.documentId === selectedLocation.documentId)
+    );
+  }, [critics, selectedLocation]);
+
+  // Get location primary color for event cards
+  const primaryColor = selectedLocation?.primaryColor || selectedLocation?.country?.primaryColor || '#8B6F47';
 
   // Check if there are any special filters available
   const hasSpecialFilters = filterCounts.topPicks > 0 || filterCounts.working > 0 || filterCounts.interior > 0 || filterCounts.brewing > 0;
@@ -244,10 +282,74 @@ export function LeftPanel({
             isTransitioning && 'opacity-0'
           )}
         >
+          {/* Events and Critics cards - inside scrollable area */}
+          {showControls && selectedLocation && (locationEvents.length > 0 || locationCritics.length > 0) && (
+            <div className="p-4 space-y-4">
+              {/* Events section */}
+              {locationEvents.length > 0 && (
+                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border-default">
+                    <Calendar className="w-4 h-4 text-accent" />
+                    <span className="text-sm font-medium text-primary">
+                      {locationEvents.length} Upcoming {locationEvents.length === 1 ? 'Event' : 'Events'}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-border-default">
+                    {locationEvents.slice(0, 3).map((event) => (
+                      <EventCard
+                        key={event.documentId}
+                        event={event}
+                        onClick={() => setSelectedEvent(event)}
+                        primaryColor={primaryColor}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Critics/Insiders Guide section */}
+              {locationCritics.length > 0 && (
+                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border-default">
+                    <UserCheck className="w-4 h-4 text-accent" />
+                    <span className="text-sm font-medium text-primary">Insiders Guide</span>
+                  </div>
+                  <div className="divide-y divide-border-default">
+                    {locationCritics.map((critic) => (
+                      <CriticCard
+                        key={critic.documentId}
+                        critic={critic}
+                        onClick={() => setSelectedCritic(critic)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {children}
         </div>
       </div>
 
+      {/* Event Modal */}
+      <EventModal
+        event={selectedEvent}
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        primaryColor={primaryColor}
+      />
+
+      {/* Critic Modal */}
+      <CriticModal
+        critic={selectedCritic}
+        isOpen={!!selectedCritic}
+        onClose={() => setSelectedCritic(null)}
+        onShopSelect={onShopSelect ? (shop) => {
+          setSelectedCritic(null);
+          onShopSelect(shop);
+        } : undefined}
+      />
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { Country } from '@/lib/types';
  * This enables a static shell that renders instantly, with data loaded progressively.
  */
 export function HomeClient() {
-  const { shops, countries, locations, cityAreas, events, isLoading } = useHomeData();
+  const { shops, countries, locations, cityAreas, events, critics, isLoading } = useHomeData();
   const [visitorCountry, setVisitorCountry] = useState<Country | null>(null);
 
   // Detect visitor's country for personalized initial map position
@@ -50,6 +50,7 @@ export function HomeClient() {
       countries={countries}
       cityAreas={cityAreas}
       events={events}
+      critics={critics}
       visitorCountry={visitorCountry}
       isClientSideLoading={isLoading}
     />

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Shop, Country, Location, CityArea, Event } from '@/lib/types';
+import { Shop, Country, Location, CityArea, Event, Critic } from '@/lib/types';
 
 // Stable empty arrays to prevent re-render loops
 const EMPTY_SHOPS: Shop[] = [];
@@ -10,6 +10,7 @@ const EMPTY_COUNTRIES: Country[] = [];
 const EMPTY_LOCATIONS: Location[] = [];
 const EMPTY_CITY_AREAS: CityArea[] = [];
 const EMPTY_EVENTS: Event[] = [];
+const EMPTY_CRITICS: Critic[] = [];
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
@@ -70,10 +71,19 @@ export function useCityAreasQuery() {
 }
 
 export function useEventsQuery() {
-  // Events change frequently, always fetch from API
+  // Try static file first, fall back to API
   return useQuery<Event[]>({
     queryKey: ['events'],
-    queryFn: () => fetchJSON<Event[]>('/api/data/events'),
+    queryFn: () => fetchWithFallback<Event[]>('/data/events.json', '/api/data/events'),
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useCriticsQuery() {
+  // Try static file first, fall back to API
+  return useQuery<Critic[]>({
+    queryKey: ['critics'],
+    queryFn: () => fetchWithFallback<Critic[]>('/data/critics.json', '/api/data/critics'),
     staleTime: STALE_TIME,
   });
 }
@@ -88,6 +98,7 @@ export function useHomeData() {
   const locationsQuery = useLocationsQuery();
   const cityAreasQuery = useCityAreasQuery();
   const eventsQuery = useEventsQuery();
+  const criticsQuery = useCriticsQuery();
 
   // Use stable empty arrays to prevent re-render loops
   const shops = shopsQuery.data ?? EMPTY_SHOPS;
@@ -95,20 +106,23 @@ export function useHomeData() {
   const locations = locationsQuery.data ?? EMPTY_LOCATIONS;
   const cityAreas = cityAreasQuery.data ?? EMPTY_CITY_AREAS;
   const events = eventsQuery.data ?? EMPTY_EVENTS;
+  const critics = criticsQuery.data ?? EMPTY_CRITICS;
 
   const isLoading =
     shopsQuery.isLoading ||
     countriesQuery.isLoading ||
     locationsQuery.isLoading ||
     cityAreasQuery.isLoading ||
-    eventsQuery.isLoading;
+    eventsQuery.isLoading ||
+    criticsQuery.isLoading;
 
   const isError =
     shopsQuery.isError ||
     countriesQuery.isError ||
     locationsQuery.isError ||
     cityAreasQuery.isError ||
-    eventsQuery.isError;
+    eventsQuery.isError ||
+    criticsQuery.isError;
 
   // Memoize return object to prevent unnecessary re-renders
   return useMemo(() => ({
@@ -117,6 +131,7 @@ export function useHomeData() {
     locations,
     cityAreas,
     events,
+    critics,
     isLoading,
     isError,
     // Individual loading states for progressive rendering
@@ -125,6 +140,7 @@ export function useHomeData() {
     isLocationsLoading: locationsQuery.isLoading,
     isCityAreasLoading: cityAreasQuery.isLoading,
     isEventsLoading: eventsQuery.isLoading,
+    isCriticsLoading: criticsQuery.isLoading,
     // Refetch functions if needed
     refetchShops: shopsQuery.refetch,
     refetchAll: () => {
@@ -133,6 +149,7 @@ export function useHomeData() {
       locationsQuery.refetch();
       cityAreasQuery.refetch();
       eventsQuery.refetch();
+      criticsQuery.refetch();
     },
   }), [
     shops,
@@ -140,6 +157,7 @@ export function useHomeData() {
     locations,
     cityAreas,
     events,
+    critics,
     isLoading,
     isError,
     shopsQuery.isLoading,
@@ -147,10 +165,12 @@ export function useHomeData() {
     locationsQuery.isLoading,
     cityAreasQuery.isLoading,
     eventsQuery.isLoading,
+    criticsQuery.isLoading,
     shopsQuery.refetch,
     countriesQuery.refetch,
     locationsQuery.refetch,
     cityAreasQuery.refetch,
     eventsQuery.refetch,
+    criticsQuery.refetch,
   ]);
 }

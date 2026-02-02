@@ -1473,6 +1473,9 @@ export function MainLayout({
           selectedShop={selectedShop}
           previousShop={shopHistory.length > 0 ? shopHistory[shopHistory.length - 1] : undefined}
           onBack={selectedShop ? handleShopBack : undefined}
+          onShopSelect={handleShopSelect}
+          events={cachedEvents}
+          critics={cachedCritics}
           isLoading={isLoading}
           isFirstTimeVisitor={isFirstTimeVisitor}
         >

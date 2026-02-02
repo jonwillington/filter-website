@@ -15,7 +15,7 @@ interface CriticModalProps {
   critic: Critic | null;
   isOpen: boolean;
   onClose: () => void;
-  onShopSelect: (shop: Shop) => void;
+  onShopSelect?: (shop: Shop) => void;
 }
 
 export function CriticModal({ critic, isOpen, onClose, onShopSelect }: CriticModalProps) {
@@ -35,7 +35,7 @@ export function CriticModal({ critic, isOpen, onClose, onShopSelect }: CriticMod
   const picks = critic.critic_picks ?? [];
 
   const handlePickClick = (shop: Shop | undefined) => {
-    if (shop) {
+    if (shop && onShopSelect) {
       onClose();
       onShopSelect(shop);
     }

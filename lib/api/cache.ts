@@ -65,6 +65,8 @@ async function fetchStaticData<T>(key: string): Promise<T | null> {
     brands: 'brands.json',
     locations: 'locations.json',
     regions: 'regions.json',
+    events: 'events.json',
+    critics: 'critics.json',
   };
 
   const fileName = fileMap[key];
@@ -178,4 +180,9 @@ export function getCacheStats(): { size: number; keys: string[] } {
     size: cache.size,
     keys: Array.from(cache.keys()),
   };
+}
+
+// Public export for loading from static files
+export async function loadFromStaticFile<T>(key: string): Promise<T | null> {
+  return fetchStaticData<T>(key);
 }

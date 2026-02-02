@@ -1,30 +1,23 @@
 import { Event, Brand } from '../types';
-import { getCached, setCache } from './cache';
+import { getCached, setCache, loadFromStaticFile } from './cache';
 import { getAllBrands } from './brands';
 import { strapiGetAll } from './strapiClient';
 
-// Populate params for events
-const EVENT_POPULATE = [
-  'populate[image][fields][0]=url',
-  'populate[image][fields][1]=formats',
-  'populate[eventHostBrand][fields][0]=id',
-  'populate[eventHostBrand][fields][1]=documentId',
-  'populate[eventHostBrand][fields][2]=name',
-  'populate[eventHostBrand][fields][3]=website',
-  'populate[eventHostBrand][fields][4]=instagram',
-  'populate[eventHostBrand][fields][5]=description',
-  'populate[eventHostBrand][populate][logo][fields][0]=url',
-  'populate[eventHostBrand][populate][logo][fields][1]=formats',
-  'populate[city][fields][0]=id',
-  'populate[city][fields][1]=documentId',
-  'populate[city][fields][2]=name',
-  'populate[city][fields][3]=slug',
-].join('&');
+// Populate params for events - simple syntax for Strapi v5
+const EVENT_POPULATE = 'populate=city&populate=image&populate=eventHostBrand.logo';
 
 export async function getAllEvents(): Promise<Event[]> {
   const cacheKey = 'events:all';
   const cached = getCached<Event[]>(cacheKey);
   if (cached) return cached;
+
+  // Try to load from static file first (prefetched data)
+  const staticData = await loadFromStaticFile<Event[]>('events');
+  if (staticData && staticData.length > 0) {
+    console.log('[Events API] Loaded from static file:', staticData.length);
+    setCache(cacheKey, staticData);
+    return staticData;
+  }
 
   try {
     // Use unified client for consistent fetching

@@ -1,16 +1,9 @@
 import { Critic } from '../types';
 import { strapiGetAll } from './strapiClient';
-import { getCached, setCache } from './cache';
+import { getCached, setCache, loadFromStaticFile } from './cache';
 
-// Populate params to get all related data
-// Using deep populate syntax for nested relations
-const CRITIC_POPULATE = [
-  'populate[0]=photo',
-  'populate[1]=locations',
-  'populate[2]=critic_picks.shop.featured_image',
-  'populate[3]=critic_picks.shop.brand.logo',
-  'populate[4]=critic_picks.shop.city_area',
-].join('&');
+// Populate params to get all related data - simple syntax for Strapi v5
+const CRITIC_POPULATE = 'populate=photo&populate=locations&populate=critic_picks.shop.featured_image&populate=critic_picks.shop.brand.logo&populate=critic_picks.shop.city_area';
 
 /**
  * Fetch all critics from Strapi
@@ -21,6 +14,14 @@ export async function getAllCritics(): Promise<Critic[]> {
   if (cached) {
     console.log('[Critics API] Returning cached critics:', cached.length);
     return cached;
+  }
+
+  // Try to load from static file first (prefetched data)
+  const staticData = await loadFromStaticFile<Critic[]>('critics');
+  if (staticData && staticData.length > 0) {
+    console.log('[Critics API] Loaded from static file:', staticData.length);
+    setCache(cacheKey, staticData);
+    return staticData;
   }
 
   console.log('[Critics API] Fetching critics from Strapi...');
