@@ -114,8 +114,8 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
         className={cn(
-          'w-full text-left transition-colors duration-150 flex items-center gap-4 py-3 px-2 min-h-[136px] group !bg-transparent hover:!bg-transparent active:!bg-transparent',
-          !isLast && 'border-b border-gray-100 dark:border-white/5',
+          'w-full text-left transition-colors duration-150 flex items-center gap-3 py-2.5 px-2 group !bg-transparent hover:!bg-transparent active:!bg-transparent',
+          !isLast && 'border-b border-black/5 dark:border-white/5',
           disabled && 'pointer-events-none opacity-50',
           animationIndex > 0 && 'shop-card-animate'
         )}
@@ -126,19 +126,19 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
           <Avatar
             src={logoUrl || undefined}
             name={shop.brand?.name ?? shop.name}
-            size="md"
-            className="w-12 h-12"
+            size="sm"
+            className="w-10 h-10"
             showFallback
-            fallback={<span className="text-base">{displayName.charAt(0)}</span>}
+            fallback={<span className="text-sm">{displayName.charAt(0)}</span>}
           />
           {hasCityAreaRecommendation() && (
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-50 flex items-center justify-center shadow-md ring-2 ring-white dark:ring-surface">
+            <div className="absolute -bottom-0.5 -right-0.5">
               <Image
                 src="/coffee-award.png"
                 alt="Top choice"
-                width={18}
-                height={18}
-                className="w-4 h-4"
+                width={20}
+                height={20}
+                className="w-5 h-5 drop-shadow-sm"
               />
             </div>
           )}
@@ -147,13 +147,13 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
         {/* Middle - Text content */}
         <div className="flex-1 min-w-0">
           {/* Shop name */}
-          <h4 className="font-medium text-primary text-[20px] leading-snug mb-0.5 line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+          <h4 className="font-medium text-primary text-base leading-snug mb-0.5 line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
             {displayName}
           </h4>
 
           {/* Description - brand story for independents, shop description for chains */}
           {description && (
-            <p className="text-[13px] text-text-secondary line-clamp-2">
+            <p className="text-xs text-text-secondary line-clamp-2">
               {description}
             </p>
           )}
@@ -164,7 +164,7 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
               {resolvedFilters.slice(0, 3).map((filter, i) => (
                 <span
                   key={i}
-                  className="text-xs px-2.5 py-1 rounded-md bg-stone-200 dark:bg-stone-700/50 text-stone-600 dark:text-stone-300"
+                  className="text-xs px-2.5 py-1 rounded-md text-text-secondary border border-border-default"
                 >
                   {filter}
                 </span>
@@ -178,18 +178,18 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
           )}
         </div>
 
-        {/* Right side - Shop featured image */}
-        {featuredImageUrl && (
-          <div className="flex-shrink-0 w-32 h-20 rounded-lg overflow-hidden bg-surface">
+        {/* Right side - Shop featured image or placeholder */}
+        <div className="flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+          {featuredImageUrl ? (
             <Image
               src={featuredImageUrl}
               alt={displayName}
-              width={128}
-              height={80}
+              width={96}
+              height={64}
               className="w-full h-full object-cover"
             />
-          </div>
-        )}
+          ) : null}
+        </div>
       </button>
     );
   }
@@ -240,7 +240,7 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
             {resolvedFilters.map((filter, i) => (
               <span
                 key={i}
-                className="text-xs px-2 py-0.5 rounded-md bg-stone-200 dark:bg-stone-700/50 text-stone-600 dark:text-stone-300"
+                className="text-xs px-2 py-0.5 rounded-md text-text-secondary border border-border-default"
               >
                 {filter}
               </span>

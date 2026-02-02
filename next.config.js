@@ -19,6 +19,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'hatscripts.github.io',
       },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
     ],
     // Use modern formats for better compression
     formats: ['image/avif', 'image/webp'],

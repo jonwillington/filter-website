@@ -69,12 +69,12 @@ export const ComingSoonChip = ({ children = 'Coming Soon', ...props }: Omit<Stat
  */
 export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
-    variant="solid"
+    variant="bordered"
     size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none py-2 h-auto px-[0.45rem]',
-      content: 'text-text text-sm',
+      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
+      content: 'text-text-secondary text-sm',
     }}
     {...props}
   >
@@ -87,12 +87,12 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
  */
 export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
   <Chip
-    variant="solid"
+    variant="bordered"
     size="lg"
     radius="full"
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none py-2 h-auto px-[0.45rem]',
-      content: 'text-text text-sm',
+      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
+      content: 'text-text-secondary text-sm',
     }}
     {...props}
   >
@@ -113,7 +113,7 @@ const getFlagUrl = (code: string) =>
 
 export const CountryChip = ({ code, name }: CountryChipProps) => (
   <Chip
-    variant="solid"
+    variant="bordered"
     size="lg"
     radius="full"
     startContent={
@@ -125,8 +125,8 @@ export const CountryChip = ({ code, name }: CountryChipProps) => (
       />
     }
     classNames={{
-      base: 'bg-gray-100 dark:bg-white/15 border-none py-2 h-auto px-[0.45rem]',
-      content: 'text-text text-sm',
+      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
+      content: 'text-text-secondary text-sm',
     }}
   >
     {name}

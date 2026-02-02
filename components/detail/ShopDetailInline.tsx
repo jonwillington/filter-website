@@ -24,7 +24,6 @@ import { AwardBox } from '@/components/ui';
 import { hasCityAreaRecommendation, getMediaUrl } from '@/lib/utils';
 import { useShopUserImages } from '@/lib/hooks';
 import { getMoreFromBrand } from '@/lib/utils/shopFiltering';
-import { ShopDrawerFooter } from './shop-drawer/ShopDrawerFooter';
 
 interface ShopDetailInlineProps {
   shop: Shop;
@@ -64,7 +63,7 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
       </div>
 
       {/* Content with padding */}
-      <div className="px-5 py-4 pb-24">
+      <div className="px-5 py-4">
         {/* City Area Recommendation Award */}
         {isTopChoice && (
           <div className="mb-4 shop-card-animate" style={staggerStyle(1)}>
@@ -181,11 +180,6 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
             Get in touch
           </a>
         </p>
-      </div>
-
-      {/* Fixed footer with social links and directions */}
-      <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border-default">
-        <ShopDrawerFooter shop={shop} />
       </div>
 
       {/* Modals */}

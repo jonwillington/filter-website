@@ -93,14 +93,11 @@ export function AreaList({ shops, onAreaSelect, animationKey = 0 }: AreaListProp
   return (
     <div className="px-4 py-4" key={`areas-${animationKey}`}>
       {areasByGroup.map(([groupName, groupAreas], groupIndex) => (
-        <div key={groupName || 'ungrouped'} className={groupIndex > 0 ? 'mt-6' : ''}>
+        <div key={groupName || 'ungrouped'} className={groupIndex > 0 ? 'mt-10' : ''}>
           {groupName && (
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider whitespace-nowrap">
-                {groupName}
-              </span>
-              <div className="flex-1 h-px bg-gray-200 dark:bg-white/10" />
-            </div>
+            <span className="text-xs font-medium text-primary opacity-80 uppercase tracking-wider mb-1.5 block">
+              {groupName}
+            </span>
           )}
           <div>
             {groupAreas.map((area, areaIndex) => {
@@ -110,22 +107,19 @@ export function AreaList({ shops, onAreaSelect, animationKey = 0 }: AreaListProp
                 <button
                   key={area.id}
                   onClick={() => onAreaSelect(area.id, area.name)}
-                  className={`w-full text-left py-3 group shop-card-animate ${!isLast ? 'border-b border-gray-100 dark:border-white/5' : ''}`}
+                  className={`w-full text-left py-3 group shop-card-animate ${!isLast ? 'border-b border-black/5 dark:border-white/5' : ''}`}
                   style={{ animationDelay: `${(animIndex - 1) * 40}ms` }}
                 >
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-[1.75rem] font-medium text-primary leading-tight group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-medium text-primary leading-tight group-hover:text-accent transition-colors">
                       {area.name}
                     </span>
-                    <span className="text-sm text-text-secondary">
-                      {area.shopCount}
-                    </span>
-                    {area.hasTopPicks && (
-                      <span className="text-xs text-amber-600 dark:text-amber-500 font-medium">
-                        Top picks
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <span className="text-xs text-text-secondary">
+                        {area.shopCount}
                       </span>
-                    )}
-                    <ChevronRight className="w-4 h-4 text-text-secondary/50 ml-auto flex-shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-text-secondary/50 flex-shrink-0" />
+                    </div>
                   </div>
                 </button>
               );

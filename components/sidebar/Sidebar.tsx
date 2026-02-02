@@ -1,6 +1,7 @@
 'use client';
 
 import { LocationCell } from './LocationCell';
+import { LocationCard } from './LocationCard';
 import { ShopList } from './ShopList';
 import { ShortOnShopsAlert } from './ShortOnShopsAlert';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
@@ -11,8 +12,8 @@ import { cn, getMediaUrl } from '@/lib/utils';
 import { BrandLogo } from './BrandLogoCarousel';
 import { useMemo, ReactNode, useState, useCallback } from 'react';
 import { useTags } from '@/lib/hooks/useTags';
-import { Button, Select, SelectItem, Switch, Tooltip } from '@heroui/react';
-import { Map, SlidersHorizontal, HelpCircle } from 'lucide-react';
+import { Select, SelectItem, Switch, Tooltip } from '@heroui/react';
+import { SlidersHorizontal, HelpCircle } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
 
 export type ShopFilterType = 'all' | 'topPicks' | 'working' | 'interior' | 'brewing';
@@ -212,12 +213,16 @@ export function Sidebar({
       {/* Controls section - outside gradient header, hidden for first-time visitors */}
       {!isFirstTimeVisitor && (
         <div className="px-4 py-5 space-y-3 border-b border-border-default bg-background">
-          <LocationCell
-            selectedLocation={selectedLocation}
-            unsupportedCountry={unsupportedCountry ?? null}
-            isAreaUnsupported={isAreaUnsupported}
-            onClick={onOpenExploreModal}
-          />
+          <LocationCell onClick={onOpenExploreModal} />
+
+          {/* Location card - shows when a location is selected */}
+          {selectedLocation && onOpenCityGuide && (
+            <LocationCard
+              location={selectedLocation}
+              onReadCityGuide={onOpenCityGuide}
+            />
+          )}
+
           {/* Apply my filters toggle - only show if user has filters set */}
           {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
           <div
@@ -275,20 +280,6 @@ export function Sidebar({
               </SelectItem>
             ))}
           </Select>
-        )}
-        {selectedLocation && onOpenCityGuide && (
-          <div className="lg:hidden">
-            <Button
-              onPress={onOpenCityGuide}
-              variant="flat"
-              color="primary"
-              fullWidth
-              startContent={<Map className="w-4 h-4" />}
-              size="sm"
-            >
-              See City Guide
-            </Button>
-          </div>
         )}
         </div>
       )}

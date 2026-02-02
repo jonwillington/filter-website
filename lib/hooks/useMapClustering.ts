@@ -22,6 +22,7 @@ export interface UseMapClusteringOptions {
   onTransitionComplete?: () => void;
   isLoading: boolean;
   expandedCityAreaId?: string | null;
+  activeFilter?: string;
 }
 
 /**
@@ -42,6 +43,7 @@ export function useMapClustering({
   onTransitionComplete,
   isLoading,
   expandedCityAreaId = null,
+  activeFilter = 'all',
 }: UseMapClusteringOptions): void {
   // Refs for logo badges and state tracking
   const logoBadges = useRef<Map<string, mapboxgl.Marker>>(new Map());
@@ -53,6 +55,7 @@ export function useMapClustering({
   const wasAboveZoomThreshold = useRef(getZoomBracket(currentZoom));
   const previousShopIdsRef = useRef<string>('');
   const previousCityAreaIdRef = useRef<string | null>(null);
+  const previousActiveFilterRef = useRef<string>('all');
   const badgeShowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProgrammaticMove = useRef<boolean>(false);
 
@@ -101,10 +104,15 @@ export function useMapClustering({
     // Check if shops actually changed (by IDs, not reference)
     const shopsChanged = shopIdsString !== previousShopIdsRef.current;
     const cityAreaChanged = expandedCityAreaId !== previousCityAreaIdRef.current;
+    const filterChanged = activeFilter !== previousActiveFilterRef.current;
     previousShopIdsRef.current = shopIdsString;
     previousCityAreaIdRef.current = expandedCityAreaId;
+    previousActiveFilterRef.current = activeFilter;
 
-    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'cityAreaChanged:', cityAreaChanged, 'badgeCount:', logoBadges.current.size);
+    // Disable clustering when a filter (other than 'all') is active
+    const disableClustering = activeFilter !== 'all';
+
+    console.log('[Clustering Effect] Running - shopsChanged:', shopsChanged, 'cityAreaChanged:', cityAreaChanged, 'filterChanged:', filterChanged, 'disableClustering:', disableClustering, 'badgeCount:', logoBadges.current.size);
 
     const m = map;
 
@@ -115,9 +123,9 @@ export function useMapClustering({
         return;
       }
 
-      // Only recreate layers/badges if shops actually changed, city area changed, or first run
+      // Only recreate layers/badges if shops actually changed, city area changed, filter changed, or first run
       const sourceExists = !!m.getSource('shops');
-      const needsRecreation = shopsChanged || cityAreaChanged || !sourceExists;
+      const needsRecreation = shopsChanged || cityAreaChanged || filterChanged || !sourceExists;
 
       console.log('[setupClustering] sourceExists:', sourceExists, 'needsRecreation:', needsRecreation, 'expandedCityAreaId:', expandedCityAreaId);
 
@@ -225,11 +233,12 @@ export function useMapClustering({
         const outsideAreaStrokeOpacity = expandedCityAreaId ? 0 : 1;
 
         // Add clustered source with industry-standard configuration
+        // Disable clustering when a filter is active to show individual markers
         try {
           m.addSource('shops', {
             type: 'geojson',
             data: clusteredGeojson,
-            cluster: true,
+            cluster: !disableClustering,
             clusterRadius: CLUSTER_RADIUS,
             clusterMaxZoom: CLUSTER_MAX_ZOOM,
             clusterProperties: {
@@ -860,7 +869,7 @@ export function useMapClustering({
       // Note: Don't remove layers here - they should persist until setupClustering
       // runs again with new data. Removing them here causes a flash.
     };
-  }, [shopIdsString, mapReady, map, effectiveTheme, expandedCityAreaId]);
+  }, [shopIdsString, mapReady, map, effectiveTheme, expandedCityAreaId, activeFilter]);
 
   // Update selected logo badge styling and fade other badges
   useEffect(() => {
@@ -878,19 +887,20 @@ export function useMapClustering({
       // Add transition for smooth fading
       el.style.transition = 'opacity 800ms ease-out';
 
-      // Fade non-selected badges completely when a shop is selected
+      // Fade non-selected badges to greyscale when a shop is selected
       if (selectedId) {
-        el.style.opacity = isSelected ? '1' : '0';
-        // Delay pointer-events change so clicks don't go through during fade
-        if (!isSelected) {
-          el.style.pointerEvents = 'none';
-        } else {
+        if (isSelected) {
+          el.classList.remove('badge-faded');
+          el.style.opacity = '1';
           el.style.pointerEvents = 'auto';
+        } else {
+          el.classList.add('badge-faded');
+          el.style.pointerEvents = 'none';
         }
       } else {
         // No shop selected - all badges full opacity and clickable
+        el.classList.remove('badge-faded');
         el.style.opacity = '1';
-        el.style.filter = 'none';
         el.style.pointerEvents = 'auto';
       }
     });
@@ -898,15 +908,17 @@ export function useMapClustering({
     selectedMarkerRef.current = selectedId;
   }, [selectedShop, map]);
 
-  // Update circle marker opacities when a shop is selected
+  // Update circle marker styling when a shop is selected
+  // Non-selected markers become grey (desaturated) while staying visible
   useEffect(() => {
     if (!map || !mapReady) return;
 
     const selectedId = selectedShop?.documentId || null;
 
-    // Base opacities - fade non-selected markers completely
+    // Grey color for unselected markers (desaturated)
+    const greyColor = '#9CA3AF';
     const selectedOpacity = 1;
-    const unselectedOpacity = 0;
+    const unselectedOpacity = 0.5;
     const noSelectionOpacity = 0.9;
     const fadeDuration = 800; // ms - slow fade to match map pan
 
@@ -915,14 +927,17 @@ export function useMapClustering({
       if (map.getLayer('unclustered-point')) {
         map.setPaintProperty('unclustered-point', 'circle-opacity-transition', { duration: fadeDuration });
         map.setPaintProperty('unclustered-point', 'circle-stroke-opacity-transition', { duration: fadeDuration });
+        map.setPaintProperty('unclustered-point', 'circle-color-transition', { duration: fadeDuration });
       }
       if (map.getLayer('city-area-points')) {
         map.setPaintProperty('city-area-points', 'circle-opacity-transition', { duration: fadeDuration });
         map.setPaintProperty('city-area-points', 'circle-stroke-opacity-transition', { duration: fadeDuration });
+        map.setPaintProperty('city-area-points', 'circle-color-transition', { duration: fadeDuration });
       }
       if (map.getLayer('clusters')) {
         map.setPaintProperty('clusters', 'circle-opacity-transition', { duration: fadeDuration });
         map.setPaintProperty('clusters', 'circle-stroke-opacity-transition', { duration: fadeDuration });
+        map.setPaintProperty('clusters', 'circle-color-transition', { duration: fadeDuration });
       }
       if (map.getLayer('cluster-count')) {
         map.setPaintProperty('cluster-count', 'text-opacity-transition', { duration: fadeDuration });
@@ -931,7 +946,12 @@ export function useMapClustering({
       // Update unclustered-point layer
       if (map.getLayer('unclustered-point')) {
         if (selectedId) {
-          // When a shop is selected, fade non-selected markers
+          // When a shop is selected, make non-selected markers grey
+          map.setPaintProperty('unclustered-point', 'circle-color', [
+            'case',
+            ['==', ['get', 'id'], selectedId], ['coalesce', ['get', 'countryColor'], '#8B6F47'],
+            greyColor
+          ]);
           map.setPaintProperty('unclustered-point', 'circle-opacity', [
             'case',
             ['==', ['get', 'id'], selectedId], selectedOpacity,
@@ -940,10 +960,11 @@ export function useMapClustering({
           map.setPaintProperty('unclustered-point', 'circle-stroke-opacity', [
             'case',
             ['==', ['get', 'id'], selectedId], 1,
-            0
+            0.3
           ]);
         } else if (!expandedCityAreaId) {
-          // No shop selected and no city area expanded - restore normal opacity with zoom fade
+          // No shop selected - restore original colors with zoom fade
+          map.setPaintProperty('unclustered-point', 'circle-color', ['coalesce', ['get', 'countryColor'], '#8B6F47']);
           map.setPaintProperty('unclustered-point', 'circle-opacity', [
             'interpolate',
             ['linear'],
@@ -968,6 +989,12 @@ export function useMapClustering({
       // Update city-area-points layer
       if (map.getLayer('city-area-points')) {
         if (selectedId) {
+          // When a shop is selected, make non-selected markers grey
+          map.setPaintProperty('city-area-points', 'circle-color', [
+            'case',
+            ['==', ['get', 'id'], selectedId], ['coalesce', ['get', 'countryColor'], '#8B6F47'],
+            greyColor
+          ]);
           map.setPaintProperty('city-area-points', 'circle-opacity', [
             'case',
             ['==', ['get', 'id'], selectedId], selectedOpacity,
@@ -976,10 +1003,11 @@ export function useMapClustering({
           map.setPaintProperty('city-area-points', 'circle-stroke-opacity', [
             'case',
             ['==', ['get', 'id'], selectedId], 1,
-            0
+            0.3
           ]);
         } else {
-          // No shop selected - restore normal opacity with zoom fade
+          // No shop selected - restore original colors with zoom fade
+          map.setPaintProperty('city-area-points', 'circle-color', ['coalesce', ['get', 'countryColor'], '#8B6F47']);
           map.setPaintProperty('city-area-points', 'circle-opacity', [
             'interpolate',
             ['linear'],
@@ -1001,12 +1029,14 @@ export function useMapClustering({
         }
       }
 
-      // Update clusters layer (fade clusters when a shop is selected)
+      // Update clusters layer (make clusters grey when a shop is selected)
       if (map.getLayer('clusters')) {
         if (selectedId && !expandedCityAreaId) {
+          map.setPaintProperty('clusters', 'circle-color', greyColor);
           map.setPaintProperty('clusters', 'circle-opacity', unselectedOpacity);
-          map.setPaintProperty('clusters', 'circle-stroke-opacity', 0);
+          map.setPaintProperty('clusters', 'circle-stroke-opacity', 0.3);
         } else if (!expandedCityAreaId) {
+          map.setPaintProperty('clusters', 'circle-color', ['coalesce', ['get', 'clusterColor'], '#8B6F47']);
           map.setPaintProperty('clusters', 'circle-opacity', noSelectionOpacity);
           map.setPaintProperty('clusters', 'circle-stroke-opacity', 1);
         }
@@ -1032,7 +1062,7 @@ export function useMapClustering({
         }
       }
     } catch (e) {
-      console.warn('[useMapClustering] Error updating marker opacities:', e);
+      console.warn('[useMapClustering] Error updating marker styling:', e);
     }
   }, [selectedShop, map, mapReady, expandedCityAreaId]);
 }

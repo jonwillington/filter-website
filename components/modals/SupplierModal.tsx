@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useRef, useState, useEffect } from 'react';
-import { ModalBody, Skeleton } from '@heroui/react';
+import { useMemo, useState } from 'react';
+import { Skeleton } from '@heroui/react';
 import { Brand, CoffeePartner, Country, Shop, Bean } from '@/lib/types';
 import { ResponsiveModal } from '@/components/ui';
 import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
@@ -10,11 +10,10 @@ import {
   Instagram,
   Facebook,
   Bean as BeanIcon,
-  MapPin,
-  ExternalLink,
   Coffee,
   AlertCircle,
   RefreshCw,
+  MapPin,
 } from 'lucide-react';
 import { Avatar } from '@heroui/react';
 import { useShopsQuery } from '@/lib/hooks/useDataQueries';
@@ -180,7 +179,7 @@ function BeanCard({ bean }: { bean: Bean }) {
 
       <div className="p-4 flex-1 flex flex-col">
         {/* Bean name */}
-        <h4 className="text-sm font-semibold text-primary mb-1 line-clamp-2">{bean.name}</h4>
+        <h4 className="text-sm font-medium text-primary mb-1 line-clamp-2">{bean.name}</h4>
 
         {/* Short description */}
         {bean.shortDescription && (
@@ -308,8 +307,8 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
     return beans.filter(b => b.type !== 'blend'); // single-origin
   }, [beans, filter]);
 
-  // Limit to 2 rows (8 items at lg:4 cols) unless expanded
-  const MAX_VISIBLE = 8;
+  // Limit to 3 rows (9 items at 3 cols) unless expanded
+  const MAX_VISIBLE = 9;
   const displayedBeans = expanded ? filteredBeans : filteredBeans.slice(0, MAX_VISIBLE);
   const hasMore = filteredBeans.length > MAX_VISIBLE;
 
@@ -319,8 +318,7 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <BeanCardSkeleton />
+      <div className="grid grid-cols-3 gap-3">
         <BeanCardSkeleton />
         <BeanCardSkeleton />
         <BeanCardSkeleton />
@@ -366,7 +364,7 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
             filter === 'all'
               ? 'bg-contrastBlock text-contrastText'
-              : 'bg-surface text-text-secondary hover:bg-border-default'
+              : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
           }`}
         >
           All
@@ -377,7 +375,7 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               filter === 'single-origin'
                 ? 'bg-contrastBlock text-contrastText'
-                : 'bg-surface text-text-secondary hover:bg-border-default'
+                : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
             }`}
           >
             Single Origin
@@ -389,7 +387,7 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               filter === 'blend'
                 ? 'bg-contrastBlock text-contrastText'
-                : 'bg-surface text-text-secondary hover:bg-border-default'
+                : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
             }`}
           >
             Blend
@@ -398,7 +396,7 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
       </div>
 
       {/* Beans grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {displayedBeans.map((bean) => (
           <BeanCard key={bean.documentId} bean={bean} />
         ))}
@@ -419,36 +417,10 @@ function BeansSection({ brandDocumentId }: { brandDocumentId: string }) {
 
 export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: SupplierModalProps) {
   const { ownShops, partnerShops } = useShopsUsingSupplier(supplier);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showStickyHeader, setShowStickyHeader] = useState(false);
-
-  // Track scroll position to show/hide sticky header
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      // Show sticky header after scrolling past the hero (roughly 200px)
-      setShowStickyHeader(container.scrollTop > 180);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [isOpen]);
-
-  // Reset scroll position when modal opens
-  useEffect(() => {
-    if (isOpen && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
-      setShowStickyHeader(false);
-    }
-  }, [isOpen]);
 
   const handleShopClick = (shop: Shop) => {
     onClose();
-    // Small delay to let modal close animation complete
     setTimeout(() => {
-      // Use the onShopSelect callback to navigate to shop (triggers map pan and drawer)
       onShopSelect?.(shop);
     }, 150);
   };
@@ -464,11 +436,12 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
     isBrand(supplier) && supplier.facebook && supplier.facebook.trim().length > 0;
   const hasTikTok =
     isBrand(supplier) && supplier.tiktok && supplier.tiktok.trim().length > 0;
-  const hasSocials = hasInstagram || hasFacebook || hasTikTok;
+  const hasSocials = hasInstagram || hasWebsite || hasFacebook || hasTikTok;
 
   // Get country - works for both Brand and CoffeePartner
   const country: Country | null | undefined = supplier.country;
   const countryName = country?.name;
+  const countryCode = country?.code;
 
   // Brand-specific fields
   const foundedYear = isBrand(supplier) ? getFoundedYear(supplier.founded) : null;
@@ -477,188 +450,277 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
   // Only show beans section for Brand type (not CoffeePartner)
   const showBeansSection = isBrand(supplier);
 
+  // Total shops count
+  const totalShops = ownShops.length + partnerShops.length;
+
   return (
     <ResponsiveModal
       isOpen={isOpen}
       onClose={onClose}
       size="5xl"
+      hideCloseButton
       modalClassNames={{
-        backdrop: 'bg-black/60 backdrop-blur-sm',
-        base: 'bg-background overflow-hidden max-h-[90vh]',
-        body: 'p-0',
+        wrapper: 'z-[1100]',
+        backdrop: 'z-[1100]',
+        base: '!bg-[var(--surface-warm)] !max-w-[1400px]',
       }}
     >
-      <ModalBody className="p-0 overflow-hidden">
-        {/* Scrollable container */}
-        <div
-          ref={scrollContainerRef}
-          className="overflow-y-auto max-h-[90vh] relative"
+      {/* Close button */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={onClose}
+          className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 backdrop-blur-sm flex items-center justify-center text-white transition-colors"
         >
-          {/* Sticky header - appears on scroll, fixed position within scroll container */}
-          <div
-            className={`sticky top-0 z-20 bg-background border-b border-border-default px-6 py-3 transition-all duration-200 ${
-              showStickyHeader ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden border-0 py-0'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Avatar
-                src={logoUrl || undefined}
-                name={supplier.name}
-                className="w-8 h-8 flex-shrink-0"
-                showFallback
-                fallback={<BeanIcon className="w-4 h-4" />}
-              />
-              <span className="font-medium text-primary truncate">{supplier.name}</span>
-            </div>
+          <span className="sr-only">Close</span>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Three-column layout on desktop */}
+      <div className="lg:grid lg:grid-cols-[1fr_1.5fr_1.2fr] gap-8 p-6">
+        {/* Left column - Brand details with fixed header and scrollable content */}
+        <div className="flex flex-col h-full lg:border-r lg:border-black/5 lg:pr-6 lg:max-h-[75vh]">
+          {/* Fixed header: Logo + name + country */}
+          <div className="flex-shrink-0">
+            {/* Logo */}
+            <Avatar
+              src={logoUrl || undefined}
+              name={supplier.name}
+              className="w-16 h-16 mb-4"
+              showFallback
+              fallback={<BeanIcon className="w-6 h-6" />}
+            />
+
+            {/* Brand name */}
+            <h2 className="text-4xl lg:text-5xl font-medium text-primary leading-tight">
+              {supplier.name}
+            </h2>
+
+            {/* Country with flag */}
+            {countryName && (
+              <div className="flex items-center gap-1.5 mt-2">
+                {countryCode && (
+                  <span className="w-3.5 h-3.5 rounded-full overflow-hidden flex-shrink-0 border border-border-default">
+                    <img
+                      src={getFlagUrl(countryCode)}
+                      alt={countryName}
+                      className="object-cover w-full h-full"
+                    />
+                  </span>
+                )}
+                <p className="text-sm text-text-secondary">{countryName}</p>
+              </div>
+            )}
           </div>
 
-          {/* Hero Header */}
-          <div className="relative">
-            <div className="h-48 lg:h-56 overflow-hidden bg-surface">
-              {bgImageUrl ? (
-                <img
-                  src={bgImageUrl}
-                  alt={supplier.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20" />
+          {/* Scrollable content: Stats, story, socials */}
+          <div className="flex-1 overflow-y-auto mt-3">
+            {/* Stats row */}
+            <div className="flex items-center gap-4 text-sm">
+              {foundedYear && (
+                <span className="text-text-secondary">Est. {foundedYear}</span>
+              )}
+              {founderName && (
+                <>
+                  {foundedYear && <span className="text-text-secondary/30">·</span>}
+                  <span className="text-text-secondary">{founderName}</span>
+                </>
+              )}
+              {totalShops > 0 && (
+                <>
+                  {(foundedYear || founderName) && <span className="text-text-secondary/30">·</span>}
+                  <span className="text-text-secondary">{totalShops} {totalShops === 1 ? 'location' : 'locations'}</span>
+                </>
               )}
             </div>
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
-            {/* Visit Website button - top right */}
-            {hasWebsite && (
-              <a
-                href={getWebsiteUrl(supplier.website!)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute top-4 right-6 flex items-center gap-1.5 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium hover:bg-white/30 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                Visit Website
-              </a>
+            {/* Story */}
+            {hasStory && (
+              <div className="mt-6">
+                <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-3">About</h3>
+                <p className="text-xs text-text-secondary leading-relaxed">{supplier.story}</p>
+              </div>
             )}
 
-            {/* Logo and brand info at bottom of hero */}
-            <div className="absolute bottom-0 left-0 right-0 px-6 pb-5 pt-5">
-              <div className="flex flex-col gap-3">
-                {/* Logo */}
-                <Avatar
-                  src={logoUrl || undefined}
-                  name={supplier.name}
-                  className="w-14 h-14 lg:w-16 lg:h-16 ring-4 ring-white/20 shadow-lg"
-                  showFallback
-                  fallback={<BeanIcon className="w-5 h-5 lg:w-6 lg:h-6" />}
-                />
-                {/* Brand name and metadata */}
-                <div>
-                  <h2 className="text-3xl lg:text-4xl font-bold text-white mb-1 drop-shadow-lg">
-                    {supplier.name}
-                  </h2>
-                  <p className="text-sm text-white/80 drop-shadow">
-                    {founderName && `Founded by ${founderName}`}
-                    {founderName && (countryName || foundedYear) && ' · '}
-                    {countryName}
-                    {countryName && foundedYear && ' · '}
-                    {foundedYear && `Est. ${foundedYear}`}
-                  </p>
+            {/* Socials and links */}
+            <div className="mt-6 pt-6 border-t border-black/5 space-y-3">
+              {hasSocials && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider">Connect</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {hasWebsite && (
+                      <a
+                        href={getWebsiteUrl(supplier.website!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-white/10 border border-border-default text-sm text-text-secondary hover:text-primary transition-colors"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>Website</span>
+                      </a>
+                    )}
+                    {hasInstagram && (
+                      <a
+                        href={getInstagramUrl(supplier.instagram!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-white/10 border border-border-default text-sm text-text-secondary hover:text-primary transition-colors"
+                      >
+                        <Instagram className="w-3.5 h-3.5" />
+                        <span>{getInstagramHandle(supplier.instagram!)}</span>
+                      </a>
+                    )}
+                    {hasFacebook && isBrand(supplier) && (
+                      <a
+                        href={getFacebookUrl(supplier.facebook!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-white/10 border border-border-default text-sm text-text-secondary hover:text-primary transition-colors"
+                      >
+                        <Facebook className="w-3.5 h-3.5" />
+                        <span>Facebook</span>
+                      </a>
+                    )}
+                    {hasTikTok && isBrand(supplier) && (
+                      <a
+                        href={getTikTokUrl(supplier.tiktok!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-white/10 border border-border-default text-sm text-text-secondary hover:text-primary transition-colors"
+                      >
+                        <TikTokIcon className="w-3.5 h-3.5" />
+                        <span>{getTikTokHandle(supplier.tiktok!)}</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Background image */}
+              {bgImageUrl && (
+                <div className="relative w-full h-32 rounded-xl overflow-hidden mt-4">
+                  <img
+                    src={bgImageUrl}
+                    alt={supplier.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Content sections */}
-          <div className="px-6 py-8">
-            {/* Story Section - Full width */}
-            {hasStory && (
-              <div className="mb-10">
-                <p className="text-base text-primary leading-relaxed max-w-prose">
-                  {supplier.story}
-                </p>
-              </div>
-            )}
-
-            {/* Social Links - Inline text style */}
-            {hasSocials && (
-              <div className="flex items-center gap-4 text-sm text-text-secondary mb-12">
-                {hasInstagram && (
-                  <a
-                    href={getInstagramUrl(supplier.instagram!)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                  >
-                    <Instagram className="w-4 h-4" />
-                    <span>{getInstagramHandle(supplier.instagram!)}</span>
-                  </a>
-                )}
-                {hasFacebook && isBrand(supplier) && (
-                  <a
-                    href={getFacebookUrl(supplier.facebook!)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                  >
-                    <Facebook className="w-4 h-4" />
-                    <span>Facebook</span>
-                  </a>
-                )}
-                {hasTikTok && isBrand(supplier) && (
-                  <a
-                    href={getTikTokUrl(supplier.tiktok!)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                  >
-                    <TikTokIcon className="w-4 h-4" />
-                    <span>{getTikTokHandle(supplier.tiktok!)}</span>
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Beans Section */}
-            {showBeansSection && (
-              <div className="mb-12">
-                <h3 className="text-lg font-semibold text-primary mb-4">
-                  Beans
-                </h3>
-                <BeansSection brandDocumentId={supplier.documentId} />
-              </div>
-            )}
-
-            {/* Brand's Own Shops */}
-            {ownShops.length > 0 && (
-              <div className="mb-12">
-                <h3 className="text-lg font-semibold text-primary mb-4">
-                  {supplier.name} Locations
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {ownShops.map((shop) => (
-                    <ShopCard key={shop.documentId} shop={shop} onClick={() => handleShopClick(shop)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Partner Cafés */}
-            {partnerShops.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-primary mb-4">
-                  Cafés Serving Their Beans
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {partnerShops.map((shop) => (
-                    <ShopCard key={shop.documentId} shop={shop} onClick={() => handleShopClick(shop)} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-      </ModalBody>
+
+        {/* Middle column - Beans */}
+        <div className="mt-8 lg:mt-0 lg:border-r lg:border-black/5 lg:pr-6 lg:max-h-[75vh] lg:overflow-y-auto">
+          {showBeansSection && (
+            <div>
+              <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">Beans</h3>
+              <BeansSection brandDocumentId={supplier.documentId} />
+            </div>
+          )}
+        </div>
+
+        {/* Right column - Locations */}
+        <div className="mt-8 lg:mt-0 lg:max-h-[75vh] lg:overflow-y-auto">
+          {/* Brand's Own Shops */}
+          {ownShops.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
+                {ownShops.length} {supplier.name} {ownShops.length === 1 ? 'Location' : 'Locations'}
+              </h3>
+              <div className="space-y-2">
+                {ownShops.map((shop) => {
+                  const imageUrl = getMediaUrl(shop.featured_image);
+                  const displayName = getShopDisplayName(shop);
+                  const locationText = [shop.city_area?.name, shop.location?.name].filter(Boolean).join(', ');
+
+                  return (
+                    <button
+                      key={shop.documentId}
+                      onClick={() => handleShopClick(shop)}
+                      className="w-full text-left py-3 group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+                            {displayName}
+                          </h4>
+                          {locationText && (
+                            <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationText}</p>
+                          )}
+                        </div>
+                        <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                          ) : null}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Partner Cafés */}
+          {partnerShops.length > 0 && (
+            <div>
+              <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
+                {partnerShops.length} {partnerShops.length === 1 ? 'Café' : 'Cafés'} Serving Their Beans
+              </h3>
+              <div className="space-y-2">
+                {partnerShops.map((shop) => {
+                  const imageUrl = getMediaUrl(shop.featured_image);
+                  const logoUrl = getMediaUrl(shop.brand?.logo);
+                  const displayName = getShopDisplayName(shop);
+                  const locationText = [shop.city_area?.name, shop.location?.name].filter(Boolean).join(', ');
+
+                  return (
+                    <button
+                      key={shop.documentId}
+                      onClick={() => handleShopClick(shop)}
+                      className="w-full text-left py-3 group"
+                    >
+                      <div className="flex items-center gap-3">
+                        {logoUrl && (
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-border-default flex-shrink-0">
+                            <img src={logoUrl} alt={shop.brand?.name} className="object-cover w-full h-full" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+                            {displayName}
+                          </h4>
+                          {locationText && (
+                            <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationText}</p>
+                          )}
+                        </div>
+                        <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                          ) : null}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {ownShops.length === 0 && partnerShops.length === 0 && (
+            <div className="bg-white/50 dark:bg-white/5 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-primary mb-2">No locations yet</h4>
+              <p className="text-xs text-text-secondary">
+                We haven&apos;t found any cafés serving {supplier.name} beans yet.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </ResponsiveModal>
   );
 }

@@ -70,7 +70,7 @@ export function ExploreModal({
       </ModalAnnouncementBanner>
 
       {/* Main content wrapper - overlaps the banner with rounded top corners */}
-      <div className="bg-background rounded-t-2xl -mt-3 relative flex flex-col min-h-0 flex-1">
+      <div className="rounded-t-2xl -mt-3 relative flex flex-col min-h-0 flex-1" style={{ backgroundColor: 'var(--surface-warm)' }}>
         <CircularCloseButton
           onPress={onClose}
           size="sm"
@@ -78,7 +78,7 @@ export function ExploreModal({
         />
 
         {/* Header with filter chips */}
-        <div className="sticky top-0 z-10 bg-background rounded-t-2xl border-b border-border-default">
+        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-border-default" style={{ backgroundColor: 'var(--surface-warm)' }}>
           <div className="px-6 py-5 lg:py-6 space-y-4">
             <h2 className="text-xl lg:text-2xl font-display" style={{ color: 'var(--text)' }}>
               Where to?
@@ -93,7 +93,7 @@ export function ExploreModal({
                     'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
                     viewMode === 'region'
                       ? 'bg-contrastBlock text-contrastText'
-                      : 'bg-surface text-text-secondary hover:bg-border-default'
+                      : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
                   )}
                 >
                   By region
@@ -104,7 +104,7 @@ export function ExploreModal({
                     'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
                     viewMode === 'rating'
                       ? 'bg-contrastBlock text-contrastText'
-                      : 'bg-surface text-text-secondary hover:bg-border-default'
+                      : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
                   )}
                 >
                   By rating
@@ -115,7 +115,7 @@ export function ExploreModal({
                     'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
                     viewMode === 'events'
                       ? 'bg-contrastBlock text-contrastText'
-                      : 'bg-surface text-text-secondary hover:bg-border-default'
+                      : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
                   )}
                 >
                   Events

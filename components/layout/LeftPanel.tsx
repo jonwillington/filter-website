@@ -1,10 +1,9 @@
 'use client';
 
 import { ReactNode, useRef, useEffect, useState, useCallback } from 'react';
-import { AnimatedGradientHeader } from '../sidebar/AnimatedGradientHeader';
-import { LocationCell } from '../sidebar/LocationCell';
+import { LocationCard } from '../sidebar/LocationCard';
 import { Switch, Tooltip } from '@heroui/react';
-import { ChevronLeft, SlidersHorizontal, HelpCircle, Map } from 'lucide-react';
+import { ChevronLeft, SlidersHorizontal, HelpCircle } from 'lucide-react';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, getShopDisplayName } from '@/lib/utils';
 import { ShopFilterType } from '../sidebar/Sidebar';
@@ -12,20 +11,18 @@ import { ShopFilterType } from '../sidebar/Sidebar';
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
   { key: 'all', label: 'All Shops' },
   { key: 'topPicks', label: 'Top Picks' },
-  { key: 'working', label: 'Great for Working' },
-  { key: 'interior', label: 'Beautiful Interior' },
+  { key: 'working', label: 'Workspace' },
+  { key: 'interior', label: 'Interior' },
   { key: 'brewing', label: 'Excellent Brewing' },
 ];
 
 interface LeftPanelProps {
-  // Header
-  authComponent?: ReactNode;
-
   // Location/Controls
   selectedLocation: Location | null;
   unsupportedCountry?: { name: string; code: string } | null;
   isAreaUnsupported?: boolean;
-  onOpenExploreModal: () => void;
+  onOpenCityGuide?: () => void;
+  onClearLocation?: () => void;
 
   // City area drill-down navigation
   selectedCityAreaName?: string | null;
@@ -54,11 +51,11 @@ interface LeftPanelProps {
 }
 
 export function LeftPanel({
-  authComponent,
   selectedLocation,
   unsupportedCountry,
   isAreaUnsupported = false,
-  onOpenExploreModal,
+  onOpenCityGuide,
+  onClearLocation,
   selectedCityAreaName,
   onBackToAreaList,
   shopFilter,
@@ -81,39 +78,6 @@ export function LeftPanel({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const prevSelectedShopRef = useRef<string | null>(null);
   const prevSelectedAreaRef = useRef<string | null>(null);
-
-  // Scroll shadow state
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
-
-  // Check scroll position for shadows
-  const updateScrollShadows = useCallback(() => {
-    const el = contentRef.current;
-    if (!el) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = el;
-    setCanScrollUp(scrollTop > 0);
-    setCanScrollDown(scrollTop + clientHeight < scrollHeight - 1);
-  }, []);
-
-  // Update shadows on scroll
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-
-    el.addEventListener('scroll', updateScrollShadows);
-    // Initial check
-    updateScrollShadows();
-
-    // Also check on resize
-    const resizeObserver = new ResizeObserver(updateScrollShadows);
-    resizeObserver.observe(el);
-
-    return () => {
-      el.removeEventListener('scroll', updateScrollShadows);
-      resizeObserver.disconnect();
-    };
-  }, [updateScrollShadows]);
 
   // Check if there are any special filters available
   const hasSpecialFilters = filterCounts.topPicks > 0 || filterCounts.working > 0 || filterCounts.interior > 0 || filterCounts.brewing > 0;
@@ -175,27 +139,18 @@ export function LeftPanel({
 
   return (
     <div className="left-panel">
-      {/* Header with gradient */}
-      <div className="left-panel-header">
-        <AnimatedGradientHeader>
-          <div className="sidebar-header-content">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-white">Filter</h1>
-              {authComponent && <div className="auth-in-sidebar">{authComponent}</div>}
-            </div>
-          </div>
-        </AnimatedGradientHeader>
-      </div>
+      {/* Hero location card - shows when a location is selected */}
+      {showControls && selectedLocation && onOpenCityGuide && (
+        <LocationCard
+          location={selectedLocation}
+          onReadCityGuide={onOpenCityGuide}
+          onBack={onClearLocation}
+        />
+      )}
 
       {/* Controls section - hidden when viewing shop detail or first time visitor */}
-      {showControls && (
-        <div className="left-panel-controls space-y-3">
-          <LocationCell
-            selectedLocation={selectedLocation}
-            unsupportedCountry={unsupportedCountry ?? null}
-            isAreaUnsupported={isAreaUnsupported}
-            onClick={onOpenExploreModal}
-          />
+      {showControls && selectedLocation && (
+        <div className="left-panel-controls space-y-3 pb-4 border-b border-border-default">
 
           {/* Apply my filters toggle */}
           {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
@@ -241,7 +196,7 @@ export function LeftPanel({
                     'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                     shopFilter === option.key
                       ? 'bg-contrastBlock text-contrastText'
-                      : 'bg-surface text-text-secondary hover:bg-border-default'
+                      : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
                   )}
                 >
                   {option.label}
@@ -254,40 +209,34 @@ export function LeftPanel({
 
       {/* Back button when viewing shops within a city area */}
       {selectedCityAreaName && onBackToAreaList && !selectedShop && (
-        <div className="flex-shrink-0 px-4 py-4">
+        <div className="flex-shrink-0 px-4 py-4 border-b border-border-default">
           <button
             onClick={onBackToAreaList}
             className="flex items-center gap-1 text-accent hover:text-accent/80 transition-colors"
           >
-            <ChevronLeft className="w-6 h-6" />
-            <h2 className="text-[2rem] font-medium text-primary leading-tight">{selectedCityAreaName}</h2>
+            <ChevronLeft className="w-5 h-5" />
+            <span className="text-xl font-medium text-primary leading-tight">{selectedCityAreaName}</span>
           </button>
         </div>
       )}
 
       {/* Back button when viewing shop detail */}
       {selectedShop && onBack && (
-        <div className="flex-shrink-0 px-4 py-3 border-b border-border-default">
+        <div className="flex-shrink-0 px-4 py-4 border-b border-border-default">
           <button
             onClick={onBack}
-            className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+            className="flex items-center gap-1 text-accent hover:text-accent/80 transition-colors"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>{previousShop ? getShopDisplayName(previousShop) : 'Back to list'}</span>
+            <ChevronLeft className="w-5 h-5" />
+            <span className="text-xl font-medium text-primary leading-tight">
+              {previousShop ? getShopDisplayName(previousShop) : 'Back'}
+            </span>
           </button>
         </div>
       )}
 
-      {/* Content area with fade transition and scroll shadows */}
+      {/* Content area with fade transition */}
       <div className="relative flex-1 min-h-0">
-        {/* Top scroll shadow */}
-        <div
-          className={cn(
-            'absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none transition-opacity duration-200',
-            canScrollUp ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-
         <div
           ref={contentRef}
           className={cn(
@@ -297,14 +246,6 @@ export function LeftPanel({
         >
           {children}
         </div>
-
-        {/* Bottom scroll shadow */}
-        <div
-          className={cn(
-            'absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none transition-opacity duration-200',
-            canScrollDown ? 'opacity-100' : 'opacity-0'
-          )}
-        />
       </div>
 
     </div>

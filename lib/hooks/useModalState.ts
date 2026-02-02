@@ -8,7 +8,8 @@ export type ModalName =
   | 'filterPreferences'
   | 'settings'
   | 'unsupportedCountry'
-  | 'mobileCityGuide';
+  | 'mobileCityGuide'
+  | 'cityGuide';
 
 type ModalState = Record<ModalName, boolean>;
 
@@ -20,6 +21,7 @@ const initialState: ModalState = {
   settings: false,
   unsupportedCountry: false,
   mobileCityGuide: false,
+  cityGuide: false,
 };
 
 /**

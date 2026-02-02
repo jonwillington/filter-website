@@ -36,6 +36,9 @@ import { BrandLogo } from '../sidebar/BrandLogoCarousel';
 // Stable empty Map to prevent re-render loops
 const EMPTY_SHOP_MATCH_INFO = new Map<string, string[]>();
 
+// Zoom level for city area view (slightly zoomed in from city overview)
+const CITY_AREA_ZOOM = 13;
+
 // Dynamic imports for modals to reduce initial bundle size
 const SearchModal = dynamic(
   () => import('../modals/SearchModal').then(mod => ({ default: mod.SearchModal })),
@@ -63,6 +66,10 @@ const UnsupportedCountryModal = dynamic(
 );
 const LocationBlockedModal = dynamic(
   () => import('../modals/LocationBlockedModal').then(mod => ({ default: mod.LocationBlockedModal })),
+  { ssr: false }
+);
+const CityGuideModal = dynamic(
+  () => import('../modals/CityGuideModal').then(mod => ({ default: mod.CityGuideModal })),
   { ssr: false }
 );
 
@@ -510,8 +517,10 @@ export function MainLayout({
         loadingTimeoutRef.current = null;
       }
 
-      // Start loading transition - spinner fades in
-      setIsLoading(true);
+      // Start loading transition - spinner fades in (only when navigating TO a location, not back to home)
+      if (location) {
+        setIsLoading(true);
+      }
       setSelectedShop(null);
       setIsNearbyMode(false);
       setIsExploreMode(false);
@@ -549,11 +558,9 @@ export function MainLayout({
             setMapZoom(12);
           }
         }
-      } else {
-        // Explore mode - world view
-        setMapCenter([0, 20]);
-        setMapZoom(2);
       }
+      // Note: When location is null (going back to home), we keep the current map position
+      // to avoid the jarring globe spin. User can manually zoom out if they want.
 
       // Update URL without server round-trip (shallow routing)
       // State is already updated above, so just sync the URL
@@ -567,10 +574,13 @@ export function MainLayout({
 
       // Set a timeout fallback to ensure loading doesn't take too long
       // Map's onTransitionComplete will clear this if it finishes first
-      loadingTimeoutRef.current = setTimeout(() => {
-        setIsLoading(false);
-        loadingTimeoutRef.current = null;
-      }, 2000); // Maximum 2 seconds
+      // Only set timeout when navigating to a location (not back to home)
+      if (location) {
+        loadingTimeoutRef.current = setTimeout(() => {
+          setIsLoading(false);
+          loadingTimeoutRef.current = null;
+        }, 2000); // Maximum 2 seconds
+      }
     },
     [router, cachedShops]
   );
@@ -1399,6 +1409,18 @@ export function MainLayout({
         onClose={() => closeModal('settings')}
       />
 
+      <CityGuideModal
+        isOpen={modals.cityGuide}
+        onClose={() => closeModal('cityGuide')}
+        location={selectedLocation}
+        allShops={cachedShops}
+        events={cachedEvents}
+        critics={cachedCritics}
+        onShopSelect={handleShopSelect}
+        allLocations={cachedLocations}
+        onLocationChange={handleLocationChange}
+      />
+
       {/* Mobile menu toggle */}
       <div className="mobile-toggle lg:hidden">
         {isMobileSidebarOpen ? (
@@ -1415,14 +1437,30 @@ export function MainLayout({
         )}
       </div>
 
+      {/* Desktop: Full-width top bar */}
+      <div className="top-bar">
+        <div className="top-bar-content">
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-medium text-primary">Filter</h1>
+            <button
+              onClick={() => openModal('explore')}
+              className="text-sm text-text-secondary hover:text-primary transition-colors"
+            >
+              Explore cities
+            </button>
+          </div>
+          <div className="top-bar-actions">{authComponent}</div>
+        </div>
+      </div>
+
       <div className={cn('main-layout', (selectedShop || (selectedLocation && !isNearbyMode)) && 'drawer-open')}>
         {/* Desktop: Left Panel (33% width) - replaces floating sidebar */}
         <LeftPanel
-          authComponent={authComponent}
           selectedLocation={selectedLocation}
           unsupportedCountry={unsupportedCountry}
           isAreaUnsupported={isAreaUnsupported}
-          onOpenExploreModal={() => openModal('explore')}
+          onOpenCityGuide={() => openModal('cityGuide')}
+          onClearLocation={() => handleLocationChange(null)}
           selectedCityAreaName={selectedCityAreaName}
           onBackToAreaList={handleBackToAreaList}
           shopFilter={shopFilter}
@@ -1496,6 +1534,7 @@ export function MainLayout({
           userCoordinates={coordinates}
           expandedCityAreaId={expandedCityAreaId}
           cityAreas={cityAreas}
+          activeFilter={shopFilter}
         />
 
         {/* Mobile-only drawers - shop drawer and location drawer (city guide) */}

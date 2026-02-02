@@ -44,9 +44,9 @@
   --contrast-text: #FFFDFB;
   --accent: #8B6F47;
   --secondary: #4A3B2E;
-  --text: #1A1A1A;
-  --text-secondary: #9A9A9A;
-  --border: #E8E8E8;
+  --text: #2D2824;
+  --text-secondary: #857A70;
+  --border: #E5E0DB;
   --error: #DC2626;
   --success: #16A34A;
   --warning: #D97706;
@@ -119,6 +119,46 @@ h1, h2 {
   /* No grid changes needed - drawers float on top */
 }
 
+/* Top Bar - Desktop only */
+.top-bar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .top-bar {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--surface-warm);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+  }
+
+  .top-bar-actions button {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+  }
+
+  .top-bar-actions button:hover {
+    background: var(--border) !important;
+  }
+
+  /* Adjust main layout to account for top bar */
+  .main-layout {
+    margin-top: 56px;
+    height: calc(100vh - 56px);
+  }
+}
+
 /* Left Panel - Desktop only (33% column) */
 .left-panel {
   display: none;
@@ -128,21 +168,16 @@ h1, h2 {
   .left-panel {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    background: var(--background);
+    height: calc(100vh - 56px);
+    background: var(--surface-warm);
     overflow: hidden;
     z-index: 100;
     border-right: 1px solid var(--border);
   }
 
-  .left-panel-header {
-    flex-shrink: 0;
-  }
-
   .left-panel-controls {
     flex-shrink: 0;
     padding: 16px;
-    border-bottom: 1px solid var(--border);
   }
 
   .left-panel-content {
@@ -151,6 +186,7 @@ h1, h2 {
     overflow-x: hidden;
     scrollbar-gutter: stable;
     min-height: 0;
+    padding-bottom: 80px;
   }
 
   .left-panel-content::-webkit-scrollbar {
@@ -604,6 +640,12 @@ h1, h2 {
   opacity: 1;
   pointer-events: auto;
   visibility: visible;
+}
+
+.logo-badge.badge-faded {
+  filter: grayscale(100%);
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 /* Reduce motion for users who prefer it */

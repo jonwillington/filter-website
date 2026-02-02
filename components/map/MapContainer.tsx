@@ -27,6 +27,7 @@ interface MapContainerProps {
   userCoordinates?: { lat: number; lng: number } | null;
   expandedCityAreaId?: string | null;
   cityAreas?: CityArea[];
+  activeFilter?: string;
 }
 
 /**
@@ -57,6 +58,7 @@ export function MapContainer({
   userCoordinates = null,
   expandedCityAreaId = null,
   cityAreas = [],
+  activeFilter = 'all',
 }: MapContainerProps) {
   const { effectiveTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -125,6 +127,7 @@ export function MapContainer({
     onTransitionComplete,
     isLoading,
     expandedCityAreaId,
+    activeFilter,
   });
 
   // Show user's GPS location on the map

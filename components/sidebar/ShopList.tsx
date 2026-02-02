@@ -382,11 +382,10 @@ function RecommendedShopsSection({
   return (
     <div className="mb-2">
       {/* Section header */}
-      <div className="flex items-center gap-2 px-2 pb-3">
-        <span className="text-xs font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wider whitespace-nowrap">
+      <div className="px-2 pb-1">
+        <span className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider">
           {shops.length} {shops.length === 1 ? 'Top Choice' : 'Top Choices'}
         </span>
-        <div className="flex-1 h-px bg-amber-200 dark:bg-amber-800/50" />
       </div>
       {/* Shop cards */}
       <div>
@@ -404,13 +403,12 @@ function RecommendedShopsSection({
           />
         ))}
       </div>
-      {/* "X more" divider */}
+      {/* "X more" label */}
       {remainingCount > 0 && (
-        <div className="flex items-center gap-2 px-2 py-3">
-          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider whitespace-nowrap">
+        <div className="px-2 pt-3 pb-1">
+          <span className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider">
             {remainingCount} more
           </span>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-white/10" />
         </div>
       )}
     </div>
