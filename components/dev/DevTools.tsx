@@ -30,6 +30,11 @@ const PRESET_LOCATIONS = [
   { name: 'Paris, Le Marais', lat: 48.8566, lng: 2.3522 },
   { name: 'New York, SoHo', lat: 40.7234, lng: -74.0001 },
   { name: 'London, Shoreditch', lat: 51.5235, lng: -0.0762 },
+  { name: 'London - Brixton', lat: 51.462, lng: -0.1146 },
+  { name: 'London - Camden', lat: 51.539, lng: -0.1426 },
+  { name: 'London - Chelsea', lat: 51.4875, lng: -0.1687 },
+  { name: 'London - Holborn', lat: 51.5174, lng: -0.12 },
+  { name: 'London - Hackney', lat: 51.5459, lng: -0.0547 },
   { name: 'Melbourne, CBD', lat: -37.8136, lng: 144.9631 },
   { name: 'Seoul, Gangnam', lat: 37.4979, lng: 127.0276 },
 ];
@@ -182,7 +187,7 @@ export function DevTools({ shops = [], onClose, isFirstTimeVisitor, onToggleFirs
           <p className="text-[10px] font-medium" style={{ color: 'var(--text)' }}>
             Choose a test location:
           </p>
-          <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
+          <div className="space-y-0.5 max-h-[380px] overflow-y-auto overscroll-contain">
             {PRESET_LOCATIONS.map((location) => (
               <button
                 key={location.name}
