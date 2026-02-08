@@ -22,7 +22,10 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
-          large-packages: false
+          large-packages: true
+
+      - name: Check disk space
+        run: df -h /
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
