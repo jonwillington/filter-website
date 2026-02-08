@@ -12,23 +12,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          large-packages: true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          large-packages: true
-
-      - name: Check disk space
+      - name: Check disk space before install
         run: df -h /
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      - name: Check disk space before build
+        run: df -h / && du -sh node_modules .data public/data 2>/dev/null || true
 
       - name: Build for Cloudflare
         run: npm run build:cloudflare
