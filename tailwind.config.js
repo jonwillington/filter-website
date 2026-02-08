@@ -22,6 +22,7 @@ module.exports = {
         accent: 'var(--accent)',
         secondary: 'var(--secondary)',
         primary: 'var(--text)',
+        text: 'var(--text-body)',
         'text-secondary': 'var(--text-secondary)',
         'border-default': 'var(--border)',
         error: 'var(--error)',

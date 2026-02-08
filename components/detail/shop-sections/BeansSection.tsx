@@ -20,38 +20,29 @@ interface SupplierCardProps {
 
 function SupplierCard({ supplier, onClick }: SupplierCardProps) {
   const logoUrl = getMediaUrl(supplier.logo);
-  const shortDescription = supplier.description;
-  const country = supplier.country;
+  const brandStory = supplier.story || supplier.description;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-start gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
+      className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left"
     >
       <Avatar
         src={logoUrl || undefined}
         name={supplier.name}
         size="sm"
-        className="flex-shrink-0 mt-0.5"
+        className="flex-shrink-0"
         showFallback
         fallback={<Bean className="w-4 h-4" />}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-textSecondary mb-0.5">
-          Beans from
-        </p>
-        <p className="text-sm font-medium text-text truncate">{supplier.name}</p>
-        {shortDescription && (
-          <p className="text-xs text-text-secondary mt-1 line-clamp-2">{shortDescription}</p>
-        )}
-        {country && (
-          <div className="mt-2">
-            <CountryChip code={country.code} name={country.name} />
-          </div>
+        <p className="text-sm font-medium text-primary truncate">{supplier.name}</p>
+        {brandStory && (
+          <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{brandStory}</p>
         )}
       </div>
-      <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
+      <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />
     </button>
   );
 }
@@ -63,38 +54,29 @@ interface PartnerCardProps {
 
 function PartnerCard({ partner, onClick }: PartnerCardProps) {
   const logoUrl = getMediaUrl(partner.logo);
-  const shortDescription = partner.story;
-  const country = partner.country;
+  const brandStory = partner.story || (partner as any).description;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-start gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
+      className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left"
     >
       <Avatar
         src={logoUrl || undefined}
         name={partner.name}
         size="sm"
-        className="flex-shrink-0 mt-0.5"
+        className="flex-shrink-0"
         showFallback
         fallback={<Bean className="w-4 h-4" />}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-textSecondary mb-0.5">
-          Beans from
-        </p>
-        <p className="text-sm font-medium text-text truncate">{partner.name}</p>
-        {shortDescription && (
-          <p className="text-xs text-text-secondary mt-1 line-clamp-2">{shortDescription}</p>
-        )}
-        {country && (
-          <div className="mt-2">
-            <CountryChip code={country.code} name={country.name} />
-          </div>
+        <p className="text-sm font-medium text-primary truncate">{partner.name}</p>
+        {brandStory && (
+          <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{brandStory}</p>
         )}
       </div>
-      <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
+      <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />
     </button>
   );
 }
@@ -130,56 +112,59 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
   return (
     <>
       <Divider className="my-5 opacity-30" />
-      <div className="space-y-4">
+      <div>
       {/* Roasting header */}
-      <h3 className="text-lg font-medium text-primary mb-2">
-        Roasting
+      <h3 className="text-lg font-medium text-primary mb-3">
+        {(hasSuppliers || hasCoffeePartner) && !hasInHouseRoast ? 'Featuring beans from' : 'Roasting'}
       </h3>
 
-      {/* In-house roasting badge - clickable to open brand modal */}
-      {hasInHouseRoast && brand && (
-        <button
-          type="button"
-          onClick={() => handleSupplierClick(brand)}
-          className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-white/10 transition-colors hover:bg-border-default dark:hover:bg-white/15 cursor-pointer text-left group"
-        >
-          <Avatar
-            src={getMediaUrl(brand.logo) || undefined}
-            name={brand.name}
-            size="sm"
-            className="flex-shrink-0"
-            showFallback
-            fallback={<Bean className="w-4 h-4" />}
+      {/* Roaster cells in a single card */}
+      <div className="rounded-xl bg-[#EFE8E2] dark:bg-white/5 overflow-hidden divide-y divide-border-default">
+        {/* In-house roasting badge */}
+        {hasInHouseRoast && brand && (
+          <button
+            type="button"
+            onClick={() => handleSupplierClick(brand)}
+            className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left group"
+          >
+            <Avatar
+              src={getMediaUrl(brand.logo) || undefined}
+              name={brand.name}
+              size="sm"
+              className="flex-shrink-0"
+              showFallback
+              fallback={<Bean className="w-4 h-4" />}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-primary">{brand.name}</p>
+              <p className="text-sm text-text-secondary flex items-center gap-1.5">
+                Roasts their own beans
+                <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
+                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                </span>
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+          </button>
+        )}
+
+        {/* Suppliers (Brand objects) */}
+        {hasSuppliers && suppliers.map((supplier) => (
+          <SupplierCard
+            key={supplier.documentId}
+            supplier={supplier}
+            onClick={() => handleSupplierClick(supplier)}
           />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-primary">{brand.name}</p>
-            <p className="text-sm text-text-secondary flex items-center gap-1.5">
-              Roasts their own beans
-              <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
-                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-              </span>
-            </p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-textSecondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-        </button>
-      )}
+        ))}
 
-      {/* Suppliers (Brand objects) */}
-      {hasSuppliers && suppliers.map((supplier) => (
-        <SupplierCard
-          key={supplier.documentId}
-          supplier={supplier}
-          onClick={() => handleSupplierClick(supplier)}
-        />
-      ))}
-
-      {/* Shop or brand coffee partner (CoffeePartner - only if no suppliers) */}
-      {!hasSuppliers && hasCoffeePartner && (
-        <PartnerCard
-          partner={shopCoffeePartner || brandCoffeePartner!}
-          onClick={() => handleSupplierClick(shopCoffeePartner || brandCoffeePartner!)}
-        />
-      )}
+        {/* Shop or brand coffee partner (CoffeePartner - only if no suppliers) */}
+        {!hasSuppliers && hasCoffeePartner && (
+          <PartnerCard
+            partner={shopCoffeePartner || brandCoffeePartner!}
+            onClick={() => handleSupplierClick(shopCoffeePartner || brandCoffeePartner!)}
+          />
+        )}
+      </div>
 
       {/* Description - below supplier cell */}
       {ownRoastDesc && (

@@ -112,6 +112,7 @@ export interface Brand {
   name: string;
   description?: string | null;
   story?: string | null;
+  statement?: string | null;
   logo?: MediaAsset | null;
   'bg-image'?: MediaAsset | null;
   type?: string | null; // "Roaster", "Cafe", "Chain", etc.

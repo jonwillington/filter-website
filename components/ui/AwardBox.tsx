@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Award, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -40,15 +40,15 @@ export function AwardBox({
         background: `linear-gradient(${135 + gradientPosition * 0.5}deg, rgba(46, 31, 23, 0.87) 0%, rgba(46, 31, 23, 0.94) 20%, rgba(46, 31, 23, 1) 80%, rgba(46, 31, 23, 0.91) 100%)`,
       }
     : {
-        background: `linear-gradient(${135 + gradientPosition * 0.5}deg, #ffffff 0%, #f8f8f8 20%, #f5f5f5 80%, #eeeeee 100%)`,
+        background: `linear-gradient(${135 + gradientPosition * 0.5}deg, #EFE8E2 0%, #E8E0D8 20%, #EDE5DE 80%, #E5DDD6 100%)`,
       };
 
-  const textColor = variant === 'default' ? 'text-white' : 'text-text';
+  const textColor = variant === 'default' ? 'text-white' : 'text-primary';
 
   const content = (
     <div
       className={cn(
-        'relative rounded-xl p-3 border border-black/10 overflow-hidden transition-all duration-300',
+        'relative px-5 py-3 overflow-hidden transition-all duration-300',
         dismissible && 'pr-10'
       )}
       style={gradientStyle}
@@ -65,15 +65,14 @@ export function AwardBox({
         </button>
       )}
 
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <Award size={14} className={textColor} />
-        <h3 className={cn('font-medium text-sm', textColor)}>
+      <div className="mb-0.5">
+        <h3 className={cn('font-medium text-base mb-1.5', textColor)}>
           {title}
         </h3>
       </div>
 
       <div className="pr-16">
-        <p className={cn('text-xs leading-snug', textColor, 'opacity-90')}>
+        <p className={cn('text-xs leading-tight', textColor, 'opacity-90')}>
           {displayMessage}
           {!message && (
             <span className="font-bold opacity-100"> Learn why</span>
@@ -97,12 +96,12 @@ export function AwardBox({
     return (
       <button
         onClick={onPress}
-        className="w-full text-left rounded-xl mb-1 hover:opacity-95 transition-opacity"
+        className="w-full text-left hover:opacity-95 transition-opacity"
       >
         {content}
       </button>
     );
   }
 
-  return <div className="mb-1">{content}</div>;
+  return <div>{content}</div>;
 }

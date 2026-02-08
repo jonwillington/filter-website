@@ -95,8 +95,8 @@ const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL_PROD || 'https://helpful-o
 const STRAPI_TOKEN = process.env.NEXT_PUBLIC_STRAPI_TOKEN_PROD;
 
 if (!STRAPI_TOKEN) {
-  console.warn('⚠️  NEXT_PUBLIC_STRAPI_TOKEN_PROD not set - skipping prefetch (data will be fetched at runtime)');
-  process.exit(0); // Exit gracefully - prefetch is optional
+  console.error('❌ NEXT_PUBLIC_STRAPI_TOKEN_PROD not set - cannot prefetch data. Aborting build.');
+  process.exit(1);
 }
 
 console.log('Using PRODUCTION Strapi\n');

@@ -74,7 +74,7 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
     radius="full"
     classNames={{
       base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
-      content: 'text-text-secondary text-sm',
+      content: 'text-primary text-sm',
     }}
     {...props}
   >
@@ -92,7 +92,7 @@ export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'st
     radius="full"
     classNames={{
       base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
-      content: 'text-text-secondary text-sm',
+      content: 'text-primary text-sm',
     }}
     {...props}
   >
@@ -125,8 +125,8 @@ export const CountryChip = ({ code, name }: CountryChipProps) => (
       />
     }
     classNames={{
-      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
-      content: 'text-text-secondary text-sm',
+      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem] pl-3',
+      content: 'text-primary text-sm',
     }}
   >
     {name}

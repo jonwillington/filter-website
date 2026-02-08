@@ -57,21 +57,22 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
 
   return (
     <div className="relative" key={shop.documentId}>
-      {/* Header with hero image - first to animate */}
-      <div className="shop-card-animate" style={staggerStyle(0)}>
+      {/* City Area Recommendation Award - full width above hero */}
+      {isTopChoice && (
+        <div className="shop-card-animate" style={staggerStyle(0)}>
+          <AwardBox
+            title={`Filter recommendation in ${areaName || shop.location?.name || 'this area'}`}
+          />
+        </div>
+      )}
+
+      {/* Header with hero image */}
+      <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 1 : 0)}>
         <ShopHeader shop={shop} />
       </div>
 
       {/* Content with padding */}
       <div className="px-5 py-4">
-        {/* City Area Recommendation Award */}
-        {isTopChoice && (
-          <div className="mb-4 shop-card-animate" style={staggerStyle(1)}>
-            <AwardBox
-              title={`Filter recommendation in ${areaName || shop.location?.name || 'this area'}`}
-            />
-          </div>
-        )}
 
         {/* Action bar */}
         <div className="mb-4 shop-card-animate" style={staggerStyle(isTopChoice ? 2 : 1)}>

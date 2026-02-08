@@ -12,14 +12,14 @@ export function ShopDrawerFooter({ shop }: ShopDrawerFooterProps) {
   // Prefer Place ID for most reliable linking, fallback to coordinates, then address
   const getDirectionsUrl = () => {
     if (shop.google_place_id) {
-      return `https://www.google.com/maps/dir/?api=1&destination_place_id=${shop.google_place_id}`;
+      return `https://www.google.com/maps/dir/?api=1&destination_place_id=${shop.google_place_id}&travelmode=walking`;
     }
     const coords = shop.coordinates;
     if (coords?.lat && coords?.lng) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}&travelmode=walking`;
     }
     if (shop.address) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(shop.address)}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(shop.address)}&travelmode=walking`;
     }
     return null;
   };

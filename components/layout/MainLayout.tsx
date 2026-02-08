@@ -85,6 +85,10 @@ interface MainLayoutProps {
   visitorCountry?: Country | null;
   /** When true, indicates data is loading client-side (for static shell pages) */
   isClientSideLoading?: boolean;
+  /** When true, auto-trigger find-near-me geolocation on mount (from landing page) */
+  triggerFindNearMe?: boolean;
+  /** Callback to return to the editorial landing page */
+  onReturnToLanding?: () => void;
 }
 
 export function MainLayout({
@@ -98,6 +102,8 @@ export function MainLayout({
   critics = [],
   visitorCountry = null,
   isClientSideLoading = false,
+  triggerFindNearMe = false,
+  onReturnToLanding,
 }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -188,6 +194,23 @@ export function MainLayout({
       setIsFirstTimeVisitor(true);
     }
   }, []);
+
+  // Auto-trigger find-near-me when coming from landing page
+  useEffect(() => {
+    if (triggerFindNearMe) {
+      setIsLoading(true);
+      setIsNearbyMode(false);
+      setIsExploreMode(true);
+      setMapCenter([0, 20]);
+      setMapZoom(2);
+      requestLocation();
+
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        loadingTimeoutRef.current = null;
+      }, 5000);
+    }
+  }, []); // Only run once on mount
 
   // Set initial map position based on visitor's country (only on home page with no location)
   useEffect(() => {
@@ -387,7 +410,11 @@ export function MainLayout({
       const segments = path.split('/').filter(Boolean);
 
       if (segments.length === 0) {
-        // Root path - explore mode
+        // Root path - return to landing page if available, otherwise explore mode
+        if (onReturnToLanding) {
+          onReturnToLanding();
+          return;
+        }
         setSelectedLocation(null);
         setSelectedShop(null);
         setIsExploreMode(true);
@@ -483,7 +510,7 @@ export function MainLayout({
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [cachedLocations, cachedShops]);
+  }, [cachedLocations, cachedShops, onReturnToLanding]);
 
   // Sync state with props - only update if the ID actually changed
   // This prevents double-renders when navigating between shops
@@ -1441,7 +1468,13 @@ export function MainLayout({
       <div className="top-bar">
         <div className="top-bar-content">
           <div className="flex items-center gap-4">
-            <h1 className="text-lg font-medium text-primary">Filter</h1>
+            {onReturnToLanding ? (
+              <button onClick={onReturnToLanding} className="text-lg font-medium text-primary hover:text-accent transition-colors">
+                Filter
+              </button>
+            ) : (
+              <h1 className="text-lg font-medium text-primary">Filter</h1>
+            )}
             <button
               onClick={() => openModal('explore')}
               className="text-sm text-text-secondary hover:text-primary transition-colors"
@@ -1460,7 +1493,7 @@ export function MainLayout({
           unsupportedCountry={unsupportedCountry}
           isAreaUnsupported={isAreaUnsupported}
           onOpenCityGuide={() => openModal('cityGuide')}
-          onClearLocation={() => handleLocationChange(null)}
+          onClearLocation={onReturnToLanding || (() => handleLocationChange(null))}
           selectedCityAreaName={selectedCityAreaName}
           onBackToAreaList={handleBackToAreaList}
           shopFilter={shopFilter}

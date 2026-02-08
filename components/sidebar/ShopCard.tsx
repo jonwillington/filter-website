@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useState } from 'react';
 import { Shop } from '@/lib/types';
 import { Avatar } from '@heroui/react';
 import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
@@ -24,6 +24,8 @@ interface ShopCardProps {
 function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matchedFilters, variant = 'compact', isLast = false, animationIndex = 0 }: ShopCardProps) {
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
+
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Get featured image URL for large variant
   const featuredImageUrl = useMemo(() => {
@@ -93,13 +95,13 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
   // Get area name for the badge
   const areaName = shop.city_area?.name ?? (shop as any).cityArea?.name;
 
-  // Get description - brand story for independents, shop description for chains
+  // Get description - brand statement for independents, shop description for chains
   const description = useMemo(() => {
     if (variant !== 'large') return null;
-    const isIndependent = shop.independent === true || shop.is_chain === false;
+    const isIndependent = shop.brand?.type?.toLowerCase() === 'independent';
     if (isIndependent) {
-      // Use brand story for independents
-      return shop.brand?.story || shop.brand?.description || null;
+      // Use brand statement for independents
+      return shop.brand?.statement || null;
     } else {
       // Use shop description for chains
       const anyShop = shop as any;
@@ -179,7 +181,10 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
         </div>
 
         {/* Right side - Shop featured image or placeholder */}
-        <div className="flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+        <div className={cn(
+          'flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden bg-border-default',
+          featuredImageUrl && !imageLoaded && 'animate-pulse'
+        )}>
           {featuredImageUrl ? (
             <Image
               src={featuredImageUrl}
@@ -187,6 +192,7 @@ function ShopCardComponent({ shop, isSelected, onClick, disabled = false, matche
               width={96}
               height={64}
               className="w-full h-full object-cover"
+              onLoad={() => setImageLoaded(true)}
             />
           ) : null}
         </div>

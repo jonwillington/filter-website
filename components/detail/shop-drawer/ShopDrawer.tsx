@@ -142,17 +142,18 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         className="transition-opacity duration-200 ease-in-out"
         style={{ opacity: isTransitioning ? 0 : 1 }}
       >
+        {/* City Area Recommendation Award - full width above hero */}
+        {isTopChoice && (
+          <AwardBox
+            title={`Filter recommendation in ${areaName || currentShop.location?.name || 'this area'}`}
+          />
+        )}
+
         {/* Header with hero image - no padding */}
         <ShopHeader shop={currentShop} />
 
         {/* Rest of content with padding - staggered animation */}
         <div key={currentShop.documentId} className="p-5">
-          {/* City Area Recommendation Award - at top */}
-          {isTopChoice && (
-            <AwardBox
-              title={`Filter recommendation in ${areaName || currentShop.location?.name || 'this area'}`}
-            />
-          )}
 
           {/* Action bar */}
           <ActionBar shop={currentShop} />

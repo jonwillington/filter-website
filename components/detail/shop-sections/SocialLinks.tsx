@@ -12,9 +12,11 @@ export function SocialLinks({ shop }: SocialLinksProps) {
 
   if (!hasLinks && !coords) return null;
 
-  const mapsUrl = coords
-    ? `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`
-    : null;
+  const mapsUrl = shop.google_place_id
+    ? `https://www.google.com/maps/dir/?api=1&destination_place_id=${shop.google_place_id}&travelmode=walking`
+    : coords
+      ? `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}&travelmode=walking`
+      : null;
 
   return (
     <div>

@@ -3,7 +3,7 @@
 import { ReactNode, useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { LocationCard } from '../sidebar/LocationCard';
 import { Switch, Tooltip } from '@heroui/react';
-import { ChevronLeft, SlidersHorizontal, HelpCircle, Calendar, UserCheck } from 'lucide-react';
+import { ChevronLeft, ChevronDown, SlidersHorizontal, HelpCircle, Calendar, UserCheck } from 'lucide-react';
 import { Location, Shop, Country, Event, Critic } from '@/lib/types';
 import { cn, getShopDisplayName } from '@/lib/utils';
 import { ShopFilterType } from '../sidebar/Sidebar';
@@ -92,6 +92,8 @@ export function LeftPanel({
   // Modal state for events and critics
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedCritic, setSelectedCritic] = useState<Critic | null>(null);
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [insidersExpanded, setInsidersExpanded] = useState(false);
 
   // Filter events for current location (only future events, sorted by date)
   const locationEvents = useMemo(() => {
@@ -186,6 +188,70 @@ export function LeftPanel({
         />
       )}
 
+      {/* Events and Insiders Guide - accent pills */}
+      {showControls && selectedLocation && (locationEvents.length > 0 || locationCritics.length > 0) && (
+        <div className="px-4 py-3 border-b border-border-default">
+          {/* Pills row */}
+          <div className="flex gap-2">
+            {locationEvents.length > 0 && (
+              <button
+                onClick={() => { setEventsExpanded(!eventsExpanded); setInsidersExpanded(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                style={eventsExpanded
+                  ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
+                  : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
+                }
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                {locationEvents.length} {locationEvents.length === 1 ? 'Event' : 'Events'}
+              </button>
+            )}
+            {locationCritics.length > 0 && (
+              <button
+                onClick={() => { setInsidersExpanded(!insidersExpanded); setEventsExpanded(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                style={insidersExpanded
+                  ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
+                  : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
+                }
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                Insiders Guide
+              </button>
+            )}
+          </div>
+
+          {/* Expanded dropdown */}
+          {eventsExpanded && locationEvents.length > 0 && (
+            <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
+              <div className="divide-y divide-border-default">
+                {locationEvents.slice(0, 3).map((event) => (
+                  <EventCard
+                    key={event.documentId}
+                    event={event}
+                    onClick={() => setSelectedEvent(event)}
+                    primaryColor={primaryColor}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {insidersExpanded && locationCritics.length > 0 && (
+            <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
+              <div className="divide-y divide-border-default">
+                {locationCritics.map((critic) => (
+                  <CriticCard
+                    key={critic.documentId}
+                    critic={critic}
+                    onClick={() => setSelectedCritic(critic)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Controls section - hidden when viewing shop detail or first time visitor */}
       {showControls && selectedLocation && (
         <div className="left-panel-controls space-y-3 pb-4 border-b border-border-default">
@@ -253,7 +319,7 @@ export function LeftPanel({
             className="flex items-center gap-1 text-accent hover:text-accent/80 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span className="text-xl font-medium text-primary leading-tight">{selectedCityAreaName}</span>
+            <span className="text-base font-medium text-primary leading-tight">{selectedCityAreaName}</span>
           </button>
         </div>
       )}
@@ -266,7 +332,7 @@ export function LeftPanel({
             className="flex items-center gap-1 text-accent hover:text-accent/80 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span className="text-xl font-medium text-primary leading-tight">
+            <span className="text-base font-medium text-primary leading-tight">
               {previousShop ? getShopDisplayName(previousShop) : 'Back'}
             </span>
           </button>
@@ -282,52 +348,6 @@ export function LeftPanel({
             isTransitioning && 'opacity-0'
           )}
         >
-          {/* Events and Critics cards - inside scrollable area */}
-          {showControls && selectedLocation && (locationEvents.length > 0 || locationCritics.length > 0) && (
-            <div className="p-4 space-y-4">
-              {/* Events section */}
-              {locationEvents.length > 0 && (
-                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border-default">
-                    <Calendar className="w-4 h-4 text-accent" />
-                    <span className="text-sm font-medium text-primary">
-                      {locationEvents.length} Upcoming {locationEvents.length === 1 ? 'Event' : 'Events'}
-                    </span>
-                  </div>
-                  <div className="divide-y divide-border-default">
-                    {locationEvents.slice(0, 3).map((event) => (
-                      <EventCard
-                        key={event.documentId}
-                        event={event}
-                        onClick={() => setSelectedEvent(event)}
-                        primaryColor={primaryColor}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Critics/Insiders Guide section */}
-              {locationCritics.length > 0 && (
-                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border-default">
-                    <UserCheck className="w-4 h-4 text-accent" />
-                    <span className="text-sm font-medium text-primary">Insiders Guide</span>
-                  </div>
-                  <div className="divide-y divide-border-default">
-                    {locationCritics.map((critic) => (
-                      <CriticCard
-                        key={critic.documentId}
-                        critic={critic}
-                        onClick={() => setSelectedCritic(critic)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {children}
         </div>
       </div>

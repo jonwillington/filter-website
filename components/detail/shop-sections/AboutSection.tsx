@@ -13,35 +13,50 @@ function getAboutName(shop: Shop): string {
 
 export function AboutSection({ shop }: AboutSectionProps) {
   const isChain = !shop.independent && shop.brand;
+  const brandStatement = shop.brand?.statement;
 
   if (isChain) {
-    // For chains: show brand story/description without dynamic header
+    // For chains: show brand statement + story/description
     const brandDescription = shop.brand?.story || shop.brand?.description;
-    if (!brandDescription) return null;
+    if (!brandStatement && !brandDescription) return null;
 
     return (
-      <div className="mt-5">
-        <p className="text-sm text-text leading-snug whitespace-pre-line">
-          {brandDescription}
-        </p>
+      <div>
+        {brandStatement && (
+          <p className="text-base font-medium text-primary leading-snug mb-3">
+            {brandStatement}
+          </p>
+        )}
+        {brandDescription && (
+          <p className="text-sm text-text leading-snug whitespace-pre-line">
+            {brandDescription}
+          </p>
+        )}
       </div>
     );
   }
 
-  // For independent shops: show shop description with dynamic header
+  // For independent shops: show brand statement + shop description
   const description = getShopDescription(shop);
-  if (!description) return null;
+  if (!brandStatement && !description) return null;
 
   const storeName = getAboutName(shop);
 
   return (
-    <div className="mt-5">
+    <div>
       <h3 className="text-lg font-medium text-primary mb-3">
         About the {storeName} store
       </h3>
-      <p className="text-sm text-text leading-snug whitespace-pre-line">
-        {description}
-      </p>
+      {brandStatement && (
+        <p className="text-base font-medium text-primary leading-snug mb-3">
+          {brandStatement}
+        </p>
+      )}
+      {description && (
+        <p className="text-sm text-text leading-snug whitespace-pre-line">
+          {description}
+        </p>
+      )}
     </div>
   );
 }
