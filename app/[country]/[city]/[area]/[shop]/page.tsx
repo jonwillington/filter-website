@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug, getAllCityAreas } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
 import { getShopBySlug, getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { getAllEvents } from '@/lib/api/events';
@@ -113,10 +113,8 @@ export default async function ShopPage({ params }: ShopPageProps) {
     notFound();
   }
 
-  const [allShops, countries, cityAreas, events] = await Promise.all([
-    getAllShops(),
+  const [countries, events] = await Promise.all([
     getAllCountries(),
-    getAllCityAreas(),
     getAllEvents(),
   ]);
 
@@ -187,11 +185,11 @@ export default async function ShopPage({ params }: ShopPageProps) {
       <MainLayout
         locations={locations}
         initialLocation={location}
-        shops={allShops}
+        shops={[]}
         initialShop={shop}
         countries={countries}
-        cityAreas={cityAreas}
         events={events}
+        isClientSideLoading
       />
     </>
   );

@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug, getAllCityAreas } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllEvents } from '@/lib/api/events';
 import { getAllCountries } from '@/lib/api/countries';
@@ -70,10 +70,9 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  const [allShops, countries, cityAreas, allEvents, allCritics] = await Promise.all([
+  const [allShops, countries, allEvents, allCritics] = await Promise.all([
     getAllShops(),
     getAllCountries(),
-    getAllCityAreas(),
     getAllEvents(),
     getAllCritics(),
   ]);
@@ -117,11 +116,11 @@ export default async function CityPage({ params }: CityPageProps) {
       <MainLayout
         locations={locations}
         initialLocation={location}
-        shops={allShops}
+        shops={[]}
         countries={countries}
-        cityAreas={cityAreas}
         events={allEvents}
         critics={allCritics}
+        isClientSideLoading
       />
     </>
   );
