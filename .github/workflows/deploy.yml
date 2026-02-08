@@ -30,7 +30,12 @@ jobs:
         run: df -h /
 
       - name: Build for Cloudflare
-        run: npm run build:cloudflare
+        run: |
+          # Monitor disk usage in background every 30s
+          (while true; do echo "=== $(date) ===" && df -h / && du -sh .next .next/cache .next/standalone .next/server .open-next node_modules 2>/dev/null; sleep 30; done) &
+          MONITOR_PID=$!
+          npm run build:cloudflare
+          kill $MONITOR_PID 2>/dev/null || true
         env:
           NEXT_PUBLIC_STRAPI_URL: ${{ secrets.NEXT_PUBLIC_STRAPI_URL }}
           NEXT_PUBLIC_STRAPI_TOKEN: ${{ secrets.NEXT_PUBLIC_STRAPI_TOKEN }}
