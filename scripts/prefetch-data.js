@@ -113,6 +113,19 @@ const headers = {
   'Authorization': `Bearer ${STRAPI_TOKEN}`,
 };
 
+async function fetchWithRetry(url, options, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+    if (attempt < retries && response.status >= 500) {
+      console.log(`    Retry ${attempt}/${retries - 1} after ${response.status}...`);
+      await new Promise(r => setTimeout(r, 2000 * attempt));
+      continue;
+    }
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+}
+
 async function fetchPaginated(endpoint, params = '') {
   const allData = [];
   let page = 1;
@@ -122,12 +135,7 @@ async function fetchPaginated(endpoint, params = '') {
     const url = `${STRAPI_URL}/${endpoint}?${params}&pagination[pageSize]=100&pagination[page]=${page}`;
     console.log(`  Fetching ${endpoint} page ${page}...`);
 
-    const response = await fetch(url, { headers });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${endpoint}: ${response.status} ${response.statusText}`);
-    }
-
+    const response = await fetchWithRetry(url, { headers });
     const json = await response.json();
     allData.push(...(json.data || []));
 
@@ -145,12 +153,7 @@ async function fetchAll(endpoint, params = '') {
   const url = `${STRAPI_URL}/${endpoint}?${params}&pagination[pageSize]=100`;
   console.log(`  Fetching ${endpoint}...`);
 
-  const response = await fetch(url, { headers });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${endpoint}: ${response.status} ${response.statusText}`);
-  }
-
+  const response = await fetchWithRetry(url, { headers });
   const json = await response.json();
   return json.data || [];
 }
