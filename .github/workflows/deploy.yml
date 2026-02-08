@@ -12,30 +12,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          large-packages: true
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Check disk space
-        run: df -h /
-
       - name: Build for Cloudflare
-        run: |
-          # Monitor disk usage in background every 30s
-          (while true; do echo "=== $(date) ===" && df -h / && du -sh .next .next/cache .next/standalone .next/server .open-next node_modules 2>/dev/null; sleep 30; done) &
-          MONITOR_PID=$!
-          npm run build:cloudflare
-          kill $MONITOR_PID 2>/dev/null || true
+        run: npm run build:cloudflare
         env:
           NEXT_PUBLIC_STRAPI_URL: ${{ secrets.NEXT_PUBLIC_STRAPI_URL }}
           NEXT_PUBLIC_STRAPI_TOKEN: ${{ secrets.NEXT_PUBLIC_STRAPI_TOKEN }}
