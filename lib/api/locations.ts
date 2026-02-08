@@ -36,12 +36,10 @@ export async function fetchLocationById(documentId: string): Promise<Location | 
 
 // Fetch all locations directly from Strapi (with static file fallback in dev mode)
 async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
-  // In development, try static file first for faster/more reliable loading
-  if (process.env.NODE_ENV === 'development') {
-    const staticLocations = await getPrefetched<Location[]>('locations');
-    if (staticLocations && staticLocations.length > 0) {
-      return staticLocations;
-    }
+  // Try prefetched/static data first (avoids API calls during build)
+  const staticLocations = await getPrefetched<Location[]>('locations');
+  if (staticLocations && staticLocations.length > 0) {
+    return staticLocations;
   }
 
   try {
@@ -182,6 +180,13 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
   const cacheKey = 'cityAreas:all';
   const cached = getCached<CityArea[]>(cacheKey);
   if (cached) return cached;
+
+  // Check for pre-fetched data (from build-time prefetch script)
+  const prefetched = await getPrefetched<CityArea[]>('city-areas');
+  if (prefetched) {
+    setCache(cacheKey, prefetched);
+    return prefetched;
+  }
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
