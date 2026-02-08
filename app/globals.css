@@ -40,6 +40,7 @@
   --surface: #FAFAFA;
   --surface-elevated: #FFFFFF;
   --surface-warm: #FAF5F0;
+  --surface-landing: #F3EBE1;
   --contrast-block: #2E1F17;
   --contrast-text: #FFFDFB;
   --accent: #8B6F47;
@@ -58,6 +59,7 @@
   --surface: #251C16;
   --surface-elevated: #2E2219;
   --surface-warm: #2A1F18;
+  --surface-landing: #221912;
   --contrast-block: #FFFDFB;
   --contrast-text: #2E1F17;
   --accent: #B8956A;
@@ -173,6 +175,7 @@ h1, h2 {
 
 @media (min-width: 1024px) {
   .left-panel {
+    position: relative;
     display: flex;
     flex-direction: column;
     height: calc(100vh - 56px);
@@ -530,6 +533,11 @@ h1, h2 {
 
 .shop-card-animate {
   animation: shopSlideIn 0.3s ease-out both;
+}
+
+/* Landing page: country name hover uses city's primary color */
+.group:hover .landing-country-name {
+  color: var(--city-color) !important;
 }
 
 /* Left panel content transitions */
@@ -916,11 +924,11 @@ h1, h2 {
 /* Brand logo carousel animations */
 @keyframes scrollLeft {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-33.333%); }
 }
 
 @keyframes scrollRight {
-  0% { transform: translateX(-50%); }
+  0% { transform: translateX(-33.333%); }
   100% { transform: translateX(0); }
 }
 

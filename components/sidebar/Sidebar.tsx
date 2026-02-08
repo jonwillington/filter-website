@@ -5,7 +5,6 @@ import { LocationCard } from './LocationCard';
 import { ShopList } from './ShopList';
 import { ShortOnShopsAlert } from './ShortOnShopsAlert';
 import { AnimatedGradientHeader } from './AnimatedGradientHeader';
-import { WelcomeStats } from './WelcomeStats';
 import { FirstTimeWelcome } from './FirstTimeWelcome';
 import { Location, Shop, Country } from '@/lib/types';
 import { cn, getMediaUrl } from '@/lib/utils';
@@ -47,6 +46,7 @@ interface SidebarProps {
   };
   shopMatchInfo?: Map<string, string[]>;
   onCityAreaExpand?: (cityAreaId: string | null) => void;
+  cityAreaCount?: number;
   isFirstTimeVisitor?: boolean;
   onFirstTimeFindNearMe?: () => void;
   onFirstTimeExplore?: () => void;
@@ -85,6 +85,7 @@ export function Sidebar({
   userPreferences,
   shopMatchInfo,
   onCityAreaExpand,
+  cityAreaCount = 0,
   isFirstTimeVisitor = false,
   onFirstTimeFindNearMe,
   onFirstTimeExplore,
@@ -185,13 +186,11 @@ export function Sidebar({
   }, [allShops, shops]);
 
   // Only show filter when a location is selected, at least 5 shops, and has special filters
-  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters;
+  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters && cityAreaCount > 1;
 
   // Memoize selected keys for Select to prevent re-render loops
   const shopFilterSelectedKeys = useMemo(() => [shopFilter], [shopFilter]);
 
-  // Memoize the shops to use for WelcomeStats
-  const welcomeStatsShops = useMemo(() => allShops || shops, [allShops, shops]);
 
   // Memoize the filter change handler
   const handleFilterChange = useCallback((keys: any) => {
@@ -319,12 +318,7 @@ export function Sidebar({
             </div>
           </div>
         ) : !selectedLocation ? (
-          <WelcomeStats
-            locations={locations}
-            shops={welcomeStatsShops}
-            onShopSelect={onShopSelect}
-            onLocationSelect={onLocationChange}
-          />
+          null
         ) : (
           <div className="p-3">
             <div className="rounded-2xl overflow-hidden">

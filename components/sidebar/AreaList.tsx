@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Shop, CityArea } from '@/lib/types';
 import { ChevronRight } from 'lucide-react';
+
+const COLLAPSED_LIMIT = 9;
 
 interface AreaListProps {
   shops: Shop[];
@@ -55,8 +57,14 @@ export function AreaList({ shops, onAreaSelect, animationKey = 0 }: AreaListProp
     return Array.from(areaMap.values());
   }, [shops]);
 
-  // Group areas by their group field
+  // Group areas by their group field, but only if there are 7+ areas
   const areasByGroup = useMemo(() => {
+    // For fewer than 7 areas, show a single flat alphabetical list
+    if (areas.length < 7) {
+      const sorted = [...areas].sort((a, b) => a.name.localeCompare(b.name));
+      return [['', sorted]] as [string, AreaItem[]][];
+    }
+
     const groupMap = new Map<string, AreaItem[]>();
 
     areas.forEach((area) => {
@@ -91,42 +99,70 @@ export function AreaList({ shops, onAreaSelect, animationKey = 0 }: AreaListProp
   let runningIndex = 0;
 
   return (
-    <div className="px-4 py-4" key={`areas-${animationKey}`}>
+    <div className="px-4 py-3" key={`areas-${animationKey}`}>
       {areasByGroup.map(([groupName, groupAreas], groupIndex) => (
-        <div key={groupName || 'ungrouped'} className={groupIndex > 0 ? 'mt-10' : ''}>
-          {groupName && (
-            <span className="text-xs font-medium text-primary opacity-80 uppercase tracking-wider mb-1.5 block">
-              {groupName}
-            </span>
-          )}
-          <div>
-            {groupAreas.map((area, areaIndex) => {
-              const animIndex = ++runningIndex;
-              const isLast = areaIndex === groupAreas.length - 1;
-              return (
-                <button
-                  key={area.id}
-                  onClick={() => onAreaSelect(area.id, area.name)}
-                  className={`w-full text-left py-3 group shop-card-animate ${!isLast ? 'border-b border-black/5 dark:border-white/5' : ''}`}
-                  style={{ animationDelay: `${(animIndex - 1) * 40}ms` }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-medium text-primary leading-tight group-hover:text-accent transition-colors">
-                      {area.name}
-                    </span>
-                    <div className="flex items-center gap-1.5 ml-auto">
-                      <span className="text-xs text-text-secondary">
-                        {area.shopCount}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-text-secondary/50 flex-shrink-0" />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <AreaGroup
+          key={groupName || 'ungrouped'}
+          groupName={groupName}
+          areas={groupAreas}
+          onAreaSelect={onAreaSelect}
+          startIndex={groupIndex === 0 ? 0 : areasByGroup.slice(0, groupIndex).reduce((sum, [, g]) => sum + g.length, 0)}
+          isFirst={groupIndex === 0}
+        />
       ))}
+    </div>
+  );
+}
+
+function AreaGroup({
+  groupName,
+  areas,
+  onAreaSelect,
+  startIndex,
+  isFirst,
+}: {
+  groupName: string;
+  areas: AreaItem[];
+  onAreaSelect: (areaId: string, areaName: string) => void;
+  startIndex: number;
+  isFirst: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const needsCollapse = areas.length > COLLAPSED_LIMIT;
+  const visibleAreas = expanded ? areas : areas.slice(0, COLLAPSED_LIMIT);
+  const hiddenCount = areas.length - COLLAPSED_LIMIT;
+
+  return (
+    <div className={isFirst ? '' : 'mt-3'}>
+      <div className="rounded-xl bg-black/[0.03] dark:bg-white/[0.04] p-3">
+        {groupName && (
+          <span className="text-[11px] font-normal text-text-secondary/30 uppercase tracking-widest mb-3 block">
+            {groupName}
+          </span>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {visibleAreas.map((area, i) => (
+            <button
+              key={area.id}
+              onClick={() => onAreaSelect(area.id, area.name)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white dark:bg-white/10 border border-border-default text-primary hover:border-accent hover:text-accent transition-colors shop-card-animate"
+              style={{ animationDelay: `${(startIndex + i) * 40}ms` }}
+            >
+              {area.name}
+              <span className="text-xs text-text-secondary/50">{area.shopCount}</span>
+              <ChevronRight className="w-3 h-3 text-text-secondary/40" />
+            </button>
+          ))}
+          {needsCollapse && !expanded && (
+            <button
+              onClick={() => setExpanded(true)}
+              className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+            >
+              +{hiddenCount} more
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

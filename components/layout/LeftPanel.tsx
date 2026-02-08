@@ -49,6 +49,9 @@ interface LeftPanelProps {
   events?: Event[];
   critics?: Critic[];
 
+  // Area info
+  cityAreaCount?: number;
+
   // Content
   children: ReactNode;
 
@@ -76,6 +79,7 @@ export function LeftPanel({
   previousShop,
   onBack,
   onShopSelect,
+  cityAreaCount = 0,
   events = [],
   critics = [],
   children,
@@ -88,6 +92,10 @@ export function LeftPanel({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const prevSelectedShopRef = useRef<string | null>(null);
   const prevSelectedAreaRef = useRef<string | null>(null);
+
+  // Track whether user has scrolled past the location card
+  const cardSentinelRef = useRef<HTMLDivElement>(null);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
 
   // Modal state for events and critics
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -121,10 +129,29 @@ export function LeftPanel({
 
   // Check if there are any special filters available
   const hasSpecialFilters = filterCounts.topPicks > 0 || filterCounts.working > 0 || filterCounts.interior > 0 || filterCounts.brewing > 0;
-  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters;
+  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters && cityAreaCount > 1;
+
+  // Observe the sentinel below the LocationCard to toggle sticky header
+  useEffect(() => {
+    const sentinel = cardSentinelRef.current;
+    const scrollContainer = contentRef.current;
+    if (!sentinel || !scrollContainer) {
+      setShowStickyHeader(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowStickyHeader(!entry.isIntersecting);
+      },
+      { root: scrollContainer, threshold: 0 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [selectedLocation, selectedShop, selectedCityAreaName]);
 
   // Handle transition between list and detail views
-  // No fade transition - stagger animation in ShopDetailInline handles the visual transition
   useEffect(() => {
     const currentShopId = selectedShop?.documentId ?? null;
     const prevShopId = prevSelectedShopRef.current;
@@ -139,7 +166,6 @@ export function LeftPanel({
       if (!currentShopId && prevShopId && contentRef.current) {
         contentRef.current.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
       } else if (currentShopId && contentRef.current) {
-        // Scroll to top when viewing a shop
         contentRef.current.scrollTo({ top: 0, behavior: 'instant' });
       }
 
@@ -148,18 +174,15 @@ export function LeftPanel({
   }, [selectedShop]);
 
   // Handle scroll position when navigating between area list and area detail
-  // No fade transition here - let the shop card stagger animation handle the visual transition
   useEffect(() => {
     const currentAreaName = selectedCityAreaName ?? null;
     const prevAreaName = prevSelectedAreaRef.current;
 
     if (currentAreaName !== prevAreaName) {
-      // Save scroll position when leaving area list
       if (currentAreaName && !prevAreaName && contentRef.current) {
         areaScrollPositionRef.current = contentRef.current.scrollTop;
       }
 
-      // Restore scroll position when returning to area list, or scroll to top for new area
       if (!currentAreaName && prevAreaName && contentRef.current) {
         contentRef.current.scrollTo({ top: areaScrollPositionRef.current, behavior: 'instant' });
       } else if (currentAreaName && contentRef.current) {
@@ -176,142 +199,35 @@ export function LeftPanel({
 
   // Show controls unless viewing shop detail, first time visitor, or viewing shops within a city area
   const showControls = !selectedShop && !isFirstTimeVisitor && !selectedCityAreaName;
+  const showLocationCard = showControls && selectedLocation && onOpenCityGuide;
 
   return (
     <div className="left-panel">
-      {/* Hero location card - shows when a location is selected */}
-      {showControls && selectedLocation && onOpenCityGuide && (
-        <LocationCard
-          location={selectedLocation}
-          onReadCityGuide={onOpenCityGuide}
-          onBack={onClearLocation}
-        />
-      )}
-
-      {/* Events and Insiders Guide - accent pills */}
-      {showControls && selectedLocation && (locationEvents.length > 0 || locationCritics.length > 0) && (
-        <div className="px-4 py-3 border-b border-border-default">
-          {/* Pills row */}
-          <div className="flex gap-2">
-            {locationEvents.length > 0 && (
-              <button
-                onClick={() => { setEventsExpanded(!eventsExpanded); setInsidersExpanded(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
-                style={eventsExpanded
-                  ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
-                  : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
-                }
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                {locationEvents.length} {locationEvents.length === 1 ? 'Event' : 'Events'}
-              </button>
-            )}
-            {locationCritics.length > 0 && (
-              <button
-                onClick={() => { setInsidersExpanded(!insidersExpanded); setEventsExpanded(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
-                style={insidersExpanded
-                  ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
-                  : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
-                }
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                Insiders Guide
-              </button>
-            )}
-          </div>
-
-          {/* Expanded dropdown */}
-          {eventsExpanded && locationEvents.length > 0 && (
-            <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
-              <div className="divide-y divide-border-default">
-                {locationEvents.slice(0, 3).map((event) => (
-                  <EventCard
-                    key={event.documentId}
-                    event={event}
-                    onClick={() => setSelectedEvent(event)}
-                    primaryColor={primaryColor}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-          {insidersExpanded && locationCritics.length > 0 && (
-            <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
-              <div className="divide-y divide-border-default">
-                {locationCritics.map((critic) => (
-                  <CriticCard
-                    key={critic.documentId}
-                    critic={critic}
-                    onClick={() => setSelectedCritic(critic)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Controls section - hidden when viewing shop detail or first time visitor */}
-      {showControls && selectedLocation && (
-        <div className="left-panel-controls space-y-3 pb-4 border-b border-border-default">
-
-          {/* Apply my filters toggle */}
-          {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
-            <div
-              className="flex items-center justify-between p-3 rounded-lg"
-              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+      {/* Condensed sticky header — appears when scrolled past the location card */}
+      {showLocationCard && (
+        <div
+          className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-4 py-3 border-b border-border-default"
+          style={{
+            background: 'var(--surface-warm)',
+            opacity: showStickyHeader ? 1 : 0,
+            transform: showStickyHeader ? 'translateY(0)' : 'translateY(-4px)',
+            transition: 'opacity 0.2s ease-out, transform 0.2s ease-out',
+            pointerEvents: showStickyHeader ? 'auto' : 'none',
+          }}
+        >
+          {onClearLocation && (
+            <button
+              onClick={onClearLocation}
+              className="flex items-center gap-1 text-accent hover:text-accent/80 transition-colors flex-shrink-0"
             >
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                  Apply my filters
-                </span>
-                {userFilterSummary && (
-                  <Tooltip
-                    content={userFilterSummary}
-                    placement="bottom"
-                    delay={200}
-                    classNames={{
-                      content: 'text-xs px-3 py-2 bg-[#1A1410] text-[#FAF7F5] max-w-[200px]',
-                    }}
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 cursor-help" style={{ color: 'var(--text-secondary)' }} />
-                  </Tooltip>
-                )}
-              </div>
-              <Switch
-                isSelected={applyMyFilters}
-                onValueChange={onApplyMyFiltersChange}
-                size="sm"
-                aria-label="Apply my filters"
-              />
-            </div>
-          )}
-
-          {/* Shop filter chips */}
-          {shouldShowFilter && !applyMyFilters && (
-            <div className="flex flex-wrap gap-2">
-              {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => handleFilterChange(option.key)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                    shopFilter === option.key
-                      ? 'bg-contrastBlock text-contrastText'
-                      : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-base font-medium text-primary leading-tight">Home</span>
+            </button>
           )}
         </div>
       )}
 
-      {/* Back button when viewing shops within a city area */}
+      {/* Back button for city area — stays fixed outside scroll */}
       {selectedCityAreaName && onBackToAreaList && !selectedShop && (
         <div className="flex-shrink-0 px-4 py-4 border-b border-border-default">
           <button
@@ -324,7 +240,7 @@ export function LeftPanel({
         </div>
       )}
 
-      {/* Back button when viewing shop detail */}
+      {/* Back button for shop detail — stays fixed outside scroll */}
       {selectedShop && onBack && (
         <div className="flex-shrink-0 px-4 py-4 border-b border-border-default">
           <button
@@ -339,7 +255,7 @@ export function LeftPanel({
         </div>
       )}
 
-      {/* Content area with fade transition */}
+      {/* Fully scrollable content area */}
       <div className="relative flex-1 min-h-0">
         <div
           ref={contentRef}
@@ -348,6 +264,143 @@ export function LeftPanel({
             isTransitioning && 'opacity-0'
           )}
         >
+          {/* Location card — scrolls with content */}
+          {showLocationCard && (
+            <>
+              <LocationCard
+                location={selectedLocation}
+                onReadCityGuide={onOpenCityGuide}
+                onBack={onClearLocation}
+              />
+              {/* Sentinel — when this scrolls out of view, sticky header appears */}
+              <div ref={cardSentinelRef} className="h-0" />
+            </>
+          )}
+
+          {/* Events and Insiders Guide - accent pills */}
+          {showControls && selectedLocation && (locationEvents.length > 0 || locationCritics.length > 0) && (
+            <div className="px-4 py-3 border-b border-border-default">
+              {/* Pills row */}
+              <div className="flex gap-2">
+                {locationEvents.length > 0 && (
+                  <button
+                    onClick={() => { setEventsExpanded(!eventsExpanded); setInsidersExpanded(false); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                    style={eventsExpanded
+                      ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
+                      : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
+                    }
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    {locationEvents.length} {locationEvents.length === 1 ? 'Event' : 'Events'}
+                  </button>
+                )}
+                {locationCritics.length > 0 && (
+                  <button
+                    onClick={() => { setInsidersExpanded(!insidersExpanded); setEventsExpanded(false); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                    style={insidersExpanded
+                      ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
+                      : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
+                    }
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Insiders Guide
+                  </button>
+                )}
+              </div>
+
+              {/* Expanded dropdown */}
+              {eventsExpanded && locationEvents.length > 0 && (
+                <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
+                  <div className="divide-y divide-border-default">
+                    {locationEvents.slice(0, 3).map((event) => (
+                      <EventCard
+                        key={event.documentId}
+                        event={event}
+                        onClick={() => setSelectedEvent(event)}
+                        primaryColor={primaryColor}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {insidersExpanded && locationCritics.length > 0 && (
+                <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
+                  <div className="divide-y divide-border-default">
+                    {locationCritics.map((critic) => (
+                      <CriticCard
+                        key={critic.documentId}
+                        critic={critic}
+                        onClick={() => setSelectedCritic(critic)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Controls section - hidden when viewing shop detail or first time visitor */}
+          {showControls && selectedLocation && (
+            <div className="left-panel-controls space-y-3 pb-4 border-b border-border-default">
+
+              {/* Apply my filters toggle */}
+              {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg"
+                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                      Apply my filters
+                    </span>
+                    {userFilterSummary && (
+                      <Tooltip
+                        content={userFilterSummary}
+                        placement="bottom"
+                        delay={200}
+                        classNames={{
+                          content: 'text-xs px-3 py-2 bg-[#1A1410] text-[#FAF7F5] max-w-[200px]',
+                        }}
+                      >
+                        <HelpCircle className="w-3.5 h-3.5 cursor-help" style={{ color: 'var(--text-secondary)' }} />
+                      </Tooltip>
+                    )}
+                  </div>
+                  <Switch
+                    isSelected={applyMyFilters}
+                    onValueChange={onApplyMyFiltersChange}
+                    size="sm"
+                    aria-label="Apply my filters"
+                  />
+                </div>
+              )}
+
+              {/* Shop filter chips */}
+              {shouldShowFilter && !applyMyFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
+                    <button
+                      key={option.key}
+                      onClick={() => handleFilterChange(option.key)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+                        shopFilter === option.key
+                          ? 'bg-contrastBlock text-contrastText'
+                          : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Shop list / detail content */}
           {children}
         </div>
       </div>

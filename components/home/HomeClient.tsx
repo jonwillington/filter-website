@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { LandingPage } from './LandingPage';
 import { useHomeData } from '@/lib/hooks/useDataQueries';
@@ -24,8 +24,11 @@ export function HomeClient() {
   const [initialLocation, setInitialLocation] = useState<Location | null>(null);
   const [initialShop, setInitialShop] = useState<Shop | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isExitingMap, setIsExitingMap] = useState(false);
+  const [isMapEntering, setIsMapEntering] = useState(true);
   const [triggerFindNearMe, setTriggerFindNearMe] = useState(false);
   const [landingKey, setLandingKey] = useState(0);
+  const landingScrollRef = useRef(0);
 
   // Detect visitor's country for personalized initial map position
   useEffect(() => {
@@ -55,7 +58,10 @@ export function HomeClient() {
   }, [countries]);
 
   const transitionToMap = useCallback(() => {
+    // Save landing scroll position before leaving
+    landingScrollRef.current = window.scrollY;
     setIsTransitioning(true);
+    setIsMapEntering(true);
     // Skip FirstTimeWelcome overlay since user already engaged with landing
     localStorage.setItem('filter-welcome-modal-shown', 'true');
     setTimeout(() => setShowLanding(false), 300);
@@ -87,14 +93,38 @@ export function HomeClient() {
   }, [transitionToMap]);
 
   const handleReturnToLanding = useCallback(() => {
-    setInitialLocation(null);
-    setInitialShop(null);
-    setTriggerFindNearMe(false);
-    setIsTransitioning(false);
-    setShowLanding(true);
-    setLandingKey(prev => prev + 1);
+    // Phase 1: Fade out MainLayout
+    setIsExitingMap(true);
     window.history.pushState(null, '', '/');
+    setTimeout(() => {
+      // Phase 2: Switch to LandingPage, mounted at opacity-0
+      setInitialLocation(null);
+      setInitialShop(null);
+      setTriggerFindNearMe(false);
+      setIsExitingMap(false);
+      setIsTransitioning(true); // Keep landing hidden on mount
+      setShowLanding(true);
+      setLandingKey(prev => prev + 1);
+      // Phase 3: Restore scroll position and fade in LandingPage on next paint
+      requestAnimationFrame(() => {
+        window.scrollTo(0, landingScrollRef.current);
+        requestAnimationFrame(() => {
+          setIsTransitioning(false);
+        });
+      });
+    }, 300);
   }, []);
+
+  // Fade in MainLayout after it mounts
+  useEffect(() => {
+    if (!showLanding && isMapEntering) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsMapEntering(false);
+        });
+      });
+    }
+  }, [showLanding, isMapEntering]);
 
   if (showLanding) {
     return (
@@ -116,19 +146,21 @@ export function HomeClient() {
   }
 
   return (
-    <MainLayout
-      locations={locations}
-      initialLocation={initialLocation}
-      shops={shops}
-      initialShop={initialShop}
-      countries={countries}
-      cityAreas={cityAreas}
-      events={events}
-      critics={critics}
-      visitorCountry={visitorCountry}
-      isClientSideLoading={isLoading}
-      triggerFindNearMe={triggerFindNearMe}
-      onReturnToLanding={handleReturnToLanding}
-    />
+    <div className={`transition-opacity duration-300 ${(isExitingMap || isMapEntering) ? 'opacity-0' : 'opacity-100'}`}>
+      <MainLayout
+        locations={locations}
+        initialLocation={initialLocation}
+        shops={shops}
+        initialShop={initialShop}
+        countries={countries}
+        cityAreas={cityAreas}
+        events={events}
+        critics={critics}
+        visitorCountry={visitorCountry}
+        isClientSideLoading={isLoading}
+        triggerFindNearMe={triggerFindNearMe}
+        onReturnToLanding={handleReturnToLanding}
+      />
+    </div>
   );
 }

@@ -28,7 +28,6 @@ import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
 import { ShopList } from '../sidebar/ShopList';
 import { AreaList } from '../sidebar/AreaList';
-import { WelcomeStats } from '../sidebar/WelcomeStats';
 import { FirstTimeWelcome } from '../sidebar/FirstTimeWelcome';
 import { useTags } from '@/lib/hooks/useTags';
 import { BrandLogo } from '../sidebar/BrandLogoCarousel';
@@ -410,17 +409,10 @@ export function MainLayout({
       const segments = path.split('/').filter(Boolean);
 
       if (segments.length === 0) {
-        // Root path - return to landing page if available, otherwise explore mode
+        // Root path - return to landing page
         if (onReturnToLanding) {
           onReturnToLanding();
-          return;
         }
-        setSelectedLocation(null);
-        setSelectedShop(null);
-        setIsExploreMode(true);
-        setIsNearbyMode(false);
-        setMapCenter([0, 20]);
-        setMapZoom(2);
         return;
       }
 
@@ -1357,15 +1349,8 @@ export function MainLayout({
       );
     }
 
-    // No location - show welcome stats
-    return (
-      <WelcomeStats
-        locations={cachedLocations}
-        shops={cachedShops}
-        onShopSelect={handleShopSelect}
-        onLocationSelect={handleLocationChange}
-      />
-    );
+    // No location - return to landing page
+    return null;
   };
 
   return (
@@ -1468,13 +1453,9 @@ export function MainLayout({
       <div className="top-bar">
         <div className="top-bar-content">
           <div className="flex items-center gap-4">
-            {onReturnToLanding ? (
-              <button onClick={onReturnToLanding} className="text-lg font-medium text-primary hover:text-accent transition-colors">
-                Filter
-              </button>
-            ) : (
-              <h1 className="text-lg font-medium text-primary">Filter</h1>
-            )}
+            <button onClick={onReturnToLanding} className="text-lg font-medium text-primary hover:text-accent transition-colors">
+              Filter
+            </button>
             <button
               onClick={() => openModal('explore')}
               className="text-sm text-text-secondary hover:text-primary transition-colors"
@@ -1493,9 +1474,10 @@ export function MainLayout({
           unsupportedCountry={unsupportedCountry}
           isAreaUnsupported={isAreaUnsupported}
           onOpenCityGuide={() => openModal('cityGuide')}
-          onClearLocation={onReturnToLanding || (() => handleLocationChange(null))}
+          onClearLocation={onReturnToLanding}
           selectedCityAreaName={selectedCityAreaName}
           onBackToAreaList={handleBackToAreaList}
+          cityAreaCount={uniqueShopAreaCount}
           shopFilter={shopFilter}
           onShopFilterChange={setShopFilter}
           filterCounts={filterCounts}
@@ -1539,6 +1521,7 @@ export function MainLayout({
           userPreferences={userProfile?.preferences ?? undefined}
           shopMatchInfo={shopMatchInfo}
           onCityAreaExpand={handleCityAreaExpand}
+          cityAreaCount={uniqueShopAreaCount}
           isFirstTimeVisitor={isFirstTimeVisitor}
           onFirstTimeFindNearMe={handleFirstTimeFindNearMe}
           onFirstTimeExplore={handleFirstTimeExplore}

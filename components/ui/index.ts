@@ -21,6 +21,7 @@ export {
   ComingSoonChip,
   AmenityChip,
   BrewMethodChip,
+  OwnRoastChip,
   CountryChip,
 } from './StatusChip';
 

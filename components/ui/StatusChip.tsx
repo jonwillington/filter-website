@@ -101,6 +101,24 @@ export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'st
 );
 
 /**
+ * OwnRoastChip - Chip for indicating a brand roasts their own beans
+ */
+export const OwnRoastChip = ({ children = 'Own roast', ...props }: Omit<StatusChipProps, 'status' | 'icon' | 'children'> & { children?: ReactNode }) => (
+  <Chip
+    variant="flat"
+    size="lg"
+    radius="full"
+    classNames={{
+      base: 'bg-amber-50 dark:bg-amber-900/30 py-2 h-auto px-[0.45rem]',
+      content: 'text-amber-700 dark:text-amber-300 text-sm font-medium',
+    }}
+    {...props}
+  >
+    {children}
+  </Chip>
+);
+
+/**
  * CountryChip - Chip for displaying country with flag
  */
 interface CountryChipProps {

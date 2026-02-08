@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Shop } from '@/lib/types';
 import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const REGION_ORDER = [
   'Europe',
@@ -41,7 +42,7 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
 
   // Filter shops by active region
   const filteredShops = useMemo(() => {
-    if (!activeRegion) return shops.slice(0, 6);
+    if (!activeRegion) return shops.slice(0, 9);
 
     const filtered = shops.filter((shop) => {
       const countryCode = shop.location?.country?.code?.toUpperCase();
@@ -49,19 +50,39 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
       return countryRegionMap.get(countryCode) === activeRegion;
     });
 
-    return filtered.slice(0, 6);
+    return filtered.slice(0, 9);
   }, [shops, activeRegion, countryRegionMap]);
+
+  const { ref: headingRef, revealed: headingRevealed } = useScrollReveal();
+  const { ref: chipsRef, revealed: chipsRevealed } = useScrollReveal();
+  const { ref: gridRef, revealed: gridRevealed } = useScrollReveal(0.05);
 
   if (shops.length === 0) return null;
 
   return (
-    <section className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40 bg-surface">
-      <h2 className="font-display text-3xl md:text-4xl lg:text-5xl text-primary">
+    <section className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40" style={{ background: 'var(--surface-landing)' }}>
+      <h2
+        ref={headingRef}
+        className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-12 md:mb-16 lg:mb-18"
+        style={{
+          opacity: headingRevealed ? 1 : 0,
+          transform: headingRevealed ? 'translateY(0)' : 'translateY(16px)',
+          transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+        }}
+      >
         Top shops
       </h2>
 
       {/* Region filter chips */}
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div
+        ref={chipsRef}
+        className="mt-5 flex flex-wrap items-center gap-2"
+        style={{
+          opacity: chipsRevealed ? 1 : 0,
+          transform: chipsRevealed ? 'translateY(0)' : 'translateY(12px)',
+          transition: 'opacity 0.6s ease-out 0.1s, transform 0.6s ease-out 0.1s',
+        }}
+      >
         <button
           onClick={() => setActiveRegion(null)}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -88,9 +109,18 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
       </div>
 
       {/* Shop grid */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {filteredShops.map((shop) => (
-          <ShopCard key={shop.documentId} shop={shop} onSelect={onShopSelect} />
+      <div ref={gridRef} className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        {filteredShops.map((shop, i) => (
+          <div
+            key={shop.documentId}
+            style={{
+              opacity: gridRevealed ? 1 : 0,
+              transform: gridRevealed ? 'translateY(0)' : 'translateY(20px)',
+              transition: `opacity 0.6s ease-out ${i * 0.07}s, transform 0.6s ease-out ${i * 0.07}s`,
+            }}
+          >
+            <ShopCard shop={shop} onSelect={onShopSelect} />
+          </div>
         ))}
       </div>
 
@@ -108,6 +138,7 @@ function ShopCard({ shop, onSelect }: { shop: Shop; onSelect: (shop: Shop) => vo
   const logoUrl = getMediaUrl(shop.brand?.logo);
   const displayName = getShopDisplayName(shop);
   const cityName = shop.location?.name || shop.city_area?.location?.name;
+  const countryName = shop.location?.country?.name;
   const isIndependent = shop.brand?.type?.toLowerCase() === 'independent';
   const statement = isIndependent ? shop.brand?.statement : shop.description;
 
@@ -148,7 +179,7 @@ function ShopCard({ shop, onSelect }: { shop: Shop; onSelect: (shop: Shop) => vo
           {displayName}
         </h3>
         {cityName && (
-          <p className="text-sm text-text-secondary mt-0.5">{cityName}</p>
+          <p className="text-sm text-text-secondary mt-0.5">{cityName}{countryName ? `, ${countryName}` : ''}</p>
         )}
         {statement && (
           <p className="text-sm text-text-secondary mt-1.5 line-clamp-2">{statement}</p>

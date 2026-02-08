@@ -9,7 +9,22 @@ import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from './landing/HeroSection';
 import { FeaturedCities } from './landing/FeaturedCities';
 import { FeaturedShops } from './landing/FeaturedShops';
+import { FeaturedEvents } from './landing/FeaturedEvents';
+import { FeaturedRoasters } from './landing/FeaturedRoasters';
 import { CTASection } from './landing/CTASection';
+import { useAuth } from '@/lib/context/AuthContext';
+import { Search, LogIn } from 'lucide-react';
+import { Button } from '@heroui/react';
+import { UserMenu } from '@/components/auth/UserMenu';
+
+const SearchModal = dynamic(
+  () => import('@/components/modals/SearchModal').then(mod => ({ default: mod.SearchModal })),
+  { ssr: false }
+);
+const LoginModal = dynamic(
+  () => import('@/components/auth/LoginModal').then(mod => ({ default: mod.LoginModal })),
+  { ssr: false }
+);
 
 const ExploreModal = dynamic(
   () => import('@/components/modals/ExploreModal').then(mod => ({ default: mod.ExploreModal })),
@@ -44,8 +59,11 @@ export function LandingPage({
   onFindNearMe,
 }: LandingPageProps) {
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [headerLight, setHeaderLight] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const { user, loading: authLoading } = useAuth();
 
   // Unlock scroll when landing page is active
   useEffect(() => {
@@ -116,7 +134,7 @@ export function LandingPage({
 
     // Sort by number of brands descending, take locations with at least 2 brands
     return Array.from(groupMap.values())
-      .filter(g => g.logos.length >= 2)
+      .filter(g => g.logos.length >= 4)
       .sort((a, b) => b.logos.length - a.logos.length)
       .map(({ locationName, countryCode, primaryColor, logos }) => ({ locationName, countryCode, primaryColor, logos }));
   }, [shops]);
@@ -143,6 +161,15 @@ export function LandingPage({
       return (b.google_rating || 0) - (a.google_rating || 0);
     });
   }, [shops]);
+
+  // Future events sorted by date (soonest first)
+  const upcomingEvents = useMemo(() => {
+    const now = new Date();
+    return events
+      .filter((event) => new Date(event.start_date) >= now)
+      .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+      .slice(0, 6);
+  }, [events]);
 
   // Build country code → region name lookup from countries data
   const countryRegionMap = useMemo(() => {
@@ -178,6 +205,34 @@ export function LandingPage({
               Explore cities
             </button>
           </div>
+          <div className="flex items-center gap-3">
+            <Button
+              isIconOnly
+              variant="flat"
+              radius="full"
+              onPress={() => setSearchOpen(true)}
+              size="sm"
+              aria-label="Search"
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+            {authLoading ? (
+              <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
+            ) : user ? (
+              <UserMenu onOpenSettings={() => {}} />
+            ) : (
+              <Button
+                isIconOnly
+                variant="flat"
+                radius="full"
+                onPress={() => setLoginOpen(true)}
+                size="sm"
+                aria-label="Sign in"
+              >
+                <LogIn className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -196,6 +251,10 @@ export function LandingPage({
       <FeaturedCities cities={featuredCities} onCitySelect={onLocationSelect} />
 
       <FeaturedShops shops={featuredShops} countryRegionMap={countryRegionMap} onShopSelect={onShopSelect} />
+
+      <FeaturedRoasters shops={shops} />
+
+      <FeaturedEvents events={upcomingEvents} />
 
       <CTASection
         shopCount={shops.length}
@@ -216,6 +275,24 @@ export function LandingPage({
           allShops={shops}
           events={events}
           onLocationSelect={handleExploreLocationSelect}
+        />
+      )}
+
+      {/* Search modal */}
+      {searchOpen && (
+        <SearchModal
+          isOpen={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          locations={locations}
+          shops={shops}
+        />
+      )}
+
+      {/* Login modal */}
+      {loginOpen && (
+        <LoginModal
+          isOpen={loginOpen}
+          onClose={() => setLoginOpen(false)}
         />
       )}
     </div>
