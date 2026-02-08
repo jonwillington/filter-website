@@ -99,6 +99,13 @@ if (!STRAPI_TOKEN) {
   process.exit(1);
 }
 
+// Skip prefetch if data already exists (avoids double-fetch during OpenNext build)
+const shopsJsonPath = path.join(PUBLIC_DATA_DIR, 'shops.json');
+if (fs.existsSync(path.join(__dirname, '../.open-next-building')) && fs.existsSync(shopsJsonPath)) {
+  console.log('⏭️  Skipping prefetch - data already exists (OpenNext inner build)');
+  process.exit(0);
+}
+
 console.log('Using PRODUCTION Strapi\n');
 
 const headers = {
