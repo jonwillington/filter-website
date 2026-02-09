@@ -284,3 +284,12 @@ After any UI changes:
 2. Verify all backgrounds use warm brown tones (not gray/black)
 3. Check text is readable with sufficient contrast
 4. Verify borders and dividers are visible
+
+---
+
+## Avatar Shape Rule
+
+**ALL avatars must be 100% circular (`rounded-full`).** No exceptions.
+- HeroUI `<Avatar>`: use `radius="full"` (never `"md"`, `"sm"`, or `"lg"`)
+- Raw `<img>`/`<div>` avatars: always `className="rounded-full"`
+- Brand logos used as avatars/badges: `rounded-full`

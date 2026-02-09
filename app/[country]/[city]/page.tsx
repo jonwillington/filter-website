@@ -3,7 +3,8 @@ import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllEvents } from '@/lib/api/events';
 import { getAllCountries } from '@/lib/api/countries';
-import { getAllCritics } from '@/lib/api/critics';
+import { getAllPeople } from '@/lib/api/people';
+import { getAllNewsArticles } from '@/lib/api/news-articles';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
@@ -70,14 +71,15 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  const [allShops, countries, allEvents, allCritics] = await Promise.all([
+  const [allShops, countries, allEvents, allPeople, allNewsArticles] = await Promise.all([
     getAllShops(),
     getAllCountries(),
     getAllEvents(),
-    getAllCritics(),
+    getAllPeople(),
+    getAllNewsArticles(),
   ]);
 
-  console.log('[CityPage] Fetched critics:', allCritics.length, allCritics.map(c => c.name));
+  console.log('[CityPage] Fetched people:', allPeople.length, allPeople.map(p => p.name));
 
   // Count shops in this location
   const locationShops = allShops.filter(shop => shop.location?.documentId === location.documentId);
@@ -119,7 +121,8 @@ export default async function CityPage({ params }: CityPageProps) {
         shops={[]}
         countries={countries}
         events={allEvents}
-        critics={allCritics}
+        people={allPeople}
+        newsArticles={allNewsArticles}
         isClientSideLoading
       />
     </>

@@ -3,12 +3,16 @@
 import { ReactNode, useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { LocationCard } from '../sidebar/LocationCard';
 import { Switch, Tooltip } from '@heroui/react';
-import { ChevronLeft, ChevronDown, SlidersHorizontal, HelpCircle, Calendar, UserCheck } from 'lucide-react';
-import { Location, Shop, Country, Event, Critic } from '@/lib/types';
+import { ChevronLeft, SlidersHorizontal, HelpCircle, Calendar, UserCheck, Newspaper, Store } from 'lucide-react';
+import { Location, Shop, Event, Person, NewsArticle } from '@/lib/types';
 import { cn, getShopDisplayName } from '@/lib/utils';
+import { getDateGroupLabel } from '@/lib/utils/dateUtils';
 import { ShopFilterType } from '../sidebar/Sidebar';
 import { EventCard, EventModal } from '@/components/events';
-import { CriticCard, CriticModal } from '@/components/critics';
+import { PersonCard, PersonModal } from '@/components/people';
+import { NewsCard, NewsArticleModal } from '@/components/news';
+
+type SectionTab = 'shops' | 'events' | 'insiders' | 'news';
 
 const FILTER_OPTIONS: { key: ShopFilterType; label: string }[] = [
   { key: 'all', label: 'All Shops' },
@@ -45,9 +49,10 @@ interface LeftPanelProps {
   onBack?: () => void;
   onShopSelect?: (shop: Shop) => void;
 
-  // Events and Critics
+  // Events, People, and News
   events?: Event[];
-  critics?: Critic[];
+  people?: Person[];
+  newsArticles?: NewsArticle[];
 
   // Area info
   cityAreaCount?: number;
@@ -81,7 +86,8 @@ export function LeftPanel({
   onShopSelect,
   cityAreaCount = 0,
   events = [],
-  critics = [],
+  people = [],
+  newsArticles = [],
   children,
   isLoading,
   isFirstTimeVisitor = false,
@@ -97,11 +103,13 @@ export function LeftPanel({
   const cardSentinelRef = useRef<HTMLDivElement>(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
 
-  // Modal state for events and critics
+  // Modal state for events, people, and news
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedCritic, setSelectedCritic] = useState<Critic | null>(null);
-  const [eventsExpanded, setEventsExpanded] = useState(false);
-  const [insidersExpanded, setInsidersExpanded] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [selectedNewsArticle, setSelectedNewsArticle] = useState<NewsArticle | null>(null);
+
+  // Active section tab
+  const [activeSection, setActiveSection] = useState<SectionTab>('shops');
 
   // Filter events for current location (only future events, sorted by date)
   const locationEvents = useMemo(() => {
@@ -116,20 +124,56 @@ export function LeftPanel({
       .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
   }, [events, selectedLocation]);
 
-  // Filter critics for current location
-  const locationCritics = useMemo(() => {
+  // Filter people for current location
+  const locationPeople = useMemo(() => {
     if (!selectedLocation) return [];
-    return critics.filter((critic) =>
-      critic.locations?.some((loc) => loc.documentId === selectedLocation.documentId)
+    return people.filter((person) =>
+      person.locations?.some((loc) => loc.documentId === selectedLocation.documentId)
     );
-  }, [critics, selectedLocation]);
+  }, [people, selectedLocation]);
+
+  // Filter news articles for current location (sorted by date, most recent first)
+  const locationNews = useMemo(() => {
+    if (!selectedLocation) return [];
+    return newsArticles
+      .filter((article) =>
+        article.locations_mentioned?.some((loc) => loc.documentId === selectedLocation.documentId)
+      )
+      .sort((a, b) => new Date(b.published_date).getTime() - new Date(a.published_date).getTime());
+  }, [newsArticles, selectedLocation]);
+
+  // Group news by date for rendering
+  const newsGroups = useMemo(() => {
+    const groups: { label: string; articles: NewsArticle[] }[] = [];
+    for (const article of locationNews) {
+      const label = getDateGroupLabel(article.published_date);
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) {
+        last.articles.push(article);
+      } else {
+        groups.push({ label, articles: [article] });
+      }
+    }
+    return groups;
+  }, [locationNews]);
 
   // Get location primary color for event cards
   const primaryColor = selectedLocation?.primaryColor || selectedLocation?.country?.primaryColor || '#8B6F47';
 
   // Check if there are any special filters available
   const hasSpecialFilters = filterCounts.topPicks > 0 || filterCounts.working > 0 || filterCounts.interior > 0 || filterCounts.brewing > 0;
-  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters && cityAreaCount > 1;
+  const shouldShowFilter = selectedLocation && onShopFilterChange && filterCounts.all >= 5 && hasSpecialFilters && cityAreaCount > 1 && !selectedCityAreaName;
+
+  // Determine which section tabs to show
+  const hasEvents = locationEvents.length > 0;
+  const hasInsiders = locationPeople.length > 0;
+  const hasNews = locationNews.length > 0;
+  const hasAnySectionContent = hasEvents || hasInsiders || hasNews;
+
+  // Reset active section when location changes
+  useEffect(() => {
+    setActiveSection('shops');
+  }, [selectedLocation?.documentId]);
 
   // Observe the sentinel below the LocationCard to toggle sticky header
   useEffect(() => {
@@ -197,16 +241,28 @@ export function LeftPanel({
     if (onShopFilterChange) onShopFilterChange(filter);
   }, [onShopFilterChange]);
 
-  // Show controls unless viewing shop detail, first time visitor, or viewing shops within a city area
-  const showControls = !selectedShop && !isFirstTimeVisitor && !selectedCityAreaName;
-  const showLocationCard = showControls && selectedLocation && onOpenCityGuide;
+  const handleByAreaClick = useCallback(() => {
+    if (onShopFilterChange) onShopFilterChange('all');
+    if (selectedCityAreaName && onBackToAreaList) onBackToAreaList();
+  }, [onShopFilterChange, selectedCityAreaName, onBackToAreaList]);
+
+  // Show controls unless viewing shop detail or first time visitor
+  // Keep visible during area drill-down so tabs stay visible
+  const showControls = !selectedShop && !isFirstTimeVisitor;
+  const showLocationCard = showControls && selectedLocation && onOpenCityGuide && !selectedCityAreaName;
+
+  // Section tabs visible when location selected, hidden during shop detail, first-time visitor, or area drill-down
+  const showSectionTabs = showControls && selectedLocation && hasAnySectionContent && !selectedCityAreaName;
+
+  // Label for the "all" filter
+  const allFilterLabel = cityAreaCount > 1 ? 'By Area' : 'All Shops';
 
   return (
     <div className="left-panel">
       {/* Condensed sticky header — appears when scrolled past the location card */}
       {showLocationCard && (
         <div
-          className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-4 py-3 border-b border-border-default"
+          className="absolute top-0 left-0 right-0 z-20 flex items-center px-4 py-3 border-b border-border-default"
           style={{
             background: 'var(--surface-warm)',
             opacity: showStickyHeader ? 1 : 0,
@@ -215,15 +271,7 @@ export function LeftPanel({
             pointerEvents: showStickyHeader ? 'auto' : 'none',
           }}
         >
-          {onClearLocation && (
-            <button
-              onClick={onClearLocation}
-              className="flex items-center gap-1 text-accent hover:text-accent/80 transition-colors flex-shrink-0"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              <span className="text-base font-medium text-primary leading-tight">Home</span>
-            </button>
-          )}
+          <span className="text-base font-medium text-primary leading-tight">{selectedLocation.name}</span>
         </div>
       )}
 
@@ -270,138 +318,191 @@ export function LeftPanel({
               <LocationCard
                 location={selectedLocation}
                 onReadCityGuide={onOpenCityGuide}
-                onBack={onClearLocation}
               />
               {/* Sentinel — when this scrolls out of view, sticky header appears */}
               <div ref={cardSentinelRef} className="h-0" />
             </>
           )}
 
-          {/* Events and Insiders Guide - accent pills */}
-          {showControls && selectedLocation && (locationEvents.length > 0 || locationCritics.length > 0) && (
+          {/* Section tabs — Shops, Events, Insiders, News */}
+          {showSectionTabs && (
             <div className="px-4 py-3 border-b border-border-default">
-              {/* Pills row */}
-              <div className="flex gap-2">
-                {locationEvents.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {/* Shops tab — always shown */}
+                <button
+                  onClick={() => setActiveSection('shops')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                  style={activeSection === 'shops'
+                    ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
+                    : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
+                  }
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  Shops
+                </button>
+                {hasEvents && (
                   <button
-                    onClick={() => { setEventsExpanded(!eventsExpanded); setInsidersExpanded(false); }}
+                    onClick={() => setActiveSection('events')}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
-                    style={eventsExpanded
+                    style={activeSection === 'events'
                       ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
                       : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
                     }
                   >
                     <Calendar className="w-3.5 h-3.5" />
-                    {locationEvents.length} {locationEvents.length === 1 ? 'Event' : 'Events'}
+                    Events
                   </button>
                 )}
-                {locationCritics.length > 0 && (
+                {hasInsiders && (
                   <button
-                    onClick={() => { setInsidersExpanded(!insidersExpanded); setEventsExpanded(false); }}
+                    onClick={() => setActiveSection('insiders')}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
-                    style={insidersExpanded
+                    style={activeSection === 'insiders'
                       ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
                       : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
                     }
                   >
                     <UserCheck className="w-3.5 h-3.5" />
-                    Insiders Guide
+                    Insiders
+                  </button>
+                )}
+                {hasNews && (
+                  <button
+                    onClick={() => setActiveSection('news')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                    style={activeSection === 'news'
+                      ? { backgroundColor: primaryColor, color: '#fff', borderColor: primaryColor }
+                      : { color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }
+                    }
+                  >
+                    <Newspaper className="w-3.5 h-3.5" />
+                    News
                   </button>
                 )}
               </div>
+            </div>
+          )}
 
-              {/* Expanded dropdown */}
-              {eventsExpanded && locationEvents.length > 0 && (
-                <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
-                  <div className="divide-y divide-border-default">
-                    {locationEvents.slice(0, 3).map((event) => (
-                      <EventCard
-                        key={event.documentId}
-                        event={event}
-                        onClick={() => setSelectedEvent(event)}
+          {/* Shops section: sub-filters + apply my filters + children */}
+          {activeSection === 'shops' && (
+            <>
+              {/* Controls section - hidden when viewing shop detail, first time visitor, or area drill-down */}
+              {showControls && selectedLocation && !selectedCityAreaName && (
+                <div className="left-panel-controls space-y-3 pb-4 border-b border-border-default">
+
+                  {/* Apply my filters toggle */}
+                  {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
+                    <div
+                      className="flex items-center justify-between p-3 rounded-lg"
+                      style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                        <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                          Apply my filters
+                        </span>
+                        {userFilterSummary && (
+                          <Tooltip
+                            content={userFilterSummary}
+                            placement="bottom"
+                            delay={200}
+                            classNames={{
+                              content: 'text-xs px-3 py-2 bg-[#1A1410] text-[#FAF7F5] max-w-[200px]',
+                            }}
+                          >
+                            <HelpCircle className="w-3.5 h-3.5 cursor-help" style={{ color: 'var(--text-secondary)' }} />
+                          </Tooltip>
+                        )}
+                      </div>
+                      <Switch
+                        isSelected={applyMyFilters}
+                        onValueChange={onApplyMyFiltersChange}
+                        size="sm"
+                        aria-label="Apply my filters"
+                      />
+                    </div>
+                  )}
+
+                  {/* Shop filter chips */}
+                  {shouldShowFilter && !applyMyFilters && (
+                    <div className="flex flex-wrap gap-2">
+                      {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
+                        <button
+                          key={option.key}
+                          onClick={() => option.key === 'all' ? handleByAreaClick() : handleFilterChange(option.key)}
+                          className={cn(
+                            'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+                            shopFilter === option.key
+                              ? 'bg-contrastBlock text-contrastText'
+                              : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
+                          )}
+                        >
+                          {option.key === 'all' ? allFilterLabel : option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Shop list / detail content */}
+              {children}
+            </>
+          )}
+
+          {/* Events section */}
+          {activeSection === 'events' && locationEvents.length > 0 && (
+            <div className="rounded-xl border border-border-default overflow-hidden bg-surface mx-4 mt-3">
+              <div className="divide-y divide-border-default">
+                {locationEvents.map((event) => (
+                  <EventCard
+                    key={event.documentId}
+                    event={event}
+                    onClick={() => setSelectedEvent(event)}
+                    primaryColor={primaryColor}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Insiders section */}
+          {activeSection === 'insiders' && locationPeople.length > 0 && (
+            <div className="rounded-xl border border-border-default overflow-hidden bg-surface mx-4 mt-3">
+              <div className="divide-y divide-border-default">
+                {locationPeople.map((person) => (
+                  <PersonCard
+                    key={person.documentId}
+                    person={person}
+                    onClick={() => setSelectedPerson(person)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* News section */}
+          {activeSection === 'news' && locationNews.length > 0 && (
+            <div className="px-4 pt-3 pb-2">
+              {newsGroups.map((group, gi) => (
+                <div key={group.label} className={gi > 0 ? 'mt-4' : ''}>
+                  <span className="text-[11px] font-normal text-text-secondary/30 uppercase tracking-widest mb-2 block">
+                    {group.label}
+                  </span>
+                  <div className="space-y-2">
+                    {group.articles.map((article) => (
+                      <NewsCard
+                        key={article.documentId}
+                        article={article}
+                        onClick={() => setSelectedNewsArticle(article)}
                         primaryColor={primaryColor}
                       />
                     ))}
                   </div>
                 </div>
-              )}
-              {insidersExpanded && locationCritics.length > 0 && (
-                <div className="mt-3 rounded-xl border border-border-default overflow-hidden bg-surface">
-                  <div className="divide-y divide-border-default">
-                    {locationCritics.map((critic) => (
-                      <CriticCard
-                        key={critic.documentId}
-                        critic={critic}
-                        onClick={() => setSelectedCritic(critic)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
           )}
-
-          {/* Controls section - hidden when viewing shop detail or first time visitor */}
-          {showControls && selectedLocation && (
-            <div className="left-panel-controls space-y-3 pb-4 border-b border-border-default">
-
-              {/* Apply my filters toggle */}
-              {selectedLocation && hasUserFilters && onApplyMyFiltersChange && (
-                <div
-                  className="flex items-center justify-between p-3 rounded-lg"
-                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                      Apply my filters
-                    </span>
-                    {userFilterSummary && (
-                      <Tooltip
-                        content={userFilterSummary}
-                        placement="bottom"
-                        delay={200}
-                        classNames={{
-                          content: 'text-xs px-3 py-2 bg-[#1A1410] text-[#FAF7F5] max-w-[200px]',
-                        }}
-                      >
-                        <HelpCircle className="w-3.5 h-3.5 cursor-help" style={{ color: 'var(--text-secondary)' }} />
-                      </Tooltip>
-                    )}
-                  </div>
-                  <Switch
-                    isSelected={applyMyFilters}
-                    onValueChange={onApplyMyFiltersChange}
-                    size="sm"
-                    aria-label="Apply my filters"
-                  />
-                </div>
-              )}
-
-              {/* Shop filter chips */}
-              {shouldShowFilter && !applyMyFilters && (
-                <div className="flex flex-wrap gap-2">
-                  {FILTER_OPTIONS.filter(opt => filterCounts[opt.key] > 0 || opt.key === 'all').map((option) => (
-                    <button
-                      key={option.key}
-                      onClick={() => handleFilterChange(option.key)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                        shopFilter === option.key
-                          ? 'bg-contrastBlock text-contrastText'
-                          : 'bg-white dark:bg-white/10 text-text-secondary border border-border-default hover:border-text-secondary'
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Shop list / detail content */}
-          {children}
         </div>
       </div>
 
@@ -413,13 +514,24 @@ export function LeftPanel({
         primaryColor={primaryColor}
       />
 
-      {/* Critic Modal */}
-      <CriticModal
-        critic={selectedCritic}
-        isOpen={!!selectedCritic}
-        onClose={() => setSelectedCritic(null)}
+      {/* Person Modal */}
+      <PersonModal
+        person={selectedPerson}
+        isOpen={!!selectedPerson}
+        onClose={() => setSelectedPerson(null)}
         onShopSelect={onShopSelect ? (shop) => {
-          setSelectedCritic(null);
+          setSelectedPerson(null);
+          onShopSelect(shop);
+        } : undefined}
+      />
+
+      {/* News Article Modal */}
+      <NewsArticleModal
+        article={selectedNewsArticle}
+        isOpen={!!selectedNewsArticle}
+        onClose={() => setSelectedNewsArticle(null)}
+        onShopSelect={onShopSelect ? (shop) => {
+          setSelectedNewsArticle(null);
           onShopSelect(shop);
         } : undefined}
       />

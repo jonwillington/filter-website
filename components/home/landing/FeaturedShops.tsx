@@ -1,10 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Image from 'next/image';
 import { Shop } from '@/lib/types';
-import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ShopCard } from './ShopCard';
 
 const REGION_ORDER = [
   'Europe',
@@ -119,7 +118,7 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
               transition: `opacity 0.6s ease-out ${i * 0.07}s, transform 0.6s ease-out ${i * 0.07}s`,
             }}
           >
-            <ShopCard shop={shop} onSelect={onShopSelect} />
+            <ShopCard shop={shop} onClick={onShopSelect} />
           </div>
         ))}
       </div>
@@ -130,61 +129,5 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
         </p>
       )}
     </section>
-  );
-}
-
-function ShopCard({ shop, onSelect }: { shop: Shop; onSelect: (shop: Shop) => void }) {
-  const imageUrl = getMediaUrl(shop.featured_image);
-  const logoUrl = getMediaUrl(shop.brand?.logo);
-  const displayName = getShopDisplayName(shop);
-  const cityName = shop.location?.name || shop.city_area?.location?.name;
-  const countryName = shop.location?.country?.name;
-  const isIndependent = shop.brand?.type?.toLowerCase() === 'independent';
-  const statement = isIndependent ? shop.brand?.statement : shop.description;
-
-  return (
-    <button
-      onClick={() => onSelect(shop)}
-      className="w-full text-left group"
-    >
-      {/* Big image */}
-      <div className="relative aspect-[3/2] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5">
-        {imageUrl && (
-          <Image
-            src={imageUrl}
-            alt={displayName}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(min-width: 768px) 33vw, 100vw"
-          />
-        )}
-
-        {/* Brand logo badge */}
-        {logoUrl && (
-          <div className="absolute bottom-4 left-4 w-14 h-14 rounded-full overflow-hidden bg-white shadow-md border-2 border-white">
-            <Image
-              src={logoUrl}
-              alt={shop.brand?.name || ''}
-              width={56}
-              height={56}
-              className="object-cover w-full h-full"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Text below image */}
-      <div className="mt-3">
-        <h3 className="text-lg font-medium text-primary line-clamp-1 group-hover:text-accent transition-colors">
-          {displayName}
-        </h3>
-        {cityName && (
-          <p className="text-sm text-text-secondary mt-0.5">{cityName}{countryName ? `, ${countryName}` : ''}</p>
-        )}
-        {statement && (
-          <p className="text-sm text-text-secondary mt-1.5 line-clamp-2">{statement}</p>
-        )}
-      </div>
-    </button>
   );
 }

@@ -16,7 +16,7 @@ import { Footer } from './Footer';
 import { UserMenu } from '../auth/UserMenu';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useShopData } from '@/lib/context/ShopDataContext';
-import { Location, Shop, Country, CityArea, Event, Critic } from '@/lib/types';
+import { Location, Shop, Country, CityArea, Event, Person, NewsArticle } from '@/lib/types';
 import { cn, slugify, getShopSlug, hasCityAreaRecommendation, getShopCoordinates, getMediaUrl } from '@/lib/utils';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
 import { useModalState } from '@/lib/hooks/useModalState';
@@ -24,7 +24,7 @@ import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { getCountryCoordinates } from '@/lib/utils/countryCoordinates';
 import { detectUserArea, reverseGeocode } from '@/lib/api/geolocation';
 import { Button } from '@heroui/react';
-import { Menu, LogIn, Search, MapPin, SlidersHorizontal } from 'lucide-react';
+import { Menu, LogIn, Search, MapPin, SlidersHorizontal, ChevronRight } from 'lucide-react';
 import { CircularCloseButton } from '../ui/CircularCloseButton';
 import { ShopList } from '../sidebar/ShopList';
 import { AreaList } from '../sidebar/AreaList';
@@ -80,7 +80,8 @@ interface MainLayoutProps {
   countries?: Country[];
   cityAreas?: CityArea[];
   events?: Event[];
-  critics?: Critic[];
+  people?: Person[];
+  newsArticles?: NewsArticle[];
   visitorCountry?: Country | null;
   /** When true, indicates data is loading client-side (for static shell pages) */
   isClientSideLoading?: boolean;
@@ -98,7 +99,8 @@ export function MainLayout({
   countries = [],
   cityAreas: propCityAreas = [],
   events = [],
-  critics = [],
+  people = [],
+  newsArticles = [],
   visitorCountry = null,
   isClientSideLoading = false,
   triggerFindNearMe = false,
@@ -123,11 +125,12 @@ export function MainLayout({
         countries,
         cityAreas: propCityAreas,
         events,
-        critics,
+        people,
+        newsArticles,
       });
       hasHydratedRef.current = true;
     }
-  }, [shops, locations, countries, propCityAreas, events, critics]);
+  }, [shops, locations, countries, propCityAreas, events, people, newsArticles]);
 
   // Use cached data if available, otherwise fall back to props
   const cachedShops = shopData.isHydrated && shopData.shops.length > 0 ? shopData.shops : shops;
@@ -135,7 +138,8 @@ export function MainLayout({
   const cachedCountries = shopData.isHydrated && shopData.countries.length > 0 ? shopData.countries : countries;
   const cachedCityAreas = shopData.isHydrated && shopData.cityAreas.length > 0 ? shopData.cityAreas : propCityAreas;
   const cachedEvents = shopData.isHydrated && shopData.events.length > 0 ? shopData.events : events;
-  const cachedCritics = shopData.isHydrated && shopData.critics.length > 0 ? shopData.critics : critics;
+  const cachedPeople = shopData.isHydrated && shopData.people.length > 0 ? shopData.people : people;
+  const cachedNewsArticles = shopData.isHydrated && shopData.newsArticles.length > 0 ? shopData.newsArticles : newsArticles;
 
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(initialLocation);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(initialShop);
@@ -1446,7 +1450,7 @@ export function MainLayout({
         location={selectedLocation}
         allShops={cachedShops}
         events={cachedEvents}
-        critics={cachedCritics}
+        people={cachedPeople}
         onShopSelect={handleShopSelect}
         allLocations={cachedLocations}
         onLocationChange={handleLocationChange}
@@ -1472,14 +1476,16 @@ export function MainLayout({
       <div className="top-bar">
         <div className="top-bar-content">
           <div className="flex items-center gap-4">
-            <button onClick={onReturnToLanding} className="text-lg font-medium text-primary hover:text-accent transition-colors">
+            <button onClick={onReturnToLanding} className="flex items-center gap-1.5 text-lg font-medium text-primary hover:text-accent transition-colors">
+              <img src="/img/cup-logo.svg" alt="" className="nav-logo h-4 w-auto" />
               Filter
             </button>
             <button
               onClick={() => openModal('explore')}
-              className="text-sm text-text-secondary hover:text-primary transition-colors"
+              className="flex items-center gap-0.5 text-sm text-text-secondary hover:text-primary transition-colors"
             >
               Explore cities
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="top-bar-actions">{authComponent}</div>
@@ -1509,7 +1515,8 @@ export function MainLayout({
           onBack={selectedShop ? handleShopBack : undefined}
           onShopSelect={handleShopSelect}
           events={cachedEvents}
-          critics={cachedCritics}
+          people={cachedPeople}
+          newsArticles={cachedNewsArticles}
           isLoading={isLoading}
           isFirstTimeVisitor={isFirstTimeVisitor}
         >
@@ -1601,7 +1608,7 @@ export function MainLayout({
                 location={selectedLocation}
                 allShops={cachedShops}
                 events={cachedEvents}
-                critics={cachedCritics}
+                people={cachedPeople}
                 onClose={() => {
                   // Start exit animation
                   setIsLocationDrawerClosing(true);

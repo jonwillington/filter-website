@@ -48,7 +48,7 @@ export function AwardBox({
   const content = (
     <div
       className={cn(
-        'relative px-5 py-3 overflow-hidden transition-all duration-300',
+        'relative flex items-center overflow-hidden transition-all duration-300',
         dismissible && 'pr-10'
       )}
       style={gradientStyle}
@@ -65,29 +65,26 @@ export function AwardBox({
         </button>
       )}
 
-      <div className="mb-0.5">
-        <h3 className={cn('font-medium text-base mb-1.5', textColor)}>
-          {title}
-        </h3>
+      <div className="flex-shrink-0 w-[96px] relative self-stretch">
+        <Image
+          src="/coffee-award.png"
+          alt="Award"
+          width={120}
+          height={120}
+          className="absolute -top-7 -bottom-7 left-2 w-[140px] h-[calc(100%+56px)] object-contain"
+        />
       </div>
 
-      <div className="pr-16">
-        <p className={cn('text-xs leading-tight', textColor, 'opacity-90')}>
+      <div className="flex-1 min-w-0 py-2.5 pr-4">
+        <h3 className={cn('font-semibold text-sm mb-1', textColor)}>
+          {title}
+        </h3>
+        <p className={cn('text-[11px] leading-tight', textColor, 'opacity-60')}>
           {displayMessage}
           {!message && (
             <span className="font-bold opacity-100"> Learn why</span>
           )}
         </p>
-      </div>
-
-      <div className="absolute bottom-0 right-0 w-[80px] h-[80px] pointer-events-none">
-        <Image
-          src="/coffee-award.png"
-          alt="Award"
-          width={80}
-          height={80}
-          className="w-full h-full object-contain"
-        />
       </div>
     </div>
   );

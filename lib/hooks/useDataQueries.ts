@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Shop, Country, Location, CityArea, Event, Critic } from '@/lib/types';
+import { Shop, Country, Location, CityArea, Event, Person, NewsArticle } from '@/lib/types';
 
 // Stable empty arrays to prevent re-render loops
 const EMPTY_SHOPS: Shop[] = [];
@@ -10,7 +10,8 @@ const EMPTY_COUNTRIES: Country[] = [];
 const EMPTY_LOCATIONS: Location[] = [];
 const EMPTY_CITY_AREAS: CityArea[] = [];
 const EMPTY_EVENTS: Event[] = [];
-const EMPTY_CRITICS: Critic[] = [];
+const EMPTY_PEOPLE: Person[] = [];
+const EMPTY_NEWS_ARTICLES: NewsArticle[] = [];
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
@@ -79,11 +80,19 @@ export function useEventsQuery() {
   });
 }
 
-export function useCriticsQuery() {
+export function usePeopleQuery() {
   // Try static file first, fall back to API
-  return useQuery<Critic[]>({
-    queryKey: ['critics'],
-    queryFn: () => fetchWithFallback<Critic[]>('/data/critics.json', '/api/data/critics'),
+  return useQuery<Person[]>({
+    queryKey: ['people'],
+    queryFn: () => fetchWithFallback<Person[]>('/data/people.json', '/api/data/people'),
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useNewsArticlesQuery() {
+  return useQuery<NewsArticle[]>({
+    queryKey: ['newsArticles'],
+    queryFn: () => fetchWithFallback<NewsArticle[]>('/data/news-articles.json', '/api/data/news-articles'),
     staleTime: STALE_TIME,
   });
 }
@@ -98,7 +107,8 @@ export function useHomeData() {
   const locationsQuery = useLocationsQuery();
   const cityAreasQuery = useCityAreasQuery();
   const eventsQuery = useEventsQuery();
-  const criticsQuery = useCriticsQuery();
+  const peopleQuery = usePeopleQuery();
+  const newsArticlesQuery = useNewsArticlesQuery();
 
   // Use stable empty arrays to prevent re-render loops
   const shops = shopsQuery.data ?? EMPTY_SHOPS;
@@ -106,7 +116,8 @@ export function useHomeData() {
   const locations = locationsQuery.data ?? EMPTY_LOCATIONS;
   const cityAreas = cityAreasQuery.data ?? EMPTY_CITY_AREAS;
   const events = eventsQuery.data ?? EMPTY_EVENTS;
-  const critics = criticsQuery.data ?? EMPTY_CRITICS;
+  const people = peopleQuery.data ?? EMPTY_PEOPLE;
+  const newsArticles = newsArticlesQuery.data ?? EMPTY_NEWS_ARTICLES;
 
   const isLoading =
     shopsQuery.isLoading ||
@@ -114,7 +125,7 @@ export function useHomeData() {
     locationsQuery.isLoading ||
     cityAreasQuery.isLoading ||
     eventsQuery.isLoading ||
-    criticsQuery.isLoading;
+    peopleQuery.isLoading;
 
   const isError =
     shopsQuery.isError ||
@@ -122,7 +133,7 @@ export function useHomeData() {
     locationsQuery.isError ||
     cityAreasQuery.isError ||
     eventsQuery.isError ||
-    criticsQuery.isError;
+    peopleQuery.isError;
 
   // Memoize return object to prevent unnecessary re-renders
   return useMemo(() => ({
@@ -131,7 +142,8 @@ export function useHomeData() {
     locations,
     cityAreas,
     events,
-    critics,
+    people,
+    newsArticles,
     isLoading,
     isError,
     // Individual loading states for progressive rendering
@@ -140,7 +152,8 @@ export function useHomeData() {
     isLocationsLoading: locationsQuery.isLoading,
     isCityAreasLoading: cityAreasQuery.isLoading,
     isEventsLoading: eventsQuery.isLoading,
-    isCriticsLoading: criticsQuery.isLoading,
+    isPeopleLoading: peopleQuery.isLoading,
+    isNewsArticlesLoading: newsArticlesQuery.isLoading,
     // Refetch functions if needed
     refetchShops: shopsQuery.refetch,
     refetchAll: () => {
@@ -149,7 +162,8 @@ export function useHomeData() {
       locationsQuery.refetch();
       cityAreasQuery.refetch();
       eventsQuery.refetch();
-      criticsQuery.refetch();
+      peopleQuery.refetch();
+      newsArticlesQuery.refetch();
     },
   }), [
     shops,
@@ -157,7 +171,8 @@ export function useHomeData() {
     locations,
     cityAreas,
     events,
-    critics,
+    people,
+    newsArticles,
     isLoading,
     isError,
     shopsQuery.isLoading,
@@ -165,12 +180,14 @@ export function useHomeData() {
     locationsQuery.isLoading,
     cityAreasQuery.isLoading,
     eventsQuery.isLoading,
-    criticsQuery.isLoading,
+    peopleQuery.isLoading,
+    newsArticlesQuery.isLoading,
     shopsQuery.refetch,
     countriesQuery.refetch,
     locationsQuery.refetch,
     cityAreasQuery.refetch,
     eventsQuery.refetch,
-    criticsQuery.refetch,
+    peopleQuery.refetch,
+    newsArticlesQuery.refetch,
   ]);
 }

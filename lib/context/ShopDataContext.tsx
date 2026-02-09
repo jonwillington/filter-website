@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useMemo, useRef } from 'react';
-import { Shop, Location, Country, CityArea, Event, Critic } from '@/lib/types';
+import { Shop, Location, Country, CityArea, Event, Person, NewsArticle } from '@/lib/types';
 
 interface ShopDataContextType {
   shops: Shop[];
@@ -9,7 +9,8 @@ interface ShopDataContextType {
   countries: Country[];
   cityAreas: CityArea[];
   events: Event[];
-  critics: Critic[];
+  people: Person[];
+  newsArticles: NewsArticle[];
   isHydrated: boolean;
   hydrate: (data: HydrateData) => void;
 }
@@ -20,7 +21,8 @@ interface HydrateData {
   countries?: Country[];
   cityAreas?: CityArea[];
   events?: Event[];
-  critics?: Critic[];
+  people?: Person[];
+  newsArticles?: NewsArticle[];
 }
 
 const ShopDataContext = createContext<ShopDataContextType | null>(null);
@@ -38,7 +40,8 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [cityAreas, setCityAreas] = useState<CityArea[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [critics, setCritics] = useState<Critic[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Track hydration to prevent unnecessary updates
@@ -67,8 +70,11 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
     if (data.events && data.events.length > 0) {
       setEvents(data.events);
     }
-    if (data.critics && data.critics.length > 0) {
-      setCritics(data.critics);
+    if (data.people && data.people.length > 0) {
+      setPeople(data.people);
+    }
+    if (data.newsArticles && data.newsArticles.length > 0) {
+      setNewsArticles(data.newsArticles);
     }
     setIsHydrated(true);
   }, []);
@@ -79,10 +85,11 @@ export function ShopDataProvider({ children }: { children: ReactNode }) {
     countries,
     cityAreas,
     events,
-    critics,
+    people,
+    newsArticles,
     isHydrated,
     hydrate,
-  }), [shops, locations, countries, cityAreas, events, critics, isHydrated, hydrate]);
+  }), [shops, locations, countries, cityAreas, events, people, newsArticles, isHydrated, hydrate]);
 
   return (
     <ShopDataContext.Provider value={value}>

@@ -12,7 +12,7 @@ import { Country, Location, Shop } from '@/lib/types';
  * When the user picks a location or taps "Explore the map", transitions to MainLayout.
  */
 export function HomeClient() {
-  const { shops, countries, locations, cityAreas, events, critics, isLoading } = useHomeData();
+  const { shops, countries, locations, cityAreas, events, people, newsArticles, isLoading } = useHomeData();
   const [visitorCountry, setVisitorCountry] = useState<Country | null>(null);
 
   const [showLanding, setShowLanding] = useState(() => {
@@ -134,6 +134,8 @@ export function HomeClient() {
         shops={shops}
         countries={countries}
         events={events}
+        people={people}
+        newsArticles={newsArticles}
         visitorCountry={visitorCountry}
         isLoading={isLoading}
         isTransitioning={isTransitioning}
@@ -155,7 +157,8 @@ export function HomeClient() {
         countries={countries}
         cityAreas={cityAreas}
         events={events}
-        critics={critics}
+        people={people}
+        newsArticles={newsArticles}
         visitorCountry={visitorCountry}
         isClientSideLoading={isLoading}
         triggerFindNearMe={triggerFindNearMe}

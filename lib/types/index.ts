@@ -328,7 +328,13 @@ export interface UserImage {
   updatedAt: string;
 }
 
-export interface Critic {
+export interface PersonRole {
+  id: number;
+  documentId: string;
+  name: string;
+}
+
+export interface Person {
   id: number;
   documentId: string;
   name: string;
@@ -339,17 +345,56 @@ export interface Critic {
   instagram?: string | null;
   twitter?: string | null;
   youtube?: string | null;
+  tiktok?: string | null;
+  achievements?: string | null;
+  roles?: PersonRole[];
+  brands?: Brand[];
   locations?: Location[];
-  critic_picks?: CriticPick[];
+  person_picks?: PersonPick[];
 }
 
-export interface CriticPick {
+export interface PersonPick {
   id: number;
   documentId: string;
   description?: string | null;
   rank?: 1 | 2 | 3 | null;
-  critic?: Critic;
+  person?: Person;
   shop?: Shop;
+}
+
+// Backward-compat aliases
+export type Critic = Person;
+export type CriticPick = PersonPick;
+
+export interface NewsSource {
+  id: number;
+  documentId: string;
+  name: string;
+  slug?: string;
+  website_url?: string | null;
+  logo?: MediaAsset | null;
+  type?: string | null;
+}
+
+export interface NewsArticle {
+  id: number;
+  documentId: string;
+  title: string;
+  slug: string;
+  summary?: string | null;
+  statement?: string | null;
+  source_url: string;
+  source_name: string;
+  source_author?: string | null;
+  published_date: string;
+  featured_image?: MediaAsset | null;
+  source?: NewsSource | null;
+  news_type?: string | null;
+  importance?: 'breaking' | 'featured' | 'standard' | null;
+  brands_mentioned?: Brand[];
+  shops_mentioned?: Shop[];
+  people_mentioned?: Person[];
+  locations_mentioned?: Location[];
 }
 
 export interface FlavorTag {

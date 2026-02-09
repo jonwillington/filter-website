@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { Location, Shop, Event, Critic } from '@/lib/types';
+import { Location, Shop, Event, Person } from '@/lib/types';
 import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
@@ -12,14 +12,14 @@ import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { EventCard, EventModal } from '@/components/events';
 import { FilterRecommendationsModal } from '@/components/modals/FilterRecommendationsModal';
-import { CriticCard, CriticModal } from '@/components/critics';
+import { PersonCard, PersonModal } from '@/components/people';
 import { UserCheck } from 'lucide-react';
 
 interface LocationDrawerProps {
   location: Location;
   allShops: Shop[];
   events?: Event[];
-  critics?: Critic[];
+  people?: Person[];
   onClose: () => void;
   onShopSelect: (shop: Shop) => void;
   useWrapper?: boolean;
@@ -31,7 +31,7 @@ export function LocationDrawer({
   location,
   allShops,
   events = [],
-  critics = [],
+  people = [],
   onClose,
   onShopSelect,
   useWrapper = true,
@@ -39,7 +39,7 @@ export function LocationDrawer({
   onLocationChange,
 }: LocationDrawerProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedCritic, setSelectedCritic] = useState<Critic | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['topShops']));
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -143,21 +143,21 @@ export function LocationDrawer({
       });
   }, [events, currentLocation.documentId]);
 
-  // Filter critics for current location
-  const locationCritics = useMemo(() => {
-    console.log('[LocationDrawer] Filtering critics:', {
-      totalCritics: critics.length,
+  // Filter people for current location
+  const locationPeople = useMemo(() => {
+    console.log('[LocationDrawer] Filtering people:', {
+      totalPeople: people.length,
       currentLocationId: currentLocation.documentId,
       currentLocationName: currentLocation.name,
     });
-    const filtered = critics.filter((critic) =>
-      critic.locations?.some(
+    const filtered = people.filter((person) =>
+      person.locations?.some(
         (location) => location.documentId === currentLocation.documentId
       )
     );
-    console.log('[LocationDrawer] Filtered critics:', filtered.length, filtered.map(c => c.name));
+    console.log('[LocationDrawer] Filtered people:', filtered.length, filtered.map(p => p.name));
     return filtered;
-  }, [critics, currentLocation.documentId, currentLocation.name]);
+  }, [people, currentLocation.documentId, currentLocation.name]);
 
   // Filter locations in same country (sorted alphabetically)
   const countryLocations = useMemo(() => {
@@ -513,7 +513,7 @@ export function LocationDrawer({
           )}
 
           {/* Insiders Guide */}
-          {locationCritics.length > 0 && (
+          {locationPeople.length > 0 && (
             <Accordion
               selectionMode="multiple"
               selectedKeys={expandedKeys}
@@ -529,7 +529,7 @@ export function LocationDrawer({
               }}
             >
               <AccordionItem
-                key="critics"
+                key="people"
                 aria-label="Insiders Guide"
                 startContent={
                   <UserCheck className="w-6 h-6 text-text-secondary" />
@@ -537,11 +537,11 @@ export function LocationDrawer({
                 title="Insiders Guide"
               >
                 <div className="divide-y divide-border-default">
-                  {locationCritics.map((critic) => (
-                    <CriticCard
-                      key={critic.documentId}
-                      critic={critic}
-                      onClick={() => setSelectedCritic(critic)}
+                  {locationPeople.map((person) => (
+                    <PersonCard
+                      key={person.documentId}
+                      person={person}
+                      onClick={() => setSelectedPerson(person)}
                     />
                   ))}
                 </div>
@@ -579,11 +579,11 @@ export function LocationDrawer({
         onClose={() => setShowRecommendationsModal(false)}
       />
 
-      {/* Critic Modal */}
-      <CriticModal
-        critic={selectedCritic}
-        isOpen={!!selectedCritic}
-        onClose={() => setSelectedCritic(null)}
+      {/* Person Modal */}
+      <PersonModal
+        person={selectedPerson}
+        isOpen={!!selectedPerson}
+        onClose={() => setSelectedPerson(null)}
         onShopSelect={onShopSelect}
       />
     </>

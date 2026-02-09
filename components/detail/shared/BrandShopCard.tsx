@@ -52,7 +52,7 @@ export function BrandShopCard({ shop, onClick }: BrandShopCardProps) {
                 name={shop.brand?.name ?? shop.name}
                 size="sm"
                 className="w-8 h-8 ring-2 ring-white shadow-sm"
-                radius="md"
+                radius="full"
                 showFallback
                 fallback={<span />}
               />

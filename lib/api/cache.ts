@@ -66,7 +66,8 @@ async function fetchStaticData<T>(key: string): Promise<T | null> {
     locations: 'locations.json',
     regions: 'regions.json',
     events: 'events.json',
-    critics: 'critics.json',
+    people: 'people.json',
+    'news-articles': 'news-articles.json',
   };
 
   const fileName = fileMap[key];

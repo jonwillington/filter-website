@@ -261,12 +261,19 @@ async function main() {
     fs.writeFileSync(path.join(dataDir, 'events.json'), JSON.stringify(events, null, 2));
     console.log(`   ✓ ${events.length} events\n`);
 
-    // Fetch critics with relations
-    console.log('5d. Fetching critics...');
-    const criticPopulate = 'populate=photo&populate=locations&populate=critic_picks.shop.featured_image&populate=critic_picks.shop.brand.logo&populate=critic_picks.shop.city_area';
-    const critics = await fetchAll('critics', criticPopulate);
-    fs.writeFileSync(path.join(dataDir, 'critics.json'), JSON.stringify(critics, null, 2));
-    console.log(`   ✓ ${critics.length} critics\n`);
+    // Fetch people (formerly critics) with relations
+    console.log('5d. Fetching people...');
+    const personPopulate = 'populate=photo&populate=locations&populate=person_picks.shop.featured_image&populate=person_picks.shop.brand.logo&populate=person_picks.shop.city_area';
+    const people = await fetchAll('people', personPopulate);
+    fs.writeFileSync(path.join(dataDir, 'people.json'), JSON.stringify(people, null, 2));
+    console.log(`   ✓ ${people.length} people\n`);
+
+    // Fetch news articles
+    console.log('5e. Fetching news articles...');
+    const newsPopulate = 'populate=featured_image&populate=source.logo&populate=brands_mentioned.logo&populate=shops_mentioned.brand.logo&populate=shops_mentioned.featured_image&populate=shops_mentioned.location&populate=people_mentioned&populate=locations_mentioned';
+    const newsArticles = await fetchAll('news-articles', newsPopulate);
+    fs.writeFileSync(path.join(dataDir, 'news-articles.json'), JSON.stringify(newsArticles, null, 2));
+    console.log(`   ✓ ${newsArticles.length} news articles\n`);
 
     // Fetch brands with nested relations
     // Note: Keep this simple - Strapi v5 can be finicky with deep nested populates
@@ -455,7 +462,8 @@ export const PREFETCH_TIMESTAMP = ${Date.now()};
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tags.json'), JSON.stringify(tags));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'locations.json'), JSON.stringify(locations));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'events.json'), JSON.stringify(events));
-    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'critics.json'), JSON.stringify(critics));
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'people.json'), JSON.stringify(people));
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'news-articles.json'), JSON.stringify(newsArticles));
 
     console.log('   ✓ Generated public/data/*.json files\n');
 

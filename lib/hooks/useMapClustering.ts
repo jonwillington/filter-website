@@ -437,13 +437,15 @@ export function useMapClustering({
                 8, 14,
                 11, 13,
                 12, 12,
-                13, 10,
-                14, 8,
+                13, 11,
+                14, 10,
                 15, 0,
               ],
             },
             paint: {
               'text-color': '#ffffff',
+              'text-halo-color': 'rgba(0, 0, 0, 0.3)',
+              'text-halo-width': 0.5,
               'text-opacity': expandedCityAreaId
                 ? outsideAreaOpacity
                 : [
@@ -453,9 +455,8 @@ export function useMapClustering({
                     0, 0,
                     4, 0,
                     5, 1,
-                    11, 1,
-                    13, 0.9,
-                    14, 0.5,
+                    14, 1,
+                    14.5, 0.5,
                     15, 0,
                   ],
             },
@@ -1054,9 +1055,8 @@ export function useMapClustering({
             0, 0,
             4, 0,
             5, 1,
-            11, 1,
-            13, 0.9,
-            14, 0.5,
+            14, 1,
+            14.5, 0.5,
             15, 0,
           ]);
         }

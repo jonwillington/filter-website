@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { Star } from 'lucide-react';
 import { Location } from '@/lib/types';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
@@ -20,82 +19,87 @@ export function FeaturedCities({ cities, onCitySelect }: FeaturedCitiesProps) {
   if (cities.length === 0) return null;
 
   return (
-    <section className="px-6 pt-24 pb-24 md:px-12 md:pt-32 md:pb-32 lg:px-24 lg:pt-40 lg:pb-40" style={{ background: 'var(--surface-landing)' }}>
-      <h2
+    <section
+      className="px-6 pt-24 pb-24 md:px-12 md:pt-32 md:pb-32 lg:px-24 lg:pt-40 lg:pb-40"
+      style={{ background: 'var(--surface-landing)' }}
+    >
+      {/* Header */}
+      <div
         ref={headingRef}
-        className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-4 md:mb-6"
+        className="mb-12 md:mb-16 lg:mb-20"
         style={{
           opacity: headingRevealed ? 1 : 0,
           transform: headingRevealed ? 'translateY(0)' : 'translateY(16px)',
           transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
         }}
       >
-        Top cities
-      </h2>
-      <p
-        className="font-display text-3xl md:text-4xl lg:text-5xl text-primary opacity-30 mb-12 md:mb-16 lg:mb-18"
-        style={{
-          opacity: headingRevealed ? 0.3 : 0,
-          transform: headingRevealed ? 'translateY(0)' : 'translateY(12px)',
-          transition: 'opacity 0.8s ease-out 0.1s, transform 0.8s ease-out 0.1s',
-        }}
-      >
-        100+ locations being added this year
-      </p>
+        <h2 className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-3 md:mb-4">
+          Top Cities
+        </h2>
+        <p className="text-text-secondary text-base md:text-lg max-w-xl">
+          Our highest-rated destinations for specialty coffee
+        </p>
+      </div>
 
-      <div ref={listRef}>
-        {cities.map((city, index) => {
+      {/* Typography-first city list */}
+      <div ref={listRef} className="border-t border-border-default">
+        {cities.map((city, i) => {
           const countryCode = city.country?.code;
+          const countryName = city.country?.name;
 
           return (
             <button
               key={city.documentId}
               onClick={() => onCitySelect(city)}
-              className="w-full text-left group py-4 md:py-5 flex items-center justify-between gap-4 border-b border-amber-200/40 dark:border-amber-900/30 last:border-b-0"
+              className="w-full text-left group flex items-center gap-4 md:gap-6 py-6 md:py-8 border-b border-border-default"
               style={{
                 opacity: listRevealed ? 1 : 0,
-                transform: listRevealed ? 'translateY(0)' : 'translateY(14px)',
-                transition: `opacity 0.5s ease-out ${index * 0.06}s, transform 0.5s ease-out ${index * 0.06}s`,
+                transform: listRevealed ? 'translateY(0)' : 'translateY(12px)',
+                transition: `opacity 0.5s ease-out ${i * 0.06}s, transform 0.5s ease-out ${i * 0.06}s`,
               }}
             >
-              {/* Left: rank + city name */}
-              <div className="flex items-center gap-3 md:gap-5 min-w-0">
-                <span className="font-display text-lg md:text-xl lg:text-2xl text-text-secondary leading-none tabular-nums flex-shrink-0 w-6 md:w-7 text-right opacity-30">
-                  {index + 1}
-                </span>
-                <h3 className="font-display text-3xl md:text-4xl lg:text-5xl text-primary leading-none group-hover:text-accent transition-colors truncate">
+              {/* Rank */}
+              <span className="text-sm font-mono text-text-secondary w-6 flex-shrink-0 tabular-nums">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+
+              {/* Name + country */}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display text-3xl md:text-4xl lg:text-5xl text-primary leading-none group-hover:text-accent transition-colors">
                   {city.name}
                 </h3>
-              </div>
-
-              {/* Right: country name, flag, rating */}
-              <div className="flex items-center gap-3 md:gap-5 flex-shrink-0">
-                {city.country?.name && (
-                  <span className="font-display text-2xl md:text-3xl lg:text-4xl text-primary opacity-30 hidden sm:inline leading-none">
-                    {city.country.name}
-                  </span>
-                )}
-                {countryCode && (
-                  <span className="w-7 h-5 md:w-9 md:h-6 rounded-md overflow-hidden flex-shrink-0 hidden sm:inline-block">
-                    <Image
-                      src={getFlagUrl(countryCode)}
-                      alt={city.country?.name || ''}
-                      width={36}
-                      height={24}
-                      className="object-cover w-full h-full"
-                      unoptimized
-                    />
-                  </span>
-                )}
-                {city.rating_stars && (
-                  <div className="flex items-center gap-1.5 flex-shrink-0 w-16 md:w-20 justify-end">
-                    <Star className="w-4 h-4 md:w-5 md:h-5 fill-current text-amber-400" />
-                    <span className="font-display text-lg md:text-xl lg:text-2xl text-primary tabular-nums leading-none">
-                      {city.rating_stars.toFixed(1)}
-                    </span>
+                {(countryCode || countryName) && (
+                  <div className="flex items-center gap-2 mt-2">
+                    {countryCode && (
+                      <span className="w-5 h-3.5 rounded-[2px] overflow-hidden flex-shrink-0">
+                        <Image
+                          src={getFlagUrl(countryCode)}
+                          alt={countryName || ''}
+                          width={20}
+                          height={14}
+                          className="object-cover w-full h-full"
+                          unoptimized
+                        />
+                      </span>
+                    )}
+                    {countryName && (
+                      <span className="text-sm text-text-secondary">
+                        {countryName}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
+
+              {/* Rating */}
+              {city.rating_stars && (
+                <div className="flex-shrink-0 text-right">
+                  <span className="font-display text-2xl md:text-3xl text-primary leading-none tabular-nums">
+                    {city.rating_stars.toFixed(1)}
+                  </span>
+                  <p className="text-xs text-text-secondary mt-0.5">rating</p>
+                </div>
+              )}
             </button>
           );
         })}

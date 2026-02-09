@@ -4,18 +4,17 @@ import { memo } from 'react';
 import Image from 'next/image';
 import { Location } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
-import { Star, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Star, ArrowRight } from 'lucide-react';
 
 interface LocationCardProps {
   location: Location;
   onReadCityGuide: () => void;
-  onBack?: () => void;
 }
 
 const getFlagUrl = (countryCode: string): string =>
   `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 
-function LocationCardComponent({ location, onReadCityGuide, onBack }: LocationCardProps) {
+function LocationCardComponent({ location, onReadCityGuide }: LocationCardProps) {
   const backgroundImage = getMediaUrl(location.background_image);
   const countryCode = location.country?.code;
   const countryName = location.country?.name;
@@ -42,17 +41,6 @@ function LocationCardComponent({ location, onReadCityGuide, onBack }: LocationCa
         )}
         {/* Gradient overlay - darker towards bottom for text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/30 to-black/80" />
-
-        {/* Back button - top left of card */}
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="absolute top-3 left-3 flex items-center gap-0.5 text-sm font-medium text-white/90 hover:text-white transition-colors z-10"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Home
-          </button>
-        )}
 
         {/* Text content over gradient */}
         <div className="absolute inset-0 flex flex-col justify-end p-4">
@@ -112,8 +100,5 @@ function LocationCardComponent({ location, onReadCityGuide, onBack }: LocationCa
 }
 
 export const LocationCard = memo(LocationCardComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.location.documentId === nextProps.location.documentId &&
-    prevProps.onBack === nextProps.onBack
-  );
+  return prevProps.location.documentId === nextProps.location.documentId;
 });

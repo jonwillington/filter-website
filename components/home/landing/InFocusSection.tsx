@@ -7,6 +7,7 @@ import { getMediaUrl, getMergedBrewMethods } from '@/lib/utils';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { BrewMethodChip, CountryChip, PropertyRow } from '@/components/ui';
 import { MapPin, ArrowRight, Trophy } from 'lucide-react';
+import { BeanCard } from './BeanCard';
 
 interface InFocusSectionProps {
   shop: Shop;
@@ -89,29 +90,10 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
   // Founded year
   const foundedYear = brand?.founded ? new Date(brand.founded).getFullYear() : null;
 
-  // All beans with photos for the bottom row
+  // Beans with photos for the bottom row
   const displayBeans = useMemo(() => {
     if (!brand?.beans) return [];
-    return brand.beans
-      .filter((b) => getMediaUrl(b.photo))
-      .map((b) => {
-        const origins = b.origins?.filter((o) => o.name && o.code) || [];
-        const flavors = b.flavorTags?.map((f) => f.name).filter(Boolean) || [];
-        const processLabel = b.process
-          ? b.process.replace(/\b\w/g, (c) => c.toUpperCase())
-          : null;
-        return {
-          name: b.name,
-          url: getMediaUrl(b.photo)!,
-          type: b.type === 'single-origin' ? 'Single Origin' : b.type === 'blend' ? 'Blend' : null,
-          origins,
-          flavors,
-          process: processLabel,
-          region: b.region,
-          farm: b.farm,
-          altitude: b.altitude,
-        };
-      });
+    return brand.beans.filter((b) => getMediaUrl(b.photo));
   }, [brand?.beans]);
 
   const fadeIn = (delay: number) => ({
@@ -125,19 +107,6 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
       className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40 border-t border-border-default"
       style={{ background: 'var(--surface-landing)' }}
     >
-      {/* Section heading */}
-      <h2
-        ref={sectionRef}
-        className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-12 md:mb-16 lg:mb-18"
-        style={{
-          opacity: sectionRevealed ? 1 : 0,
-          transform: sectionRevealed ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
-        }}
-      >
-        In focus
-      </h2>
-
       {/* Card container */}
       <div
         ref={contentRef}
@@ -145,13 +114,18 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
       >
         {/* Top: image + details */}
         <div className="grid grid-cols-1 lg:grid-cols-5">
-          {/* Left: Featured image — 3/5 width */}
-          {imageUrl && (
-            <div
-              className="lg:col-span-3 p-4 md:p-6 lg:p-8"
-              style={fadeIn(0)}
-            >
-              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden">
+          {/* Left: Featured image with overlaid heading — 3/5 width */}
+          <div
+            ref={sectionRef}
+            className="lg:col-span-3 relative"
+            style={{
+              opacity: sectionRevealed ? 1 : 0,
+              transform: sectionRevealed ? 'translateY(0)' : 'translateY(16px)',
+              transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+            }}
+          >
+            {imageUrl ? (
+              <div className="relative w-full aspect-[4/3] overflow-hidden">
                 <Image
                   src={imageUrl}
                   alt={shop.name}
@@ -159,18 +133,24 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
                   className="object-cover"
                   sizes="(min-width: 1024px) 55vw, 100vw"
                 />
+                {/* Gradient for text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+                {/* Overlaid heading */}
+                <h2 className="absolute top-4 left-5 md:top-6 md:left-7 font-display text-5xl md:text-6xl lg:text-8xl text-white/60 leading-none select-none pointer-events-none">
+                  In focus
+                </h2>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="w-full aspect-[4/3] bg-gray-100 dark:bg-white/5 flex items-end p-6">
+                <h2 className="font-display text-4xl md:text-5xl lg:text-6xl text-primary leading-none">
+                  In focus
+                </h2>
+              </div>
+            )}
+          </div>
 
           {/* Right: Details — 2/5 width */}
           <div className="lg:col-span-2 p-6 md:p-8 lg:p-10 flex flex-col gap-5">
-            {/* Label */}
-            <div style={fadeIn(0.05)}>
-              <span className="text-xs font-semibold uppercase tracking-widest text-text-secondary">
-                In Focus
-              </span>
-            </div>
 
             {/* Shop name */}
             <h3
@@ -195,17 +175,16 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
 
             {/* Statement */}
             {statement && (
-              <p
-                className="text-base text-primary font-medium leading-relaxed"
-                style={fadeIn(0.2)}
-              >
-                {statement}
-              </p>
+              <div className="border-t border-border-default pt-4" style={fadeIn(0.2)}>
+                <p className="text-base text-primary font-medium leading-relaxed">
+                  {statement}
+                </p>
+              </div>
             )}
 
             {/* Story */}
             {story && (
-              <div style={fadeIn(0.25)}>
+              <div className="border-t border-border-default pt-4" style={fadeIn(0.25)}>
                 <p className="text-sm text-text-secondary leading-relaxed">
                   {story}
                 </p>
@@ -214,7 +193,10 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
 
             {/* Brew methods */}
             {brewMethods.length > 0 && (
-              <div style={fadeIn(0.3)}>
+              <div className="border-t border-border-default pt-4" style={fadeIn(0.3)}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
+                  Brew methods
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {brewMethods.map((method) => (
                     <BrewMethodChip key={method}>{method}</BrewMethodChip>
@@ -225,7 +207,7 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
 
             {/* Bean origins */}
             {beanOrigins.length > 0 && (
-              <div style={fadeIn(0.35)}>
+              <div className="border-t border-border-default pt-4" style={fadeIn(0.35)}>
                 <p className="text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
                   Sourcing origins
                 </p>
@@ -239,7 +221,10 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
 
             {/* Equipment — PropertyRow with dividers */}
             {equipmentRows.length > 0 && (
-              <div style={fadeIn(0.4)} className="border-t border-border-default pt-1">
+              <div className="border-t border-border-default pt-4" style={fadeIn(0.4)}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
+                  Equipment
+                </p>
                 {equipmentRows.map((row, i) => (
                   <PropertyRow
                     key={row.label}
@@ -253,7 +238,10 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
 
             {/* Awards */}
             {topAwards.length > 0 && (
-              <div style={fadeIn(0.45)} className="border-t border-border-default pt-4">
+              <div className="border-t border-border-default pt-4" style={fadeIn(0.45)}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
+                  Awards
+                </p>
                 <div className="space-y-2">
                   {topAwards.map((award, i) => (
                     <div key={i} className="flex items-start gap-2.5">
@@ -299,53 +287,17 @@ export function InFocusSection({ shop, onShopSelect }: InFocusSectionProps) {
               {displayBeans.length} beans roasted in-house
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {displayBeans.map((bean, i) => (
                 <div
-                  key={bean.name}
-                  className="flex gap-3 rounded-xl border border-border-default bg-background overflow-hidden"
+                  key={bean.documentId}
                   style={{
                     opacity: beansRevealed ? 1 : 0,
                     transform: beansRevealed ? 'translateY(0)' : 'translateY(12px)',
                     transition: `opacity 0.5s ease-out ${i * 0.06}s, transform 0.5s ease-out ${i * 0.06}s`,
                   }}
                 >
-                  {/* Square thumbnail */}
-                  <div className="w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
-                    <img src={bean.url} alt={bean.name} className="w-full h-full object-cover" />
-                  </div>
-
-                  {/* Details */}
-                  <div className="py-2.5 pr-3 flex-1 min-w-0 flex flex-col">
-                    <h4 className="text-sm font-medium text-primary line-clamp-1">{bean.name}</h4>
-
-                    {(bean.type || bean.process) && (
-                      <p className="text-[11px] text-text-secondary mt-0.5 opacity-70">
-                        {[bean.type, bean.process].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-
-                    {bean.origins.length > 0 && (
-                      <div className="flex items-center gap-1 mt-1">
-                        {bean.origins.map((origin) => (
-                          <span key={origin.code} className="inline-flex items-center gap-1 text-[11px] text-text-secondary">
-                            <img
-                              src={`https://flagcdn.com/w40/${origin.code.toLowerCase()}.png`}
-                              alt={origin.name}
-                              className="w-3 h-3 rounded-full"
-                            />
-                            {origin.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {bean.flavors.length > 0 && (
-                      <p className="text-[11px] text-text-secondary italic mt-auto pt-1 line-clamp-1">
-                        {bean.flavors.join(' · ')}
-                      </p>
-                    )}
-                  </div>
+                  <BeanCard bean={bean} />
                 </div>
               ))}
             </div>

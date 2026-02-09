@@ -7,6 +7,7 @@ import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { ResponsiveModal } from '@/components/ui';
 import { ExternalLink, MapPin, Store } from 'lucide-react';
+import { BeanCard } from './BeanCard';
 
 const BEANS_PER_PAGE = 6;
 
@@ -103,7 +104,12 @@ export function FeaturedRoasters({ shops }: FeaturedRoastersProps) {
   if (topRoasters.length === 0) return null;
 
   return (
-    <section className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40 border-t border-border-default" style={{ background: 'var(--surface-landing)' }}>
+    <section
+      className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40 border-t border-border-default"
+      style={{
+        background: 'linear-gradient(180deg, var(--surface-landing) 0%, var(--surface-warm) 50%, var(--surface-landing) 100%)',
+      }}
+    >
       <h2
         ref={headingRef}
         className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-12 md:mb-16 lg:mb-18"
@@ -113,7 +119,7 @@ export function FeaturedRoasters({ shops }: FeaturedRoastersProps) {
           transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
         }}
       >
-        Beans from top roasters
+        Beans
       </h2>
 
       <div ref={gridRef} className="flex flex-col gap-8 lg:gap-10">
@@ -166,71 +172,72 @@ function RoasterBlock({
           transition: `opacity 0.7s ease-out ${index * 0.15}s, transform 0.7s ease-out ${index * 0.15}s`,
         }}
       >
-        {/* Brand header */}
-        <div className="flex items-start gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden bg-white dark:bg-white/10 flex-shrink-0 flex items-center justify-center p-2.5">
-            <Image
-              src={logoUrl}
-              alt={brand.name}
-              width={64}
-              height={64}
-              className="object-contain w-full h-full"
-            />
-          </div>
-          <div className="flex-1 min-w-0 pt-1">
-            <h3 className="font-display text-2xl md:text-3xl text-primary">
-              {brand.name}
-            </h3>
+        {/* Horizontal split layout */}
+        <div className="flex flex-col lg:flex-row lg:gap-0">
+          {/* Left column: brand info (1/3 on desktop) */}
+          <div className="lg:w-1/3 lg:pr-8 lg:border-r border-border-default flex flex-col mb-6 lg:mb-0">
+            {/* Brand header */}
+            <div className="flex items-start gap-4 md:gap-5">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden bg-white dark:bg-white/10 flex-shrink-0 flex items-center justify-center p-2.5">
+                <Image
+                  src={logoUrl}
+                  alt={brand.name}
+                  width={64}
+                  height={64}
+                  className="object-contain w-full h-full"
+                />
+              </div>
+              <div className="flex-1 min-w-0 pt-1">
+                <h3 className="font-display text-2xl md:text-3xl text-primary">
+                  {brand.name}
+                </h3>
+              </div>
+            </div>
+
             {storyText && (
-              <p className="text-sm md:text-base text-text-secondary mt-2 leading-relaxed">
+              <p className="text-sm md:text-base text-text-secondary mt-4 leading-relaxed">
                 {storyText}
               </p>
             )}
-          </div>
-        </div>
 
-        {/* Bean cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {visibleBeans.map((bean) => (
-            <BeanCard key={bean.documentId} bean={bean} />
-          ))}
-        </div>
-
-        {/* Footer row */}
-        <div className="mt-5 md:mt-6 pt-5 border-t border-border-default flex flex-wrap items-center gap-x-1 gap-y-2">
-          {/* Left actions */}
-          <div className="flex items-center gap-1 text-sm flex-wrap">
-            {hasMore && (
-              <>
+            {/* Footer actions — pushed to bottom on desktop */}
+            <div className="mt-auto pt-5 flex flex-col gap-2 text-sm">
+              {hasMore && (
                 <button
                   onClick={() => setVisibleCount((c) => c + BEANS_PER_PAGE)}
-                  className="font-medium text-accent hover:underline"
+                  className="font-medium text-accent hover:underline text-left"
                 >
-                  View {remainingCount} more
+                  View {remainingCount} more beans
                 </button>
-                <span className="text-text-secondary">&middot;</span>
-              </>
-            )}
-            <button
-              onClick={() => setShopsModalOpen(true)}
-              className="font-medium text-accent hover:underline"
-            >
-              {shopCount} {shopCount === 1 ? 'shop' : 'shops'} stocking their coffee
-            </button>
+              )}
+              <button
+                onClick={() => setShopsModalOpen(true)}
+                className="font-medium text-accent hover:underline text-left"
+              >
+                {shopCount} {shopCount === 1 ? 'shop' : 'shops'} stocking their coffee
+              </button>
+              {brand.website && (
+                <a
+                  href={brand.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline"
+                >
+                  Learn more about {brand.name}
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
           </div>
 
-          {/* Right: Learn more */}
-          {brand.website && (
-            <a
-              href={brand.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-            >
-              Learn more about {brand.name}
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
+          {/* Right column: bean cards grid (2/3 on desktop) */}
+          <div className="lg:w-2/3 lg:pl-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {visibleBeans.map((bean) => (
+                <BeanCard key={bean.documentId} bean={bean} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -353,86 +360,4 @@ function RoasterBlock({
       )}
     </>
   );
-}
-
-function BeanCard({ bean }: { bean: Bean }) {
-  const origins = bean.origins?.filter((o) => o.name && o.code) || [];
-  const roastLabel = bean.roastLevel
-    ? bean.roastLevel.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    : null;
-  const processLabel = bean.process
-    ? bean.process.replace(/\b\w/g, (c) => c.toUpperCase())
-    : null;
-  const photoUrl = getMediaUrl(bean.photo);
-
-  const meta = [
-    bean.type === 'single-origin' ? 'Single Origin' : bean.type === 'blend' ? 'Blend' : null,
-    roastLabel,
-    processLabel,
-  ].filter(Boolean).join(' · ');
-
-  const card = (
-    <div className="flex gap-3 rounded-xl bg-background h-full overflow-hidden">
-      {/* Square thumbnail */}
-      {photoUrl ? (
-        <div className="w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-lg overflow-hidden">
-          <img src={photoUrl} alt={bean.name} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className="w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-lg bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30" />
-      )}
-
-      {/* Details */}
-      <div className="py-1.5 pb-3 pr-2 flex-1 min-w-0 flex flex-col">
-        <h4 className="font-medium text-primary text-sm line-clamp-1">
-          {bean.name}
-        </h4>
-
-        {meta && (
-          <p className="text-[11px] text-text-secondary mt-0.5 opacity-70">
-            {meta}
-          </p>
-        )}
-
-        {bean.shortDescription && (
-          <p className="text-xs text-text-secondary mt-1 line-clamp-1 leading-relaxed">
-            {bean.shortDescription}
-          </p>
-        )}
-
-        {origins.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-auto pt-1">
-            {origins.map((origin) => (
-              <span
-                key={origin.id}
-                className="inline-flex items-center gap-1 text-[11px] text-text-secondary px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10"
-              >
-                <img
-                  src={`https://flagcdn.com/w40/${origin.code!.toLowerCase()}.png`}
-                  alt={origin.name}
-                  className="w-3 h-3 rounded-full"
-                />
-                {origin.name}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  if (bean.learnMoreUrl) {
-    return (
-      <a
-        href={bean.learnMoreUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block h-full"
-      >
-        {card}
-      </a>
-    );
-  }
-
-  return card;
 }

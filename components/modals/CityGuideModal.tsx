@@ -2,16 +2,17 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Location, Shop, Event, Critic } from '@/lib/types';
+import { Location, Shop, Event, Person } from '@/lib/types';
 import { ResponsiveModal, CircularCloseButton } from '@/components/ui';
+import { ShopListItem } from '@/components/shop';
 import { StarRating } from '@/components/ui/StarRating';
-import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { getMediaUrl } from '@/lib/utils';
 
 const getFlagUrl = (countryCode: string): string =>
   `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 import { getTopRecommendationsForLocation, filterShopsByLocation } from '@/lib/utils/shopFiltering';
 import { EventCard, EventModal } from '@/components/events';
-import { CriticCard, CriticModal } from '@/components/critics';
+import { PersonCard, PersonModal } from '@/components/people';
 import { FilterRecommendationsModal } from '@/components/modals/FilterRecommendationsModal';
 
 interface CityGuideModalProps {
@@ -20,7 +21,7 @@ interface CityGuideModalProps {
   location: Location | null;
   allShops: Shop[];
   events?: Event[];
-  critics?: Critic[];
+  people?: Person[];
   onShopSelect: (shop: Shop) => void;
   allLocations?: Location[];
   onLocationChange?: (location: Location) => void;
@@ -32,11 +33,11 @@ export function CityGuideModal({
   location,
   allShops,
   events = [],
-  critics = [],
+  people = [],
   onShopSelect,
 }: CityGuideModalProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedCritic, setSelectedCritic] = useState<Critic | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
 
   // Computed values
@@ -65,12 +66,12 @@ export function CityGuideModal({
       .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
   }, [events, location]);
 
-  const locationCritics = useMemo(() => {
+  const locationPeople = useMemo(() => {
     if (!location) return [];
-    return critics.filter((critic) =>
-      critic.locations?.some((loc) => loc.documentId === location.documentId)
+    return people.filter((person) =>
+      person.locations?.some((loc) => loc.documentId === location.documentId)
     );
-  }, [critics, location]);
+  }, [people, location]);
 
   const placeholderStory = useMemo(() => {
     if (!location) return '';
@@ -221,14 +222,14 @@ export function CityGuideModal({
               )}
 
               {/* Insiders Guide */}
-              {locationCritics.length > 0 && (
+              {locationPeople.length > 0 && (
                 <div>
                   <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
                     Insiders Guide
                   </h3>
                   <div className="space-y-3">
-                    {locationCritics.map((critic) => (
-                      <CriticCard key={critic.documentId} critic={critic} onClick={() => setSelectedCritic(critic)} />
+                    {locationPeople.map((person) => (
+                      <PersonCard key={person.documentId} person={person} onClick={() => setSelectedPerson(person)} />
                     ))}
                   </div>
                 </div>
@@ -242,44 +243,19 @@ export function CityGuideModal({
                   <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
                     {topRecommendationShops.length} Filter {topRecommendationShops.length === 1 ? 'Recommendation' : 'Recommendations'}
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {topRecommendationShops.map((shop) => {
-                      const imageUrl = getMediaUrl(shop.featured_image);
-                      const logoUrl = getMediaUrl(shop.brand?.logo);
                       const neighborhoodName = shop.city_area?.name;
-                      const displayName = getShopDisplayName(shop);
                       const getShortAddress = (address: string) => address.split(',').map(p => p.trim())[0];
-                      const locationLabel = neighborhoodName || (shop.address ? getShortAddress(shop.address) : null);
+                      const locationLabel = neighborhoodName || (shop.address ? getShortAddress(shop.address) : undefined);
 
                       return (
-                        <button
+                        <ShopListItem
                           key={shop.documentId}
+                          shop={shop}
                           onClick={() => handleShopSelect(shop)}
-                          className="w-full text-left py-3 group"
-                        >
-                          <div className="flex items-center gap-3">
-                            {shop.brand && (
-                              logoUrl ? (
-                                <div className="w-11 h-11 rounded-full overflow-hidden bg-border-default flex-shrink-0">
-                                  <Image src={logoUrl} alt={shop.brand.name} width={44} height={44} className="object-cover w-full h-full" />
-                                </div>
-                              ) : (
-                                <div className="w-11 h-11 rounded-full flex items-center justify-center text-base bg-border-default text-primary flex-shrink-0">
-                                  {shop.brand.name.charAt(0)}
-                                </div>
-                              )
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">{displayName}</h4>
-                              {locationLabel && <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationLabel}</p>}
-                            </div>
-                            <div className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
-                              {imageUrl ? (
-                                <Image src={imageUrl} alt={displayName} fill className="object-cover" />
-                              ) : null}
-                            </div>
-                          </div>
-                        </button>
+                          subtitle={locationLabel}
+                        />
                       );
                     })}
                   </div>
@@ -316,10 +292,10 @@ export function CityGuideModal({
         isOpen={showRecommendationsModal}
         onClose={() => setShowRecommendationsModal(false)}
       />
-      <CriticModal
-        critic={selectedCritic}
-        isOpen={!!selectedCritic}
-        onClose={() => setSelectedCritic(null)}
+      <PersonModal
+        person={selectedPerson}
+        isOpen={!!selectedPerson}
+        onClose={() => setSelectedPerson(null)}
         onShopSelect={handleShopSelect}
       />
     </>

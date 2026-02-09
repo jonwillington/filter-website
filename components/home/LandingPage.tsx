@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Location, Shop, Country, Event } from '@/lib/types';
+import { Location, Shop, Country, Event, Person, NewsArticle } from '@/lib/types';
 import { getMediaUrl, hasCityAreaRecommendation } from '@/lib/utils';
 import { BrandLogo, LocationLogoGroup } from '@/components/sidebar/BrandLogoCarousel';
 import { Footer } from '@/components/layout/Footer';
@@ -12,6 +12,8 @@ import { FeaturedShops } from './landing/FeaturedShops';
 import { FeaturedEvents } from './landing/FeaturedEvents';
 import { FeaturedRoasters } from './landing/FeaturedRoasters';
 import { InFocusSection } from './landing/InFocusSection';
+import { CriticsPicks } from './landing/CriticsPicks';
+import { LatestNews } from './landing/LatestNews';
 import { CTASection } from './landing/CTASection';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Search, LogIn } from 'lucide-react';
@@ -37,6 +39,8 @@ interface LandingPageProps {
   shops: Shop[];
   countries?: Country[];
   events?: Event[];
+  people?: Person[];
+  newsArticles?: NewsArticle[];
   visitorCountry?: Country | null;
   isLoading?: boolean;
   isTransitioning: boolean;
@@ -51,6 +55,8 @@ export function LandingPage({
   shops,
   countries = [],
   events = [],
+  people = [],
+  newsArticles = [],
   visitorCountry,
   isLoading = false,
   isTransitioning,
@@ -260,11 +266,15 @@ export function LandingPage({
 
       <FeaturedRoasters shops={shops} />
 
+      <CriticsPicks people={people} shops={shops} onShopSelect={onShopSelect} />
+
       {inFocusShop && (
         <InFocusSection shop={inFocusShop} onShopSelect={onShopSelect} />
       )}
 
       <FeaturedEvents events={upcomingEvents} />
+
+      <LatestNews articles={newsArticles} onShopSelect={onShopSelect} />
 
       <CTASection
         shopCount={shops.length}
