@@ -113,26 +113,27 @@ const headers = {
   'Authorization': `Bearer ${STRAPI_TOKEN}`,
 };
 
-async function fetchWithRetry(url, options, retries = 3) {
+async function fetchWithRetry(url, options, retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     const response = await fetch(url, options);
     if (response.ok) return response;
     if (attempt < retries && response.status >= 500) {
-      console.log(`    Retry ${attempt}/${retries - 1} after ${response.status}...`);
-      await new Promise(r => setTimeout(r, 2000 * attempt));
+      const delay = 3000 * attempt;
+      console.log(`    Retry ${attempt}/${retries - 1} after ${response.status} (waiting ${delay / 1000}s)...`);
+      await new Promise(r => setTimeout(r, delay));
       continue;
     }
     throw new Error(`${response.status} ${response.statusText}`);
   }
 }
 
-async function fetchPaginated(endpoint, params = '') {
+async function fetchPaginated(endpoint, params = '', { pageSize = 100, delayMs = 100 } = {}) {
   const allData = [];
   let page = 1;
   let pageCount = 1;
 
   while (page <= pageCount) {
-    const url = `${STRAPI_URL}/${endpoint}?${params}&pagination[pageSize]=100&pagination[page]=${page}`;
+    const url = `${STRAPI_URL}/${endpoint}?${params}&pagination[pageSize]=${pageSize}&pagination[page]=${page}`;
     console.log(`  Fetching ${endpoint} page ${page}...`);
 
     const response = await fetchWithRetry(url, { headers });
@@ -142,8 +143,8 @@ async function fetchPaginated(endpoint, params = '') {
     pageCount = json.meta?.pagination?.pageCount || 1;
     page++;
 
-    // Small delay to be gentle on the API
-    await new Promise(r => setTimeout(r, 100));
+    // Delay to be gentle on the API
+    await new Promise(r => setTimeout(r, delayMs));
   }
 
   return allData;
@@ -309,7 +310,7 @@ async function main() {
       'populate[photo][fields][0]=url',
       'populate[photo][fields][1]=formats',
     ].join('&');
-    const beans = await fetchPaginated('beans', beansPopulate);
+    const beans = await fetchPaginated('beans', beansPopulate, { pageSize: 50, delayMs: 500 });
     console.log(`   ✓ ${beans.length} beans\n`);
 
     // Group beans by brand documentId
