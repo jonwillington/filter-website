@@ -7,6 +7,7 @@ import { getMediaUrl } from '@/lib/utils';
 import { CountryChip } from '@/components/ui';
 import { Bean, ChevronRight, Check } from 'lucide-react';
 import { SupplierModal } from '@/components/modals/SupplierModal';
+import { useBrandsWithBeans } from '@/lib/hooks/useBeansByBrand';
 
 interface BeansSectionProps {
   shop: Shop;
@@ -21,13 +22,10 @@ interface SupplierCardProps {
 function SupplierCard({ supplier, onClick }: SupplierCardProps) {
   const logoUrl = getMediaUrl(supplier.logo);
   const brandStory = supplier.story || supplier.description;
+  const isClickable = !!onClick;
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left"
-    >
+  const content = (
+    <>
       <Avatar
         src={logoUrl || undefined}
         name={supplier.name}
@@ -42,7 +40,21 @@ function SupplierCard({ supplier, onClick }: SupplierCardProps) {
           <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{brandStory}</p>
         )}
       </div>
-      <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />
+      {isClickable && <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />}
+    </>
+  );
+
+  if (!isClickable) {
+    return <div className="w-full flex items-center gap-3 p-3 text-left">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left"
+    >
+      {content}
     </button>
   );
 }
@@ -55,13 +67,10 @@ interface PartnerCardProps {
 function PartnerCard({ partner, onClick }: PartnerCardProps) {
   const logoUrl = getMediaUrl(partner.logo);
   const brandStory = partner.story || (partner as any).description;
+  const isClickable = !!onClick;
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left"
-    >
+  const content = (
+    <>
       <Avatar
         src={logoUrl || undefined}
         name={partner.name}
@@ -76,7 +85,21 @@ function PartnerCard({ partner, onClick }: PartnerCardProps) {
           <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{brandStory}</p>
         )}
       </div>
-      <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />
+      {isClickable && <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />}
+    </>
+  );
+
+  if (!isClickable) {
+    return <div className="w-full flex items-center gap-3 p-3 text-left">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left"
+    >
+      {content}
     </button>
   );
 }
@@ -84,6 +107,7 @@ function PartnerCard({ partner, onClick }: PartnerCardProps) {
 export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
   const [selectedSupplier, setSelectedSupplier] = useState<Brand | CoffeePartner | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data: brandsWithBeans } = useBrandsWithBeans();
 
   const brand = shop.brand;
   const roastsOwnBeans = brand?.roastOwnBeans;
@@ -97,6 +121,8 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
   const hasInHouseRoast = roastsOwnBeans && brand?.name;
   const hasSuppliers = suppliers.length > 0;
   const hasCoffeePartner = shopCoffeePartner || brandCoffeePartner;
+
+  const hasBeans = (documentId: string) => brandsWithBeans?.has(documentId) ?? false;
 
   const handleSupplierClick = (supplier: Brand | CoffeePartner) => {
     setSelectedSupplier(supplier);
@@ -121,49 +147,64 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
       {/* Roaster cells in a single card */}
       <div className="rounded-xl bg-[#EFE8E2] dark:bg-white/5 overflow-hidden divide-y divide-border-default">
         {/* In-house roasting badge */}
-        {hasInHouseRoast && brand && (
-          <button
-            type="button"
-            onClick={() => handleSupplierClick(brand)}
-            className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left group"
-          >
-            <Avatar
-              src={getMediaUrl(brand.logo) || undefined}
-              name={brand.name}
-              size="sm"
-              className="flex-shrink-0"
-              showFallback
-              fallback={<Bean className="w-4 h-4" />}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-primary">{brand.name}</p>
-              <p className="text-sm text-text-secondary flex items-center gap-1.5">
-                Roasts their own beans
-                <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
-                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                </span>
-              </p>
+        {hasInHouseRoast && brand && (() => {
+          const clickable = hasBeans(brand.documentId);
+          const inner = (
+            <>
+              <Avatar
+                src={getMediaUrl(brand.logo) || undefined}
+                name={brand.name}
+                size="sm"
+                className="flex-shrink-0"
+                showFallback
+                fallback={<Bean className="w-4 h-4" />}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-primary">{brand.name}</p>
+                <p className="text-sm text-text-secondary flex items-center gap-1.5">
+                  Roasts their own beans
+                  <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                  </span>
+                </p>
+              </div>
+              {clickable && <ChevronRight className="w-4 h-4 text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
+            </>
+          );
+          return clickable ? (
+            <button
+              type="button"
+              onClick={() => handleSupplierClick(brand)}
+              className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left group"
+            >
+              {inner}
+            </button>
+          ) : (
+            <div className="w-full flex items-center gap-3 p-3 text-left">
+              {inner}
             </div>
-            <ChevronRight className="w-4 h-4 text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-          </button>
-        )}
+          );
+        })()}
 
         {/* Suppliers (Brand objects) */}
         {hasSuppliers && suppliers.map((supplier) => (
           <SupplierCard
             key={supplier.documentId}
             supplier={supplier}
-            onClick={() => handleSupplierClick(supplier)}
+            onClick={hasBeans(supplier.documentId) ? () => handleSupplierClick(supplier) : undefined}
           />
         ))}
 
         {/* Shop or brand coffee partner (CoffeePartner - only if no suppliers) */}
-        {!hasSuppliers && hasCoffeePartner && (
-          <PartnerCard
-            partner={shopCoffeePartner || brandCoffeePartner!}
-            onClick={() => handleSupplierClick(shopCoffeePartner || brandCoffeePartner!)}
-          />
-        )}
+        {!hasSuppliers && hasCoffeePartner && (() => {
+          const partner = shopCoffeePartner || brandCoffeePartner!;
+          return (
+            <PartnerCard
+              partner={partner}
+              onClick={hasBeans(partner.documentId) ? () => handleSupplierClick(partner) : undefined}
+            />
+          );
+        })()}
       </div>
 
       {/* Description - below supplier cell */}

@@ -302,84 +302,103 @@ export function MainLayout({
     // isLoading indicates we're actively waiting for location detection
     if (!coordinates || !isExploreMode || !isLoading) return;
 
-    const checkArea = async () => {
-      const areaData = await detectUserArea(coordinates.lat, coordinates.lng);
+    // Point-in-polygon check (ray casting algorithm)
+    const isPointInPolygon = (lat: number, lng: number, polygon: Array<{ lat: number; lng: number }>) => {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const yi = polygon[i].lat, xi = polygon[i].lng;
+        const yj = polygon[j].lat, xj = polygon[j].lng;
+        if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+          inside = !inside;
+        }
+      }
+      return inside;
+    };
 
-      if (areaData?.area) {
-        // User is in a supported area - find and select the corresponding location
-        const matchedLocation = locations.find(
-          (loc) => loc.documentId === areaData.area?.location?.documentId
-        );
-
-        if (matchedLocation) {
-          // Calculate center for the matched location's shops
-          const locationShops = shops.filter(s =>
-            s.location?.documentId === matchedLocation.documentId ||
-            s.city_area?.location?.documentId === matchedLocation.documentId
-          );
-          const validShops = locationShops.filter((s) => getShopCoords(s));
-
-          if (validShops.length > 0) {
-            const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
-            const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
-            // Start the map flying immediately
-            setMapCenter([avgLng, avgLat]);
-            setMapZoom(12);
-          }
-
-          // Smoothly transition to the supported city
-          setIsAreaUnsupported(false);
-          setIsExploreMode(false);
-          setIsNearbyMode(false); // Exit nearby mode
-          setShopFilter('all');
-
-          // Delay setting the location to sync with the map animation start
-          setTimeout(() => {
-            setSelectedLocation(matchedLocation);
-
-            // Update URL without server round-trip (shallow routing)
-            const countrySlug = slugify(matchedLocation.country?.name ?? '');
-            const citySlug = slugify(matchedLocation.name);
-            window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
-          }, 300);
-        } else {
-          // Area detected but location not in our list
-          setSelectedLocation(null); // Clear location when unsupported
-          setIsNearbyMode(true);
-          setIsExploreMode(false);
-          setIsAreaUnsupported(true);
-          setIsLoading(false); // Stop loading
-          // Center on user location
-          setMapCenter([coordinates.lng, coordinates.lat]);
-          setMapZoom(12);
-
-          // Detect country and show unsupported modal
-          const countryData = await reverseGeocode(coordinates.lat, coordinates.lng);
-          if (countryData) {
-            setUnsupportedCountry({ name: countryData.country, code: countryData.countryCode });
+    // Local fallback: check user coordinates against prefetched city area boundaries
+    const findLocalMatch = (): Location | null => {
+      for (const area of cachedCityAreas) {
+        if (!area.boundary_coordinates || area.boundary_coordinates.length < 3) continue;
+        if (isPointInPolygon(coordinates.lat, coordinates.lng, area.boundary_coordinates)) {
+          const locId = area.location?.documentId;
+          if (locId) {
+            const matched = cachedLocations.find((loc) => loc.documentId === locId);
+            if (matched) return matched;
           }
         }
-      } else {
-        // No supported area detected - show nearby shops and detect country
-        setSelectedLocation(null); // Clear location when unsupported
-        setIsNearbyMode(true);
-        setIsExploreMode(false);
-        setIsAreaUnsupported(true);
-        setIsLoading(false); // Stop loading
-        // Center on user location
-        setMapCenter([coordinates.lng, coordinates.lat]);
+      }
+      return null;
+    };
+
+    const selectLocation = (matchedLocation: Location) => {
+      const locationShops = cachedShops.filter(s =>
+        s.location?.documentId === matchedLocation.documentId ||
+        s.city_area?.location?.documentId === matchedLocation.documentId
+      );
+      const validShops = locationShops.filter((s) => getShopCoords(s));
+
+      if (validShops.length > 0) {
+        const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
+        const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
+        setMapCenter([avgLng, avgLat]);
         setMapZoom(12);
+      }
 
-        // Detect country and show unsupported modal
-        const countryData = await reverseGeocode(coordinates.lat, coordinates.lng);
-        if (countryData) {
-          setUnsupportedCountry({ name: countryData.country, code: countryData.countryCode });
-        }
+      setIsAreaUnsupported(false);
+      setIsExploreMode(false);
+      setIsNearbyMode(false);
+      setShopFilter('all');
+
+      setTimeout(() => {
+        setSelectedLocation(matchedLocation);
+        const countrySlug = slugify(matchedLocation.country?.name ?? '');
+        const citySlug = slugify(matchedLocation.name);
+        window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
+      }, 300);
+    };
+
+    const showUnsupported = async () => {
+      setSelectedLocation(null);
+      setIsNearbyMode(true);
+      setIsExploreMode(false);
+      setIsAreaUnsupported(true);
+      setIsLoading(false);
+      setMapCenter([coordinates.lng, coordinates.lat]);
+      setMapZoom(12);
+
+      const countryData = await reverseGeocode(coordinates.lat, coordinates.lng);
+      if (countryData) {
+        setUnsupportedCountry({ name: countryData.country, code: countryData.countryCode });
       }
     };
 
+    const checkArea = async () => {
+      // Try Strapi API first
+      const areaData = await detectUserArea(coordinates.lat, coordinates.lng);
+
+      if (areaData?.area) {
+        const matchedLocation = cachedLocations.find(
+          (loc) => loc.documentId === areaData.area?.location?.documentId
+        );
+        if (matchedLocation) {
+          selectLocation(matchedLocation);
+          return;
+        }
+      }
+
+      // Fallback: check against prefetched city area boundaries locally
+      const localMatch = findLocalMatch();
+      if (localMatch) {
+        selectLocation(localMatch);
+        return;
+      }
+
+      // No match found
+      await showUnsupported();
+    };
+
     checkArea();
-  }, [coordinates, isExploreMode, isLoading, locations, router, shops]);
+  }, [coordinates, isExploreMode, isLoading, cachedLocations, cachedCityAreas, cachedShops, router]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

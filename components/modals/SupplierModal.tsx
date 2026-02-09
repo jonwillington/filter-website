@@ -157,25 +157,21 @@ function formatRoastLevel(level: Bean['roastLevel']): string {
 
 // Bean Card component for grid layout
 function BeanCard({ bean }: { bean: Bean }) {
-  const isBlend = bean.type === 'blend';
   const origins = bean.origins || [];
+  const photoUrl = getMediaUrl(bean.photo);
 
   return (
     <div className="rounded-xl bg-surface hover:bg-border-default transition-colors h-full flex flex-col overflow-hidden">
-      {/* Header with type badge */}
-      <div className="relative w-full h-24 bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30 flex items-center justify-center">
-        <Coffee className="w-10 h-10 text-amber-600/40 dark:text-amber-400/30" />
-        {/* Type badge */}
-        <span
-          className={`absolute bottom-2 left-3 px-2 py-0.5 text-xs font-medium rounded-full ${
-            isBlend
-              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-          }`}
-        >
-          {isBlend ? 'Blend' : 'Single Origin'}
-        </span>
-      </div>
+      {/* Photo or gradient placeholder */}
+      {photoUrl ? (
+        <div className="w-full h-24">
+          <img src={photoUrl} alt={bean.name} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="w-full h-24 bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/30 flex items-center justify-center">
+          <Coffee className="w-10 h-10 text-amber-600/40 dark:text-amber-400/30" />
+        </div>
+      )}
 
       <div className="p-4 flex-1 flex flex-col">
         {/* Bean name */}
@@ -452,6 +448,7 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
 
   // Total shops count
   const totalShops = ownShops.length + partnerShops.length;
+  const showLocations = totalShops > 1;
 
   return (
     <ResponsiveModal
@@ -462,7 +459,7 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
       modalClassNames={{
         wrapper: 'z-[1100]',
         backdrop: 'z-[1100]',
-        base: '!bg-[var(--surface-warm)] !max-w-[1400px]',
+        base: `!bg-[var(--surface-warm)] ${showLocations ? '!max-w-[1400px]' : '!max-w-[960px]'}`,
       }}
     >
       {/* Close button */}
@@ -478,8 +475,8 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
         </button>
       </div>
 
-      {/* Three-column layout on desktop */}
-      <div className="lg:grid lg:grid-cols-[1fr_1.5fr_1.2fr] gap-8 p-6">
+      {/* Two or three-column layout on desktop depending on shop count */}
+      <div className={`lg:grid ${showLocations ? 'lg:grid-cols-[1fr_1.5fr_1.2fr]' : 'lg:grid-cols-[1fr_1.5fr]'} gap-8 p-6`}>
         {/* Left column - Brand details with fixed header and scrollable content */}
         <div className="flex flex-col h-full lg:border-r lg:border-black/5 lg:pr-6 lg:max-h-[75vh]">
           {/* Fixed header: Logo + name + country */}
@@ -613,7 +610,7 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
         </div>
 
         {/* Middle column - Beans */}
-        <div className="mt-8 lg:mt-0 lg:border-r lg:border-black/5 lg:pr-6 lg:max-h-[75vh] lg:overflow-y-auto">
+        <div className={`mt-8 lg:mt-0 ${showLocations ? 'lg:border-r lg:border-black/5 lg:pr-6' : ''} lg:max-h-[75vh] lg:overflow-y-auto`}>
           {showBeansSection && (
             <div>
               <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">Beans</h3>
@@ -622,104 +619,106 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
           )}
         </div>
 
-        {/* Right column - Locations */}
-        <div className="mt-8 lg:mt-0 lg:max-h-[75vh] lg:overflow-y-auto">
-          {/* Brand's Own Shops */}
-          {ownShops.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
-                {ownShops.length} {supplier.name} {ownShops.length === 1 ? 'Location' : 'Locations'}
-              </h3>
-              <div className="space-y-2">
-                {ownShops.map((shop) => {
-                  const imageUrl = getMediaUrl(shop.featured_image);
-                  const displayName = getShopDisplayName(shop);
-                  const locationText = [shop.city_area?.name, shop.location?.name].filter(Boolean).join(', ');
+        {/* Right column - Locations (hidden when only 1 shop) */}
+        {showLocations && (
+          <div className="mt-8 lg:mt-0 lg:max-h-[75vh] lg:overflow-y-auto">
+            {/* Brand's Own Shops */}
+            {ownShops.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
+                  {ownShops.length} {supplier.name} {ownShops.length === 1 ? 'Location' : 'Locations'}
+                </h3>
+                <div className="space-y-2">
+                  {ownShops.map((shop) => {
+                    const imageUrl = getMediaUrl(shop.featured_image);
+                    const displayName = getShopDisplayName(shop);
+                    const locationText = [shop.city_area?.name, shop.location?.name].filter(Boolean).join(', ');
 
-                  return (
-                    <button
-                      key={shop.documentId}
-                      onClick={() => handleShopClick(shop)}
-                      className="w-full text-left py-3 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
-                            {displayName}
-                          </h4>
-                          {locationText && (
-                            <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationText}</p>
-                          )}
-                        </div>
-                        <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
-                          {imageUrl ? (
-                            <img src={imageUrl} alt={displayName} className="w-full h-full object-cover" />
-                          ) : null}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Partner Cafés */}
-          {partnerShops.length > 0 && (
-            <div>
-              <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
-                {partnerShops.length} {partnerShops.length === 1 ? 'Café' : 'Cafés'} Serving Their Beans
-              </h3>
-              <div className="space-y-2">
-                {partnerShops.map((shop) => {
-                  const imageUrl = getMediaUrl(shop.featured_image);
-                  const logoUrl = getMediaUrl(shop.brand?.logo);
-                  const displayName = getShopDisplayName(shop);
-                  const locationText = [shop.city_area?.name, shop.location?.name].filter(Boolean).join(', ');
-
-                  return (
-                    <button
-                      key={shop.documentId}
-                      onClick={() => handleShopClick(shop)}
-                      className="w-full text-left py-3 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        {logoUrl && (
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-border-default flex-shrink-0">
-                            <img src={logoUrl} alt={shop.brand?.name} className="object-cover w-full h-full" />
+                    return (
+                      <button
+                        key={shop.documentId}
+                        onClick={() => handleShopClick(shop)}
+                        className="w-full text-left py-3 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+                              {displayName}
+                            </h4>
+                            {locationText && (
+                              <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationText}</p>
+                            )}
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
-                            {displayName}
-                          </h4>
-                          {locationText && (
-                            <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationText}</p>
-                          )}
+                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                            ) : null}
+                          </div>
                         </div>
-                        <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
-                          {imageUrl ? (
-                            <img src={imageUrl} alt={displayName} className="w-full h-full object-cover" />
-                          ) : null}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Empty state */}
-          {ownShops.length === 0 && partnerShops.length === 0 && (
-            <div className="bg-white/50 dark:bg-white/5 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-primary mb-2">No locations yet</h4>
-              <p className="text-xs text-text-secondary">
-                We haven&apos;t found any cafés serving {supplier.name} beans yet.
-              </p>
-            </div>
-          )}
-        </div>
+            {/* Partner Cafés */}
+            {partnerShops.length > 0 && (
+              <div>
+                <h3 className="text-xs font-medium text-primary opacity-60 uppercase tracking-wider mb-4">
+                  {partnerShops.length} {partnerShops.length === 1 ? 'Café' : 'Cafés'} Serving Their Beans
+                </h3>
+                <div className="space-y-2">
+                  {partnerShops.map((shop) => {
+                    const imageUrl = getMediaUrl(shop.featured_image);
+                    const logoUrl = getMediaUrl(shop.brand?.logo);
+                    const displayName = getShopDisplayName(shop);
+                    const locationText = [shop.city_area?.name, shop.location?.name].filter(Boolean).join(', ');
+
+                    return (
+                      <button
+                        key={shop.documentId}
+                        onClick={() => handleShopClick(shop)}
+                        className="w-full text-left py-3 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          {logoUrl && (
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-border-default flex-shrink-0">
+                              <img src={logoUrl} alt={shop.brand?.name} className="object-cover w-full h-full" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-base text-primary leading-tight line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+                              {displayName}
+                            </h4>
+                            {locationText && (
+                              <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{locationText}</p>
+                            )}
+                          </div>
+                          <div className="relative w-28 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                            ) : null}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {ownShops.length === 0 && partnerShops.length === 0 && (
+              <div className="bg-white/50 dark:bg-white/5 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-primary mb-2">No locations yet</h4>
+                <p className="text-xs text-text-secondary">
+                  We haven&apos;t found any cafés serving {supplier.name} beans yet.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </ResponsiveModal>
   );

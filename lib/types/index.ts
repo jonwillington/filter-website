@@ -115,7 +115,8 @@ export interface Brand {
   statement?: string | null;
   logo?: MediaAsset | null;
   'bg-image'?: MediaAsset | null;
-  type?: string | null; // "Roaster", "Cafe", "Chain", etc.
+  type?: string | null; // "independent", "smallChain", "regionalChain", etc.
+  role?: string | null;
 
   // Social
   website?: string | null;
@@ -134,6 +135,10 @@ export interface Brand {
   coffee_partner?: CoffeePartner | null;
   ownRoastDesc?: string | null;
   ownRoastCountry?: Country[];
+  ownBeanLink?: string | null;
+  specializes_light?: boolean;
+  specializes_medium?: boolean;
+  specializes_dark?: boolean;
   country?: Country | null;
 
   // Equipment
@@ -367,7 +372,15 @@ export interface Bean {
   roastLevel?: 'light' | 'light-medium' | 'medium' | 'medium-dark' | 'dark' | null;
   process?: string | null;
   shortDescription?: string | null;
+  fullDescription?: string | null;
   learnMoreUrl?: string | null;
+  photo?: MediaAsset | null;
+  region?: string | null;
+  farm?: string | null;
+  producer?: string | null;
+  altitude?: string | null;
+  cuppingScore?: number | null;
+  blendComponents?: string | null;
   origins?: Country[];
   flavorTags?: FlavorTag[];
 }

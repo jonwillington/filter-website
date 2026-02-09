@@ -1,7 +1,7 @@
 'use client';
 
 import { Modal, ModalContent } from '@heroui/react';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { CircularCloseButton } from './CircularCloseButton';
 
 interface ResponsiveModalProps {
@@ -38,6 +38,14 @@ export function ResponsiveModal({
   hideCloseButton = false,
   isDismissable = true,
 }: ResponsiveModalProps) {
+  // Lock scroll on the landing page (which uses overflow: auto !important)
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.classList.add('modal-open');
+      return () => document.documentElement.classList.remove('modal-open');
+    }
+  }, [isOpen]);
+
   return (
     <Modal
       isOpen={isOpen}

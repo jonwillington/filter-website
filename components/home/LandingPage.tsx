@@ -11,6 +11,7 @@ import { FeaturedCities } from './landing/FeaturedCities';
 import { FeaturedShops } from './landing/FeaturedShops';
 import { FeaturedEvents } from './landing/FeaturedEvents';
 import { FeaturedRoasters } from './landing/FeaturedRoasters';
+import { InFocusSection } from './landing/InFocusSection';
 import { CTASection } from './landing/CTASection';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Search, LogIn } from 'lucide-react';
@@ -182,6 +183,11 @@ export function LandingPage({
     return map;
   }, [countries]);
 
+  // In Focus: hardcoded to PAGA Microroastery for now
+  const inFocusShop = useMemo(() => {
+    return shops.find((s) => s.name?.toLowerCase().includes('paga')) || null;
+  }, [shops]);
+
   const handleExploreLocationSelect = useCallback((location: Location) => {
     setExploreOpen(false);
     onLocationSelect(location);
@@ -253,6 +259,10 @@ export function LandingPage({
       <FeaturedShops shops={featuredShops} countryRegionMap={countryRegionMap} onShopSelect={onShopSelect} />
 
       <FeaturedRoasters shops={shops} />
+
+      {inFocusShop && (
+        <InFocusSection shop={inFocusShop} onShopSelect={onShopSelect} />
+      )}
 
       <FeaturedEvents events={upcomingEvents} />
 

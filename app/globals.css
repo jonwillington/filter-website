@@ -957,6 +957,12 @@ html.landing-active body {
   height: auto !important;
 }
 
+/* Lock scroll when a modal is open on the landing page */
+html.landing-active.modal-open,
+html.landing-active.modal-open body {
+  overflow: hidden !important;
+}
+
 /* Landing page: footer sits in flow instead of fixed */
 html.landing-active .footer {
   position: relative;

@@ -299,6 +299,8 @@ async function main() {
       'populate[flavorTags][fields][0]=id',
       'populate[flavorTags][fields][1]=documentId',
       'populate[flavorTags][fields][2]=name',
+      'populate[photo][fields][0]=url',
+      'populate[photo][fields][1]=formats',
     ].join('&');
     const beans = await fetchPaginated('beans', beansPopulate);
     console.log(`   ✓ ${beans.length} beans\n`);

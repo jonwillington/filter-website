@@ -32,6 +32,9 @@ export async function getBeansByBrand(brandDocumentId: string): Promise<Bean[]> 
       'populate[flavorTags][fields][0]=id',
       'populate[flavorTags][fields][1]=documentId',
       'populate[flavorTags][fields][2]=name',
+      // Populate photo
+      'populate[photo][fields][0]=url',
+      'populate[photo][fields][1]=formats',
     ].join('&');
 
     const filterParams = `filters[brand][documentId][$eq]=${brandDocumentId}`;

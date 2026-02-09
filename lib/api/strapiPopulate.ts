@@ -28,8 +28,13 @@ export const BRAND_FIELDS = [
   'has_french_press',
   'has_cold_brew',
   'has_batch_brew',
+  'role',
   'roastOwnBeans',
   'ownRoastDesc',
+  'ownBeanLink',
+  'specializes_light',
+  'specializes_medium',
+  'specializes_dark',
 ] as const;
 
 // Media fields (logo, images)

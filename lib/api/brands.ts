@@ -99,6 +99,13 @@ export async function getAllBrands(): Promise<Map<string, Brand>> {
       'populate[suppliers][populate][ownRoastCountry][fields][1]=code',
       'populate[ownRoastCountry][fields][0]=name',
       'populate[ownRoastCountry][fields][1]=code',
+      'populate[beans][fields][0]=name',
+      'populate[beans][fields][1]=type',
+      'populate[beans][populate][origins][fields][0]=name',
+      'populate[beans][populate][origins][fields][1]=code',
+      'populate[beans][populate][flavorTags][fields][0]=name',
+      'populate[beans][populate][photo][fields][0]=url',
+      'populate[beans][populate][photo][fields][1]=formats',
     ].join('&');
     const fetchOptions = {
       headers: {
@@ -175,6 +182,13 @@ export async function getBrandById(documentId: string): Promise<Brand | null> {
       'populate[suppliers][populate][country][fields][1]=code',
       'populate[ownRoastCountry][fields][0]=name',
       'populate[ownRoastCountry][fields][1]=code',
+      'populate[beans][fields][0]=name',
+      'populate[beans][fields][1]=type',
+      'populate[beans][populate][origins][fields][0]=name',
+      'populate[beans][populate][origins][fields][1]=code',
+      'populate[beans][populate][flavorTags][fields][0]=name',
+      'populate[beans][populate][photo][fields][0]=url',
+      'populate[beans][populate][photo][fields][1]=formats',
     ].join('&');
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands/${documentId}?${populateParams}`,
