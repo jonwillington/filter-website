@@ -1580,6 +1580,7 @@ export function MainLayout({
           expandedCityAreaId={expandedCityAreaId}
           cityAreas={cityAreas}
           activeFilter={shopFilter}
+          minZoom={selectedLocation ? 10 : null}
         />
 
         {/* Mobile-only drawers - shop drawer and location drawer (city guide) */}

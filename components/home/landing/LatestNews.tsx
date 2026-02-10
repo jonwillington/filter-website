@@ -93,7 +93,7 @@ export function LatestNews({ articles, onShopSelect }: LatestNewsProps) {
         {/* Mobile: horizontal scroll chips */}
         <div className="lg:hidden mb-6">
           {/* Title outside card on mobile */}
-          <h2 className="font-display text-4xl md:text-5xl text-primary mb-4">
+          <h2 className="font-display text-2xl md:text-3xl text-primary mb-4">
             Latest News
           </h2>
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
@@ -137,7 +137,7 @@ export function LatestNews({ articles, onShopSelect }: LatestNewsProps) {
             <div className="hidden lg:flex lg:flex-col lg:col-span-5 border-r border-border-default">
               {/* Header inside card */}
               <div className="px-6 pt-7 pb-5 border-b border-border-default">
-                <h2 className="font-display text-4xl xl:text-5xl text-primary leading-none">
+                <h2 className="font-display text-2xl xl:text-3xl text-primary leading-none">
                   Latest News
                 </h2>
                 <p className="text-text-secondary text-sm mt-2">

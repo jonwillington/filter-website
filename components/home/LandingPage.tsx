@@ -14,6 +14,7 @@ import { FeaturedRoasters } from './landing/FeaturedRoasters';
 import { InFocusSection } from './landing/InFocusSection';
 import { CriticsPicks } from './landing/CriticsPicks';
 import { LatestNews } from './landing/LatestNews';
+import { CoffeeAroundWorld } from './landing/CoffeeAroundWorld';
 import { CTASection } from './landing/CTASection';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Search, LogIn } from 'lucide-react';
@@ -146,12 +147,22 @@ export function LandingPage({
       .map(({ locationName, countryCode, primaryColor, logos }) => ({ locationName, countryCode, primaryColor, logos }));
   }, [shops]);
 
+  // Shop count per location
+  const shopCountByLocation = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const shop of shops) {
+      const locId = shop.location?.documentId;
+      if (locId) map.set(locId, (map.get(locId) || 0) + 1);
+    }
+    return map;
+  }, [shops]);
+
   // Featured cities: has background_image AND rating_stars >= 3.5, sorted by rating desc, take 8
   const featuredCities = useMemo(() => {
     return locations
-      .filter((loc) => loc.background_image && loc.rating_stars && loc.rating_stars >= 3.5)
+      .filter((loc) => loc.rating_stars && loc.rating_stars > 0)
       .sort((a, b) => (b.rating_stars || 0) - (a.rating_stars || 0))
-      .slice(0, 8);
+      .slice(0, 10);
   }, [locations]);
 
   // Featured shops: cityAreaRec recommended, prefer those with featured_image
@@ -260,7 +271,7 @@ export function LandingPage({
         />
       </div>
 
-      <FeaturedCities cities={featuredCities} onCitySelect={onLocationSelect} />
+      <FeaturedCities cities={featuredCities} onCitySelect={onLocationSelect} onExploreMap={() => setExploreOpen(true)} shopCountByLocation={shopCountByLocation} />
 
       <FeaturedShops shops={featuredShops} countryRegionMap={countryRegionMap} onShopSelect={onShopSelect} />
 
@@ -281,6 +292,8 @@ export function LandingPage({
         cityCount={locations.length}
         onExploreMap={() => setExploreOpen(true)}
       />
+
+      <CoffeeAroundWorld />
 
       {/* Reuse the fixed footer */}
       <Footer />

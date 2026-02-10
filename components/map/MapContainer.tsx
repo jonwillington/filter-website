@@ -28,6 +28,7 @@ interface MapContainerProps {
   expandedCityAreaId?: string | null;
   cityAreas?: CityArea[];
   activeFilter?: string;
+  minZoom?: number | null;
 }
 
 /**
@@ -59,6 +60,7 @@ export function MapContainer({
   expandedCityAreaId = null,
   cityAreas = [],
   activeFilter = 'all',
+  minZoom = null,
 }: MapContainerProps) {
   const { effectiveTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -92,6 +94,12 @@ export function MapContainer({
     effectiveTheme,
     countries,
   });
+
+  // Lock minimum zoom when viewing a city
+  useEffect(() => {
+    if (!map || !mapReady) return;
+    map.setMinZoom(minZoom ?? 0);
+  }, [map, mapReady, minZoom]);
 
   // Setup map overlay layers (country click detection)
   useMapLayers({

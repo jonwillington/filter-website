@@ -62,7 +62,7 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
     <section className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40" style={{ background: 'var(--surface-landing)' }}>
       <h2
         ref={headingRef}
-        className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-12 md:mb-16 lg:mb-18"
+        className="font-display text-2xl md:text-3xl lg:text-4xl text-primary mb-12 md:mb-16 lg:mb-18"
         style={{
           opacity: headingRevealed ? 1 : 0,
           transform: headingRevealed ? 'translateY(0)' : 'translateY(16px)',

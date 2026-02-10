@@ -148,7 +148,7 @@ export function CriticsPicks({ people, shops, onShopSelect }: CriticsPicksProps)
     <section className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40 border-t border-border-default bg-contrastBlock">
       <h2
         ref={headingRef}
-        className="font-display text-5xl md:text-6xl lg:text-8xl text-contrastText mb-4 md:mb-5"
+        className="font-display text-6xl md:text-8xl lg:text-9xl text-contrastText text-center mb-4 md:mb-5"
         style={{
           opacity: headingRevealed ? 1 : 0,
           transform: headingRevealed ? 'translateY(0)' : 'translateY(16px)',
@@ -158,7 +158,7 @@ export function CriticsPicks({ people, shops, onShopSelect }: CriticsPicksProps)
         Critics&apos; Picks
       </h2>
       <p
-        className="text-contrastText text-base md:text-lg max-w-2xl mb-12 md:mb-16 lg:mb-20"
+        className="text-contrastText text-base md:text-lg max-w-2xl mx-auto text-center mb-12 md:mb-16 lg:mb-20"
         style={{
           opacity: headingRevealed ? 0.5 : 0,
           transform: headingRevealed ? 'translateY(0)' : 'translateY(12px)',
