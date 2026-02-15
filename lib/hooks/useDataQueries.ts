@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Shop, Country, Location, CityArea, Event, Person, NewsArticle } from '@/lib/types';
+import { Shop, Country, Location, CityArea, Event, Person, NewsArticle, Brand } from '@/lib/types';
 
 // Stable empty arrays to prevent re-render loops
 const EMPTY_SHOPS: Shop[] = [];
@@ -42,7 +42,28 @@ async function fetchWithFallback<T>(staticPath: string, apiPath: string): Promis
 export function useShopsQuery() {
   return useQuery<Shop[]>({
     queryKey: ['shops'],
-    queryFn: () => fetchWithFallback<Shop[]>('/data/shops.json', '/api/data/shops'),
+    queryFn: async () => {
+      // Fetch shops (slim brand data) and full brands in parallel
+      const [shops, brands] = await Promise.all([
+        fetchWithFallback<Shop[]>('/data/shops.json', '/api/data/shops'),
+        fetchWithFallback<Brand[]>('/data/brands.json', '/api/data/brands'),
+      ]);
+
+      // Merge full brand data into shops (same pattern as prefetch script)
+      const brandMap = new Map(brands.map(b => [b.documentId, b]));
+      return shops.map(shop => {
+        if (shop.brand?.documentId) {
+          const fullBrand = brandMap.get(shop.brand.documentId);
+          if (fullBrand) {
+            return {
+              ...shop,
+              brand: { ...fullBrand, logo: shop.brand.logo || fullBrand.logo },
+            };
+          }
+        }
+        return shop;
+      });
+    },
     staleTime: STALE_TIME,
   });
 }

@@ -455,7 +455,24 @@ export const PREFETCH_TIMESTAMP = ${Date.now()};
     }
 
     // Write minified JSON (no pretty print - smaller files)
-    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'shops.json'), JSON.stringify(shops));
+    // Write slim shops (only essential brand fields) to keep under Cloudflare Pages 25 MiB limit
+    // Full brand data is in brands.json and merged client-side
+    const slimShops = shops.map(shop => {
+      if (shop.brand) {
+        return {
+          ...shop,
+          brand: {
+            documentId: shop.brand.documentId,
+            name: shop.brand.name,
+            type: shop.brand.type,
+            logo: shop.brand.logo,
+            statement: shop.brand.statement,
+          }
+        };
+      }
+      return shop;
+    });
+    fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'shops.json'), JSON.stringify(slimShops));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'regions.json'), JSON.stringify(regions));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'countries.json'), JSON.stringify(countries));
     fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'city-areas.json'), JSON.stringify(cityAreas));
