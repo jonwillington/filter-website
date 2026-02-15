@@ -34,6 +34,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['PPNeueYork', 'system-ui', 'sans-serif'],
+        mono: ['JetBrainsMono', 'ui-monospace', 'monospace'],
       },
     },
   },

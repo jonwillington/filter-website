@@ -15,7 +15,6 @@ import { InFocusSection } from './landing/InFocusSection';
 import { CriticsPicks } from './landing/CriticsPicks';
 import { LatestNews } from './landing/LatestNews';
 import { CoffeeAroundWorld } from './landing/CoffeeAroundWorld';
-import { CTASection } from './landing/CTASection';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Search, LogIn } from 'lucide-react';
 import { Button } from '@heroui/react';
@@ -200,9 +199,19 @@ export function LandingPage({
     return map;
   }, [countries]);
 
-  // In Focus: hardcoded to PAGA Microroastery for now
-  const inFocusShop = useMemo(() => {
-    return shops.find((s) => s.name?.toLowerCase().includes('paga')) || null;
+  // In Focus: curated shops from different cities
+  const inFocusShops = useMemo(() => {
+    const targets = [
+      { city: 'Bangkok', search: 'paga' },
+      { city: 'London', search: 'watchhouse' },
+      { city: 'Chiang Mai', search: 'ristr8to' },
+    ];
+    const results: Shop[] = [];
+    for (const t of targets) {
+      const match = shops.find((s) => s.name?.toLowerCase().includes(t.search));
+      if (match) results.push(match);
+    }
+    return results;
   }, [shops]);
 
   const handleExploreLocationSelect = useCallback((location: Location) => {
@@ -273,27 +282,30 @@ export function LandingPage({
 
       <FeaturedCities cities={featuredCities} onCitySelect={onLocationSelect} onExploreMap={() => setExploreOpen(true)} shopCountByLocation={shopCountByLocation} />
 
-      <FeaturedShops shops={featuredShops} countryRegionMap={countryRegionMap} onShopSelect={onShopSelect} />
+      <FeaturedShops shops={featuredShops} countryRegionMap={countryRegionMap} onShopSelect={onShopSelect} totalShopCount={shops.length} />
 
       <FeaturedRoasters shops={shops} />
 
       <CriticsPicks people={people} shops={shops} onShopSelect={onShopSelect} />
 
-      {inFocusShop && (
-        <InFocusSection shop={inFocusShop} onShopSelect={onShopSelect} />
+      {inFocusShops.length > 0 && (
+        <InFocusSection shops={inFocusShops} onShopSelect={onShopSelect} />
       )}
 
-      <FeaturedEvents events={upcomingEvents} />
+      <section
+        className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40 border-t border-border-default"
+        style={{ background: 'var(--surface-landing)' }}
+      >
+        <h2 className="font-display text-5xl md:text-6xl lg:text-8xl text-primary mb-12 md:mb-16">
+          Industry
+        </h2>
+        <div className="space-y-12 md:space-y-16">
+          <FeaturedEvents events={upcomingEvents} />
+          <LatestNews articles={newsArticles} countries={countries} onShopSelect={onShopSelect} />
+        </div>
+      </section>
 
-      <LatestNews articles={newsArticles} onShopSelect={onShopSelect} />
-
-      <CTASection
-        shopCount={shops.length}
-        cityCount={locations.length}
-        onExploreMap={() => setExploreOpen(true)}
-      />
-
-      <CoffeeAroundWorld />
+      <CoffeeAroundWorld locations={locations} />
 
       {/* Reuse the fixed footer */}
       <Footer />

@@ -9,6 +9,7 @@ import { StickyDrawerHeader } from '@/components/ui';
 import { getMediaUrl } from '@/lib/utils';
 import { useStickyHeaderOpacity } from '@/lib/hooks';
 import { PersonPickCard } from './PersonPickCard';
+import { ShopListItem } from '@/components/shop/ShopListItem';
 import { ExternalLink } from 'lucide-react';
 
 interface PersonModalProps {
@@ -88,7 +89,7 @@ export function PersonModal({ person, isOpen, onClose, onShopSelect }: PersonMod
                   style={{
                     fontFamily: 'PPNeueYork, serif',
                     fontSize: '28px',
-                    fontWeight: 600,
+                    fontWeight: 500,
                     letterSpacing: '-0.5px',
                     lineHeight: 1.15,
                   }}
@@ -178,15 +179,32 @@ export function PersonModal({ person, isOpen, onClose, onShopSelect }: PersonMod
               </>
             )}
 
+            {/* Affiliated shop */}
+            {person.affiliated_shop && (
+              <>
+                <Divider className="bg-border-default" />
+                <div>
+                  {person.affiliation_blurb && (
+                    <p className="text-sm text-text-secondary mb-3">{person.affiliation_blurb}</p>
+                  )}
+                  <ShopListItem
+                    shop={person.affiliated_shop}
+                    onClick={() => handlePickClick(person.affiliated_shop!)}
+                    showDescription={false}
+                  />
+                </div>
+              </>
+            )}
+
             {/* Picks */}
             {picks.length > 0 && (
               <>
                 <Divider className="bg-border-default" />
                 <div>
                   <h3 className="text-sm font-medium text-primary mb-3">
-                    Their Picks
+                    {person.locations?.[0]?.name ? `${person.locations[0].name} recommendations` : 'Their Picks'}
                   </h3>
-                  <div className="divide-y divide-border-default -mx-5">
+                  <div className="divide-y divide-border-default -mx-2">
                     {picks.map((pick) => (
                       <PersonPickCard
                         key={pick.documentId}

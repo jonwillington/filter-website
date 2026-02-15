@@ -22,16 +22,9 @@ export function PersonPickCard({ pick, onClick }: PersonPickCardProps) {
       onClick={onClick}
       subtitle={locationLabel}
       showDescription={false}
-      badge={
-        pick.rank ? (
-          <div className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center text-[10px] font-semibold leading-none">
-            {pick.rank}
-          </div>
-        ) : undefined
-      }
       caption={
         pick.description ? (
-          <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
+          <p className="text-xs text-text-secondary leading-relaxed">
             &ldquo;{pick.description}&rdquo;
           </p>
         ) : undefined

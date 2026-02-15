@@ -1,5 +1,5 @@
 import { Shop } from '@/lib/types';
-import { Divider } from '@heroui/react';
+
 
 interface BranchAboutSectionProps {
   shop: Shop;
@@ -18,9 +18,7 @@ export function BranchAboutSection({ shop }: BranchAboutSectionProps) {
   const storeName = getAboutName(shop);
 
   return (
-    <>
-      <Divider className="my-5 opacity-30" />
-      <div>
+    <div>
         <h3 className="text-lg font-medium text-primary mb-3">
           About the {storeName} store
         </h3>
@@ -28,6 +26,5 @@ export function BranchAboutSection({ shop }: BranchAboutSectionProps) {
           {shop.description}
         </p>
       </div>
-    </>
   );
 }

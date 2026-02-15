@@ -1,7 +1,6 @@
 import { Shop } from '@/lib/types';
-import { AmenityChip } from '@/components/ui';
+import { AmenityChip, PropertyRow } from '@/components/ui';
 import { getMergedAmenities } from '@/lib/utils';
-import { Divider } from '@heroui/react';
 
 interface AmenityListProps {
   shop: Shop;
@@ -24,20 +23,12 @@ export function AmenityList({ shop }: AmenityListProps) {
   if (activeAmenities.length === 0) return null;
 
   return (
-    <>
-      <Divider className="my-5 opacity-30" />
-      <div>
-      <h3 className="text-lg font-medium text-primary mb-3">
-        Amenities
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {activeAmenities.map(({ key, label }) => (
-          <AmenityChip key={key}>
-            {label}
-          </AmenityChip>
-        ))}
-      </div>
-    </div>
-    </>
+    <PropertyRow label="Amenities" showDivider>
+      {activeAmenities.map(({ key, label }) => (
+        <AmenityChip key={key}>
+          {label}
+        </AmenityChip>
+      ))}
+    </PropertyRow>
   );
 }

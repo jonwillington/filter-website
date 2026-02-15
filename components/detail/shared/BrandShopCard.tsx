@@ -1,17 +1,12 @@
 'use client';
 
-import { Shop, OpeningHours } from '@/lib/types';
+import { Shop } from '@/lib/types';
 import { Avatar } from '@heroui/react';
-import { StatusChip } from '@/components/ui';
-import { getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { getMediaUrl } from '@/lib/utils';
 
 interface BrandShopCardProps {
   shop: Shop;
   onClick: () => void;
-}
-
-function isOpeningHoursObject(hours: unknown): hours is OpeningHours {
-  return typeof hours === 'object' && hours !== null && !Array.isArray(hours);
 }
 
 export function BrandShopCard({ shop, onClick }: BrandShopCardProps) {
@@ -20,9 +15,6 @@ export function BrandShopCard({ shop, onClick }: BrandShopCardProps) {
 
   // Use prefName or city area name for display
   const displayName = shop.prefName || shop.city_area?.name || shop.cityArea?.name || shop.location?.name || shop.name;
-
-  const openingHours = isOpeningHoursObject(shop.opening_hours) ? shop.opening_hours : null;
-  const isOpen = shop.is_open ?? openingHours?.open_now;
 
   return (
     <button
@@ -66,18 +58,10 @@ export function BrandShopCard({ shop, onClick }: BrandShopCardProps) {
             {displayName}
           </p>
 
-          <p className="text-xs text-textSecondary line-clamp-1">
-            {shop.address || shop.location?.name || ''}
-          </p>
-
-          {/* Status */}
-          {isOpen !== undefined && (
-            <StatusChip
-              status={isOpen ? 'success' : 'danger'}
-              size="sm"
-            >
-              {isOpen ? 'Open' : 'Closed'}
-            </StatusChip>
+          {(shop.description || shop.brand?.description) && (
+            <p className="text-xs text-text-secondary line-clamp-2">
+              {shop.description || shop.brand?.description}
+            </p>
           )}
         </div>
       </div>

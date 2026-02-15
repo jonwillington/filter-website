@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Shop, Brand, CoffeePartner } from '@/lib/types';
-import { Avatar, Divider } from '@heroui/react';
+import { Avatar } from '@heroui/react';
 import { getMediaUrl } from '@/lib/utils';
-import { CountryChip } from '@/components/ui';
+import { CountryChip, PropertyRow } from '@/components/ui';
 import { Bean, ChevronRight, Check } from 'lucide-react';
 import { SupplierModal } from '@/components/modals/SupplierModal';
 import { useBrandsWithBeans } from '@/lib/hooks/useBeansByBrand';
@@ -137,54 +137,46 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
 
   return (
     <>
-      <Divider className="my-5 opacity-30" />
-      <div>
-      {/* Roasting header */}
-      <h3 className="text-lg font-medium text-primary mb-3">
-        {(hasSuppliers || hasCoffeePartner) && !hasInHouseRoast ? 'Featuring beans from' : 'Roasting'}
-      </h3>
+    <div>
+      {/* Section title */}
+      <h3 className="text-lg font-medium text-primary mb-1">Beans</h3>
+      <p className="text-sm text-text-secondary mb-3">
+        {(hasSuppliers || hasCoffeePartner) && !hasInHouseRoast ? 'Featuring beans from' : 'Roasts their own coffee'}
+      </p>
 
       {/* Roaster cells in a single card */}
-      <div className="rounded-xl bg-[#EFE8E2] dark:bg-white/5 overflow-hidden divide-y divide-border-default">
+      <div className="overflow-hidden divide-y divide-border-default">
         {/* In-house roasting badge */}
-        {hasInHouseRoast && brand && (() => {
-          const clickable = hasBeans(brand.documentId);
-          const inner = (
-            <>
-              <Avatar
-                src={getMediaUrl(brand.logo) || undefined}
-                name={brand.name}
-                size="sm"
-                className="flex-shrink-0"
-                showFallback
-                fallback={<Bean className="w-4 h-4" />}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-primary">{brand.name}</p>
-                <p className="text-sm text-text-secondary flex items-center gap-1.5">
-                  Roasts their own beans
-                  <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
-                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                  </span>
-                </p>
-              </div>
-              {clickable && <ChevronRight className="w-4 h-4 text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
-            </>
-          );
-          return clickable ? (
-            <button
-              type="button"
-              onClick={() => handleSupplierClick(brand)}
-              className="w-full flex items-center gap-3 p-3 transition-colors hover:bg-[#E5DDD6] dark:hover:bg-white/10 cursor-pointer text-left group"
-            >
-              {inner}
-            </button>
-          ) : (
-            <div className="w-full flex items-center gap-3 p-3 text-left">
-              {inner}
+        {hasInHouseRoast && brand && (
+          <div className="w-full flex items-center gap-3 py-3 text-left">
+            <Avatar
+              src={getMediaUrl(brand.logo) || undefined}
+              name={brand.name}
+              size="sm"
+              className="flex-shrink-0"
+              showFallback
+              fallback={<Bean className="w-4 h-4" />}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-primary">{brand.name}</p>
+              <p className="text-sm text-text-secondary flex items-center gap-1.5">
+                Roasts their own beans
+                <span className="w-4 h-4 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
+                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                </span>
+              </p>
             </div>
-          );
-        })()}
+            {hasBeans(brand.documentId) && (
+              <button
+                type="button"
+                onClick={() => handleSupplierClick(brand)}
+                className="text-xs text-white bg-contrastBlock hover:opacity-90 transition-opacity flex-shrink-0 px-3 py-1.5 rounded-full"
+              >
+                Learn more
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Suppliers (Brand objects) */}
         {hasSuppliers && suppliers.map((supplier) => (
@@ -216,7 +208,7 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
 
       {/* Own roast countries */}
       {ownRoastCountries.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <PropertyRow label="Origins">
           {ownRoastCountries.map((country) => (
             <CountryChip
               key={country.documentId}
@@ -224,7 +216,7 @@ export function BeansSection({ shop, onShopSelect }: BeansSectionProps) {
               name={country.name}
             />
           ))}
-        </div>
+        </PropertyRow>
       )}
     </div>
 

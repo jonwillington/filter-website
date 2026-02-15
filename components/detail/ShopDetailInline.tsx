@@ -11,15 +11,15 @@ import {
   BeansSection,
   BrandInfoSection,
   BranchAboutSection,
+  OpeningHoursSection,
   ShopProperties,
   UserPhotosSection,
-  ShopReviewsSection,
   SourcesSection,
 } from './shop-sections';
 import { ActionBar, BrandShopCard } from './shared';
 import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
 import { UserPhotoModal } from '@/components/modals/UserPhotoModal';
-import { Divider } from '@heroui/react';
+
 import { AwardBox } from '@/components/ui';
 import { hasCityAreaRecommendation, getMediaUrl } from '@/lib/utils';
 import { useShopUserImages } from '@/lib/hooks';
@@ -72,10 +72,10 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
       </div>
 
       {/* Content with padding */}
-      <div className="px-5 py-4">
+      <div className="px-5 py-4 space-y-10">
 
         {/* Action bar */}
-        <div className="mb-4 shop-card-animate" style={staggerStyle(isTopChoice ? 2 : 1)}>
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 2 : 1)}>
           <ActionBar shop={shop} />
         </div>
 
@@ -94,9 +94,10 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
           <ShopProperties shop={shop} />
         </div>
 
-        {/* Brew Methods */}
+        {/* Brew Methods & Amenities */}
         <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 6 : 5)}>
           <BrewMethods shop={shop} />
+          <AmenityList shop={shop} />
         </div>
 
         {/* Coffee Sourcing */}
@@ -104,18 +105,13 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
           <BeansSection shop={shop} onShopSelect={onShopSelect} />
         </div>
 
-        {/* Amenities */}
-        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 8 : 7)}>
-          <AmenityList shop={shop} />
-        </div>
-
         {/* Brand Info (Equipment & Awards) */}
-        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 9 : 8)}>
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 8 : 7)}>
           <BrandInfoSection shop={shop} />
         </div>
 
         {/* User Photos */}
-        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 10 : 9)}>
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 9 : 8)}>
           <UserPhotosSection
             images={userImages}
             onPhotoPress={(_, index) => setSelectedUserImageIndex(index)}
@@ -123,18 +119,22 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
           />
         </div>
 
-        {/* Reviews */}
-        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 11 : 10)}>
-          <ShopReviewsSection shop={shop} onOpenLoginModal={onOpenLoginModal} />
-        </div>
-
         {/* More from Brand */}
         {moreFromBrand.length > 0 && shop.brand && (
-          <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 12 : 11)}>
-            <Divider className="my-5 opacity-30" />
-            <h3 className="text-lg font-medium text-primary mb-4">
-              More from {shop.brand.name}
-            </h3>
+          <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 11 : 10)}>
+            <div className="flex items-baseline justify-between mb-4">
+              <h3 className="text-lg font-medium text-primary">
+                More from {shop.brand.name}
+              </h3>
+              {moreFromBrand.length > 2 && (
+                <button
+                  onClick={() => setIsBrandModalOpen(true)}
+                  className="text-xs text-white bg-contrastBlock hover:opacity-90 transition-opacity px-3 py-1.5 rounded-full"
+                >
+                  View all
+                </button>
+              )}
+            </div>
 
             {/* Brand shop cards */}
             <div className="grid grid-cols-2 gap-3">
@@ -146,20 +146,15 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
                 />
               ))}
             </div>
-
-            {/* View More button */}
-            {moreFromBrand.length > 2 && (
-              <button
-                onClick={() => setIsBrandModalOpen(true)}
-                className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border-default rounded-xl hover:bg-surface"
-              >
-                View all {moreFromBrand.length} locations
-              </button>
-            )}
           </div>
         )}
 
-        {/* Address & Opening Hours */}
+        {/* Opening Hours */}
+        <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 12 : 11)}>
+          <OpeningHoursSection shop={shop} />
+        </div>
+
+        {/* Address & Google Rating */}
         <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 13 : 12)}>
           <ShopInfo shop={shop} />
         </div>
@@ -170,7 +165,7 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
         </div>
 
         {/* Disclaimer */}
-        <p className="mt-8 text-xs text-text-secondary text-center shop-card-animate" style={staggerStyle(isTopChoice ? 15 : 14)}>
+        <p className="text-xs text-text-secondary text-center shop-card-animate" style={staggerStyle(isTopChoice ? 15 : 14)}>
           This information is the most up to date we have as of{' '}
           {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
           {' '}Notice something incorrect?{' '}

@@ -45,7 +45,7 @@ export function ShopTagsSection({ selectedTags, onTagsChange }: ShopTagsSectionP
                 key={tag.id}
                 variant={isSelected ? 'solid' : 'bordered'}
                 color={isSelected ? 'primary' : 'default'}
-                className="cursor-pointer transition-all"
+                className="cursor-pointer transition-all font-mono"
                 onClick={() => toggleTag(tag.id)}
               >
                 {tag.label}

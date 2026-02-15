@@ -39,7 +39,7 @@ export function BrewMethodsSection({ selectedMethods, onMethodsChange }: BrewMet
               key={method.key}
               variant={isSelected ? 'solid' : 'bordered'}
               color={isSelected ? 'primary' : 'default'}
-              className="cursor-pointer transition-all"
+              className="cursor-pointer transition-all font-mono"
               onClick={() => toggleMethod(method.key)}
               startContent={<Icon className="w-4 h-4" />}
             >

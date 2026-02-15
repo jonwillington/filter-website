@@ -44,10 +44,10 @@ export const ShopListItem = memo(function ShopListItem({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left flex items-center gap-3 py-2.5 px-2 group transition-colors duration-150 ${className ?? ''}`}
+      className={`w-full text-left flex items-center gap-3 py-4 px-2 group transition-colors duration-150 ${className ?? ''}`}
     >
-      {/* Left - Avatar with optional badge */}
-      <div className="relative flex-shrink-0">
+      {/* Left - Avatar */}
+      <div className="flex-shrink-0">
         <Avatar
           src={logoUrl || undefined}
           name={shop.brand?.name ?? shop.name}
@@ -56,16 +56,12 @@ export const ShopListItem = memo(function ShopListItem({
           showFallback
           fallback={<span className="text-sm">{displayName.charAt(0)}</span>}
         />
-        {badge && (
-          <div className="absolute -bottom-0.5 -right-0.5">
-            {badge}
-          </div>
-        )}
       </div>
 
       {/* Middle - Text content */}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-primary text-base leading-snug line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors">
+        <h4 className="font-medium text-primary text-base leading-snug line-clamp-1 group-hover:text-amber-900 dark:group-hover:text-amber-700 transition-colors flex items-center gap-1.5">
+          {badge}
           {displayName}
         </h4>
         {subtitle && (

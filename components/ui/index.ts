@@ -23,6 +23,7 @@ export {
   BrewMethodChip,
   OwnRoastChip,
   CountryChip,
+  ValueChip,
 } from './StatusChip';
 
 export type { StatusType } from './StatusChip';

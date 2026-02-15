@@ -434,6 +434,22 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      {/* Affiliated shop */}
+      {person.affiliated_shop && (
+        <div className="bg-white/[0.05] rounded-xl p-4">
+          {person.affiliation_blurb && (
+            <p className="text-xs text-contrastText mb-3" style={{ opacity: 0.55 }}>
+              {person.affiliation_blurb}
+            </p>
+          )}
+          <ShopCard
+            shop={person.affiliated_shop}
+            onClick={() => {}}
+            variant="inverted"
+          />
+        </div>
+      )}
     </div>
   );
 }

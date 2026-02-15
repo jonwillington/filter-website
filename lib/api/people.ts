@@ -3,7 +3,7 @@ import { strapiGetAll } from './strapiClient';
 import { getCached, setCache, loadFromStaticFile } from './cache';
 
 // Populate params to get all related data - simple syntax for Strapi v5
-const PERSON_POPULATE = 'populate=photo&populate=locations&populate=person_picks.shop.featured_image&populate=person_picks.shop.brand.logo&populate=person_picks.shop.city_area';
+const PERSON_POPULATE = 'populate=photo&populate=locations&populate=person_picks.shop.featured_image&populate=person_picks.shop.brand.logo&populate=person_picks.shop.city_area&populate=affiliated_shop.featured_image&populate=affiliated_shop.brand.logo&populate=affiliated_shop.city_area&populate=affiliated_shop.location.country';
 
 /**
  * Fetch all people from Strapi

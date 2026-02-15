@@ -306,7 +306,7 @@ export function ReviewModal({
                           key={tag}
                           variant={isSelected ? 'solid' : 'bordered'}
                           color={isSelected ? 'primary' : 'default'}
-                          className="cursor-pointer"
+                          className="cursor-pointer font-mono"
                           onClick={() => handleTagToggle(tag)}
                         >
                           {capitalizeTag(tag)}

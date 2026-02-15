@@ -20,9 +20,10 @@ interface FeaturedShopsProps {
   shops: Shop[];
   countryRegionMap: Map<string, string>;
   onShopSelect: (shop: Shop) => void;
+  totalShopCount: number;
 }
 
-export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: FeaturedShopsProps) {
+export function FeaturedShops({ shops, countryRegionMap, onShopSelect, totalShopCount }: FeaturedShopsProps) {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
 
   // Derive available regions from the shops
@@ -41,7 +42,7 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
 
   // Filter shops by active region
   const filteredShops = useMemo(() => {
-    if (!activeRegion) return shops.slice(0, 9);
+    if (!activeRegion) return shops.slice(0, 16);
 
     const filtered = shops.filter((shop) => {
       const countryCode = shop.location?.country?.code?.toUpperCase();
@@ -62,7 +63,7 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
     <section className="px-6 pt-16 pb-24 md:px-12 md:pt-20 md:pb-32 lg:px-24 lg:pt-28 lg:pb-40" style={{ background: 'var(--surface-landing)' }}>
       <h2
         ref={headingRef}
-        className="font-display text-2xl md:text-3xl lg:text-4xl text-primary mb-12 md:mb-16 lg:mb-18"
+        className="font-display text-4xl md:text-5xl lg:text-6xl text-primary mb-4 md:mb-6"
         style={{
           opacity: headingRevealed ? 1 : 0,
           transform: headingRevealed ? 'translateY(0)' : 'translateY(16px)',
@@ -107,20 +108,80 @@ export function FeaturedShops({ shops, countryRegionMap, onShopSelect }: Feature
         ))}
       </div>
 
-      {/* Shop grid */}
-      <div ref={gridRef} className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {filteredShops.map((shop, i) => (
-          <div
-            key={shop.documentId}
-            style={{
-              opacity: gridRevealed ? 1 : 0,
-              transform: gridRevealed ? 'translateY(0)' : 'translateY(20px)',
-              transition: `opacity 0.6s ease-out ${i * 0.07}s, transform 0.6s ease-out ${i * 0.07}s`,
-            }}
-          >
-            <ShopCard shop={shop} onClick={onShopSelect} />
-          </div>
-        ))}
+      {/* Grid with hairline dividers — last row has gradient overlay */}
+      <div
+        ref={gridRef}
+        className="mt-10 relative"
+        style={{
+          borderRadius: '16px',
+          overflow: 'hidden',
+          border: '1px solid var(--landing-grid-border, #D9D0C5)',
+        }}
+      >
+        <div
+          className="grid grid-cols-1 md:grid-cols-4"
+          style={{
+            gap: '1px',
+            backgroundColor: 'var(--landing-grid-border, #D9D0C5)',
+          }}
+        >
+          {filteredShops.map((shop, i) => (
+            <div
+              key={shop.documentId}
+              className="p-5 md:p-6"
+              style={{
+                backgroundColor: 'var(--surface-landing)',
+                opacity: gridRevealed ? 1 : 0,
+                transform: gridRevealed ? 'translateY(0)' : 'translateY(12px)',
+                transition: `opacity 0.5s ease-out ${i * 0.05}s, transform 0.5s ease-out ${i * 0.05}s`,
+              }}
+            >
+              <ShopCard shop={shop} onClick={onShopSelect} layout="vertical" rank={i + 1} />
+            </div>
+          ))}
+        </div>
+
+        {/* Smooth gradient overlay on last row */}
+        <div
+          className="absolute bottom-0 left-0 right-0 pointer-events-none"
+          style={{
+            height: '50%',
+            background: `linear-gradient(to bottom,
+              transparent 0%,
+              rgba(255,255,255,0.05) 15%,
+              rgba(255,255,255,0.2) 30%,
+              rgba(255,255,255,0.5) 45%,
+              rgba(255,255,255,0.75) 60%,
+              rgba(255,255,255,0.9) 75%,
+              rgba(255,255,255,0.97) 90%,
+              white 100%)`,
+          }}
+        />
+        {/* Blur layer — separate so it doesn't affect text */}
+        <div
+          className="absolute bottom-0 left-0 right-0 pointer-events-none"
+          style={{
+            height: '35%',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            mask: 'linear-gradient(to bottom, transparent 0%, black 50%)',
+            WebkitMask: 'linear-gradient(to bottom, transparent 0%, black 50%)',
+          }}
+        />
+        {/* Text overlay */}
+        <div
+          className="absolute bottom-0 left-0 right-0 flex items-end justify-center pointer-events-none pb-8 md:pb-10"
+          style={{
+            height: '35%',
+            opacity: gridRevealed ? 1 : 0,
+            transform: gridRevealed ? 'translateY(0)' : 'translateY(8px)',
+            transition: 'opacity 1s ease-out 0.5s, transform 1s ease-out 0.5s',
+          }}
+        >
+          <span className="font-display text-xl md:text-2xl text-primary">
+            {totalShopCount.toLocaleString()} shops across the world
+          </span>
+        </div>
       </div>
 
       {filteredShops.length === 0 && activeRegion && (

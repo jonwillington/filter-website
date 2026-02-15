@@ -42,6 +42,7 @@ export function StatusChip({
       variant={variant}
       size={size}
       startContent={icon}
+      classNames={{ content: 'font-mono' }}
       {...props}
     >
       {children}
@@ -67,17 +68,11 @@ export const ComingSoonChip = ({ children = 'Coming Soon', ...props }: Omit<Stat
 /**
  * AmenityChip - Chip for displaying shop amenities
  */
+const chipBase = 'bg-white dark:bg-white/10 border border-border-default h-[34px] min-w-[50px] px-2.5';
+const chipContent = 'text-primary text-[11px] font-mono';
+
 export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
-  <Chip
-    variant="bordered"
-    size="lg"
-    radius="full"
-    classNames={{
-      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
-      content: 'text-primary text-sm',
-    }}
-    {...props}
-  >
+  <Chip variant="bordered" size="sm" radius="full" classNames={{ base: chipBase, content: chipContent }} {...props}>
     {children}
   </Chip>
 );
@@ -86,16 +81,7 @@ export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'statu
  * BrewMethodChip - Chip for displaying brew methods
  */
 export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
-  <Chip
-    variant="bordered"
-    size="lg"
-    radius="full"
-    classNames={{
-      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem]',
-      content: 'text-primary text-sm',
-    }}
-    {...props}
-  >
+  <Chip variant="bordered" size="sm" radius="full" classNames={{ base: chipBase, content: chipContent }} {...props}>
     {children}
   </Chip>
 );
@@ -106,14 +92,23 @@ export const BrewMethodChip = ({ children, ...props }: Omit<StatusChipProps, 'st
 export const OwnRoastChip = ({ children = 'Own roast', ...props }: Omit<StatusChipProps, 'status' | 'icon' | 'children'> & { children?: ReactNode }) => (
   <Chip
     variant="flat"
-    size="lg"
+    size="sm"
     radius="full"
     classNames={{
-      base: 'bg-amber-50 dark:bg-amber-900/30 py-2 h-auto px-[0.45rem]',
-      content: 'text-amber-700 dark:text-amber-300 text-sm font-medium',
+      base: 'bg-amber-50 dark:bg-amber-900/30 h-[34px] px-1.5',
+      content: 'text-amber-700 dark:text-amber-300 text-[11px] font-medium font-mono pr-0',
     }}
     {...props}
   >
+    {children}
+  </Chip>
+);
+
+/**
+ * ValueChip - Generic chip for displaying property values (equipment, awards, etc.)
+ */
+export const ValueChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
+  <Chip variant="bordered" size="sm" radius="full" classNames={{ base: chipBase, content: chipContent }} {...props}>
     {children}
   </Chip>
 );
@@ -132,20 +127,17 @@ const getFlagUrl = (code: string) =>
 export const CountryChip = ({ code, name }: CountryChipProps) => (
   <Chip
     variant="bordered"
-    size="lg"
+    size="sm"
     radius="full"
     startContent={
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={getFlagUrl(code)}
         alt={name}
-        className="w-4 h-4 rounded-full"
+        className="w-3 h-3 rounded-full mr-1"
       />
     }
-    classNames={{
-      base: 'bg-transparent border border-border-default py-2 h-auto px-[0.45rem] pl-3',
-      content: 'text-primary text-sm',
-    }}
+    classNames={{ base: `${chipBase} pl-2`, content: chipContent }}
   >
     {name}
   </Chip>

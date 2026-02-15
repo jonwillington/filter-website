@@ -35,12 +35,21 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: url('/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #FFFFFF;
   --surface: #FAFAFA;
   --surface-elevated: #FFFFFF;
   --surface-warm: #FAF5F0;
   --surface-landing: #F3EBE1;
+  --landing-grid-border: #D9D0C5;
   --contrast-block: #2E1F17;
   --contrast-text: #FFFDFB;
   --accent: #8B6F47;
@@ -60,6 +69,7 @@
   --surface-elevated: #2E2219;
   --surface-warm: #2A1F18;
   --surface-landing: #221912;
+  --landing-grid-border: #3A2C22;
   --contrast-block: #FFFDFB;
   --contrast-text: #2E1F17;
   --accent: #B8956A;

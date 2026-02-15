@@ -264,7 +264,7 @@ async function main() {
 
     // Fetch people (formerly critics) with relations
     console.log('5d. Fetching people...');
-    const personPopulate = 'populate=photo&populate=locations&populate=person_picks.shop.featured_image&populate=person_picks.shop.brand.logo&populate=person_picks.shop.city_area';
+    const personPopulate = 'populate=photo&populate=locations&populate=person_picks.shop.featured_image&populate=person_picks.shop.brand.logo&populate=person_picks.shop.city_area&populate=affiliated_shop.featured_image&populate=affiliated_shop.brand.logo&populate=affiliated_shop.city_area&populate=affiliated_shop.location.country';
     const people = await fetchAll('people', personPopulate);
     fs.writeFileSync(path.join(dataDir, 'people.json'), JSON.stringify(people, null, 2));
     console.log(`   ✓ ${people.length} people\n`);

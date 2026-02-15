@@ -351,6 +351,8 @@ export interface Person {
   brands?: Brand[];
   locations?: Location[];
   person_picks?: PersonPick[];
+  affiliated_shop?: Shop | null;
+  affiliation_blurb?: string | null;
 }
 
 export interface PersonPick {

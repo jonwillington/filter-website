@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { Shop, CitedSource } from '@/lib/types';
 import { ChevronDown, ExternalLink } from 'lucide-react';
-import { Divider } from '@heroui/react';
 
 interface SourcesSectionProps {
   shop: Shop;
@@ -80,10 +79,8 @@ export function SourcesSection({ shop }: SourcesSectionProps) {
   }
 
   return (
-    <>
-      <Divider className="my-5 opacity-30" />
-      <div>
-        <button
+    <div>
+      <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-between py-2 text-left group"
         >
@@ -134,7 +131,6 @@ export function SourcesSection({ shop }: SourcesSectionProps) {
             ))}
           </div>
         )}
-      </div>
-    </>
+    </div>
   );
 }

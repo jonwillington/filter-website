@@ -1,8 +1,7 @@
 'use client';
 
 import { Shop } from '@/lib/types';
-import { Divider } from '@heroui/react';
-import { PropertyRow } from '@/components/ui';
+import { PropertyRow, ValueChip } from '@/components/ui';
 
 interface BrandInfoSectionProps {
   shop: Shop;
@@ -43,8 +42,6 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
 
   return (
     <>
-      <Divider className="my-5 opacity-30" />
-
       {founder && (
         <div className="text-xs text-text-secondary mb-3">
           Founder: {founder}
@@ -61,17 +58,15 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
               <PropertyRow
                 key={cat.key}
                 label={cat.label}
-                value={(equipment[cat.key] ?? []).filter(item => item && item.trim() !== '').join(', ')}
+                value={(equipment[cat.key] ?? []).filter(item => item && item.trim() !== '')}
                 showDivider={idx > 0}
+                renderChip={(v, i) => <ValueChip key={i}>{v}</ValueChip>}
               />
             ))}
           </div>
         </div>
       )}
 
-      {equipmentItems.length > 0 && sortedAwards.length > 0 && (
-        <Divider className="my-5 opacity-30" />
-      )}
 
       {sortedAwards.length > 0 && (
         <div>
@@ -86,6 +81,7 @@ export function BrandInfoSection({ shop }: BrandInfoSectionProps) {
                 value={award.award}
                 caption={award.organizingBody}
                 showDivider={idx > 0}
+                renderChip={(v, i) => <ValueChip key={i}>{v}</ValueChip>}
               />
             ))}
           </div>

@@ -211,12 +211,12 @@ export default function ProfilePage() {
             </h3>
             <div className="flex flex-wrap gap-2">
               {badges?.earlyAdopter?.earned && (
-                <Chip color="warning" variant="flat" startContent={<Star className="w-3 h-3" />}>
+                <Chip color="warning" variant="flat" className="font-mono" startContent={<Star className="w-3 h-3" />}>
                   Early Adopter
                 </Chip>
               )}
               {badges?.topContributor?.earned && (
-                <Chip color="success" variant="flat" startContent={<Award className="w-3 h-3" />}>
+                <Chip color="success" variant="flat" className="font-mono" startContent={<Award className="w-3 h-3" />}>
                   Top Contributor
                 </Chip>
               )}
@@ -225,6 +225,7 @@ export default function ProfilePage() {
                   key={badge.locationId}
                   color="primary"
                   variant="flat"
+                  className="font-mono"
                   startContent={<MapPin className="w-3 h-3" />}
                 >
                   {badge.locationName} Explorer
@@ -235,6 +236,7 @@ export default function ProfilePage() {
                   key={badge.cityAreaId}
                   color="secondary"
                   variant="flat"
+                  className="font-mono"
                   startContent={<Coffee className="w-3 h-3" />}
                 >
                   {badge.cityAreaName} Regular
@@ -271,7 +273,7 @@ export default function ProfilePage() {
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {userProfile.preferences.preferredBrewMethods.map((method) => (
-                      <Chip key={method} size="sm" variant="bordered">
+                      <Chip key={method} size="sm" variant="bordered" className="font-mono">
                         {method.replace(/_/g, ' ')}
                       </Chip>
                     ))}
@@ -287,7 +289,7 @@ export default function ProfilePage() {
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {userProfile.preferences.preferredTags.map((tag) => (
-                      <Chip key={tag} size="sm" variant="bordered">
+                      <Chip key={tag} size="sm" variant="bordered" className="font-mono">
                         {tag.replace(/_/g, ' ')}
                       </Chip>
                     ))}

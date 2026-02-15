@@ -11,15 +11,15 @@ import {
   BeansSection,
   BrandInfoSection,
   BranchAboutSection,
+  OpeningHoursSection,
   ShopProperties,
   UserPhotosSection,
-  ShopReviewsSection,
   SourcesSection,
 } from '../shop-sections';
 import { ActionBar, BrandShopCard } from '../shared';
 import { BrandShopsModal } from '@/components/modals/BrandShopsModal';
 import { UserPhotoModal } from '@/components/modals/UserPhotoModal';
-import { Divider } from '@heroui/react';
+
 import { CircularCloseButton, AwardBox, StickyDrawerHeader } from '@/components/ui';
 import { ChevronLeft } from 'lucide-react';
 import { getShopDisplayName, hasCityAreaRecommendation, getMediaUrl } from '@/lib/utils';
@@ -153,7 +153,7 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
         <ShopHeader shop={currentShop} />
 
         {/* Rest of content with padding - staggered animation */}
-        <div key={currentShop.documentId} className="p-5">
+        <div key={currentShop.documentId} className="p-5 space-y-10">
 
           {/* Action bar */}
           <ActionBar shop={currentShop} />
@@ -167,14 +167,12 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
           {/* Shop Properties (Architects, Price) */}
           <ShopProperties shop={currentShop} />
 
-          {/* Brew Methods */}
+          {/* Brew Methods & Amenities */}
           <BrewMethods shop={currentShop} />
+          <AmenityList shop={currentShop} />
 
           {/* Coffee Sourcing */}
           <BeansSection shop={currentShop} onShopSelect={onShopSelect} />
-
-          {/* Amenities */}
-          <AmenityList shop={currentShop} />
 
           {/* Brand Info (Equipment & Awards) */}
           <BrandInfoSection shop={currentShop} />
@@ -186,16 +184,22 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
             loading={userImagesLoading}
           />
 
-          {/* Reviews */}
-          <ShopReviewsSection shop={currentShop} onOpenLoginModal={onOpenLoginModal} />
-
           {/* More from Brand */}
           {moreFromBrand.length > 0 && currentShop.brand && (
             <div>
-              <Divider className="my-5 opacity-30" />
-              <h3 className="text-lg font-medium text-primary mb-4">
-                More from {currentShop.brand.name}
-              </h3>
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="text-lg font-medium text-primary">
+                  More from {currentShop.brand.name}
+                </h3>
+                {moreFromBrand.length > 2 && (
+                  <button
+                    onClick={() => setIsBrandModalOpen(true)}
+                    className="text-xs text-white bg-contrastBlock hover:opacity-90 transition-opacity px-3 py-1.5 rounded-full"
+                  >
+                    View all
+                  </button>
+                )}
+              </div>
 
               {/* Brand shop cards */}
               <div className="grid grid-cols-2 gap-3">
@@ -207,27 +211,20 @@ export function ShopDrawer({ shop, allShops, onClose, onShopSelect, onOpenLoginM
                   />
                 ))}
               </div>
-
-              {/* View More button */}
-              {moreFromBrand.length > 2 && (
-                <button
-                  onClick={() => setIsBrandModalOpen(true)}
-                  className="mt-4 w-full py-2.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors border border-border-default rounded-xl hover:bg-surface"
-                >
-                  View all {moreFromBrand.length} locations
-                </button>
-              )}
             </div>
           )}
 
-          {/* Address & Opening Hours */}
+          {/* Opening Hours */}
+          <OpeningHoursSection shop={currentShop} />
+
+          {/* Address & Google Rating */}
           <ShopInfo shop={currentShop} />
 
           {/* Sources */}
           <SourcesSection shop={currentShop} />
 
           {/* Disclaimer */}
-          <p className="mt-8 text-xs text-text-secondary text-center">
+          <p className="text-xs text-text-secondary text-center">
             This information is the most up to date we have as of{' '}
             {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
             {' '}Notice something incorrect?{' '}

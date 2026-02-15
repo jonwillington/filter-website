@@ -1,12 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import { ArrowRight, Star } from 'lucide-react';
+import { CircleFlag } from 'react-circle-flags';
 import { Location } from '@/lib/types';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-
-const getFlagUrl = (countryCode: string): string =>
-  `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 
 
 interface FeaturedCitiesProps {
@@ -55,7 +52,7 @@ export function FeaturedCities({ cities, onCitySelect, onExploreMap, shopCountBy
           <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-secondary flex items-center py-2.5 pl-5 border-l border-border-default">
             City
           </span>
-          <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-secondary flex items-center justify-end py-2.5 px-5 border-l border-border-default">
+          <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-secondary flex items-center py-2.5 px-5 border-l border-border-default">
             Country
           </span>
           <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-secondary flex items-center justify-center py-2.5 border-l border-border-default">
@@ -97,37 +94,39 @@ export function FeaturedCities({ cities, onCitySelect, onExploreMap, shopCountBy
                   </span>
 
                   {/* City cell */}
-                  <h3 className={`text-primary leading-tight group-hover:text-accent transition-colors min-w-0 truncate flex items-center pl-5 border-l border-border-default ${
-                    isTop
-                      ? 'font-display text-4xl md:text-5xl lg:text-6xl py-5 md:py-6'
-                      : 'font-display text-xl md:text-2xl py-3 md:py-3.5'
+                  <div className={`flex flex-col justify-center pl-5 border-l border-border-default min-w-0 ${
+                    isTop ? 'py-5 md:py-6' : 'py-3 md:py-3.5'
                   }`}>
-                    {city.name}
-                  </h3>
+                    <h3 className={`text-primary leading-tight group-hover:text-accent transition-colors truncate ${
+                      isTop
+                        ? 'font-display text-4xl md:text-5xl lg:text-6xl'
+                        : 'font-display text-xl md:text-2xl'
+                    }`}>
+                      {city.name}
+                    </h3>
+                    {isTop && (city.headline || city.story) && (
+                      <p className="text-text-secondary text-xs md:text-sm mt-1 truncate">
+                        {city.headline || (city.story && city.story.length > 80 ? city.story.substring(0, 80) + '…' : city.story)}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Country cell — hidden on mobile */}
-                  <div className={`items-center hidden sm:flex justify-end px-5 border-l border-border-default ${
+                  <div className={`items-center hidden sm:flex px-5 border-l border-border-default ${
                     isTop ? 'gap-3 py-5 md:py-6' : 'gap-2 py-3 md:py-3.5'
                   }`}>
+                    {countryCode && (
+                      <CircleFlag
+                        countryCode={countryCode.toLowerCase()}
+                        width={isTop ? 28 : 20}
+                        className="flex-shrink-0"
+                      />
+                    )}
                     {countryName && (
                       <span className={`font-medium text-text-secondary whitespace-nowrap ${
                         isTop ? 'text-2xl md:text-3xl' : 'text-base md:text-lg'
                       }`}>
                         {countryName}
-                      </span>
-                    )}
-                    {countryCode && (
-                      <span className={`rounded-[2px] overflow-hidden flex-shrink-0 ${
-                        isTop ? 'w-8 h-6 md:w-9 md:h-6' : 'w-6 h-4'
-                      }`}>
-                        <Image
-                          src={getFlagUrl(countryCode)}
-                          alt={countryName || ''}
-                          width={40}
-                          height={28}
-                          className="object-cover w-full h-full"
-                          unoptimized
-                        />
                       </span>
                     )}
                   </div>
@@ -167,8 +166,8 @@ export function FeaturedCities({ cities, onCitySelect, onExploreMap, shopCountBy
           })}
 
           {/* Gradient fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-[60%] pointer-events-none"
-            style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--surface-landing) 60%, var(--background)) 15%, transparent)' }}
+          <div className="absolute bottom-0 left-0 right-0 h-[40%] pointer-events-none"
+            style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--surface-landing) 60%, var(--background)) 5%, transparent)' }}
           />
         </div>
 

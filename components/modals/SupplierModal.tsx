@@ -476,8 +476,8 @@ export function SupplierModal({ isOpen, onClose, supplier, onShopSelect }: Suppl
       </div>
 
       {/* Two or three-column layout on desktop depending on shop count */}
-      <div className={`lg:grid ${showLocations ? 'lg:grid-cols-[1fr_1.5fr_1.2fr]' : 'lg:grid-cols-[1fr_1.5fr]'} gap-8 p-6`}>
-        {/* Left column - Brand details with fixed header and scrollable content */}
+      <div className={`lg:grid lg:items-center ${showLocations ? 'lg:grid-cols-[1fr_1.5fr_1.2fr]' : 'lg:grid-cols-[1fr_1.5fr]'} gap-8 p-6`}>
+        {/* Left column - Brand details */}
         <div className="flex flex-col h-full lg:border-r lg:border-black/5 lg:pr-6 lg:max-h-[75vh]">
           {/* Fixed header: Logo + name + country */}
           <div className="flex-shrink-0">
