@@ -190,6 +190,92 @@ function buildShopInsert(shop, brandMap) {
   return `INSERT OR REPLACE INTO shops (${cols.join(',')}) VALUES (${vals.join(',')});`;
 }
 
+function buildLocationInsert(loc) {
+  const country = loc.country;
+  const storyAuthor = loc.storyAuthor;
+  const bgImage = loc.background_image;
+
+  const cols = [
+    'document_id', 'id', 'name', 'slug', 'story', 'headline',
+    'rating_stars', 'population', 'timezone',
+    'in_focus', 'beta', 'coming_soon',
+    'primary_color', 'secondary_color',
+    'coordinates', 'boundary_coordinates',
+    'bg_image_url', 'bg_image_formats',
+    'story_author_id', 'story_author_document_id', 'story_author_name', 'story_author_photo_url',
+    'country_document_id', 'country_name', 'country_code',
+    'country_primary_color', 'country_secondary_color',
+    'created_at', 'updated_at', 'published_at',
+  ];
+
+  const vals = [
+    esc(loc.documentId), loc.id || 'NULL', esc(loc.name), esc(loc.slug), esc(loc.story), esc(loc.headline),
+    loc.rating_stars != null ? loc.rating_stars : 'NULL',
+    esc(loc.population), esc(loc.timezone),
+    boolInt(loc.inFocus), boolInt(loc.beta), boolInt(loc.comingSoon),
+    esc(loc.primaryColor), esc(loc.secondaryColor),
+    loc.coordinates ? esc(loc.coordinates) : 'NULL',
+    loc.boundary_coordinates ? esc(loc.boundary_coordinates) : 'NULL',
+    esc(bgImage?.url), bgImage?.formats ? esc(bgImage.formats) : 'NULL',
+    storyAuthor?.id || 'NULL', esc(storyAuthor?.documentId), esc(storyAuthor?.name),
+    esc(storyAuthor?.photo?.url),
+    esc(country?.documentId), esc(country?.name), esc(country?.code),
+    esc(country?.primaryColor), esc(country?.secondaryColor),
+    esc(loc.createdAt), esc(loc.updatedAt), esc(loc.publishedAt),
+  ];
+
+  return `INSERT OR REPLACE INTO locations (${cols.join(',')}) VALUES (${vals.join(',')});`;
+}
+
+function buildCountryInsert(country) {
+  const region = country.region;
+
+  const cols = [
+    'document_id', 'id', 'name', 'code', 'slug', 'story',
+    'supported', 'coming_soon',
+    'primary_color', 'primary_color_dark', 'secondary_color', 'secondary_color_dark',
+    'region_document_id', 'region_name', 'region_coming_soon',
+    'created_at', 'updated_at', 'published_at',
+  ];
+
+  const vals = [
+    esc(country.documentId), country.id || 'NULL', esc(country.name), esc(country.code),
+    esc(country.slug), esc(country.story),
+    boolInt(country.supported), boolInt(country.comingSoon),
+    esc(country.primaryColor), esc(country.primaryColorDark),
+    esc(country.secondaryColor), esc(country.secondaryColorDark),
+    esc(region?.documentId), esc(region?.Name), boolInt(region?.comingSoon),
+    esc(country.createdAt), esc(country.updatedAt), esc(country.publishedAt),
+  ];
+
+  return `INSERT OR REPLACE INTO countries (${cols.join(',')}) VALUES (${vals.join(',')});`;
+}
+
+function buildCityAreaInsert(ca) {
+  const loc = ca.location;
+
+  const cols = [
+    'document_id', 'id', 'name', 'slug', 'area_group', 'description', 'summary',
+    'featured_image_url', 'featured_image_formats',
+    'boundary_coordinates',
+    'location_document_id', 'location_name', 'location_slug',
+    'location_country_name', 'location_country_code',
+    'created_at', 'updated_at', 'published_at',
+  ];
+
+  const vals = [
+    esc(ca.documentId), ca.id || 'NULL', esc(ca.name), esc(ca.slug), esc(ca.group),
+    esc(ca.description), esc(ca.summary),
+    esc(ca.featuredImage?.url), ca.featuredImage?.formats ? esc(ca.featuredImage.formats) : 'NULL',
+    'NULL', // boundary_coordinates omitted — too large for batch SQL inserts
+    esc(loc?.documentId), esc(loc?.name), esc(loc?.slug),
+    esc(loc?.country?.name), esc(loc?.country?.code),
+    esc(ca.createdAt), esc(ca.updatedAt), esc(ca.publishedAt),
+  ];
+
+  return `INSERT OR REPLACE INTO city_areas (${cols.join(',')}) VALUES (${vals.join(',')});`;
+}
+
 function buildBeanInsert(bean) {
   const cols = [
     'document_id', 'id', 'name', 'slug', 'type', 'roast_level', 'process',
@@ -241,8 +327,11 @@ async function main() {
   // Load data
   const brands = loadJSON('brands.json');
   const shops = loadJSON('shops.json');
+  const locations = loadJSON('locations.json');
+  const countries = loadJSON('countries.json');
+  const cityAreas = loadJSON('city-areas.json');
 
-  console.log(`📦 Loaded ${shops.length} shops, ${brands.length} brands\n`);
+  console.log(`📦 Loaded ${shops.length} shops, ${brands.length} brands, ${locations.length} locations, ${countries.length} countries, ${cityAreas.length} city areas\n`);
 
   // 1. Seed brands
   console.log('1. Seeding brands...');
@@ -301,8 +390,38 @@ async function main() {
   }
   console.log(`   ✓ ${shops.length} shops\n`);
 
-  // 5. Seed beans
-  console.log('5. Seeding beans...');
+  // 5. Seed locations
+  console.log('5. Seeding locations...');
+  const locationStatements = locations.map(buildLocationInsert);
+  for (let i = 0; i < locationStatements.length; i += BATCH_SIZE) {
+    const batch = locationStatements.slice(i, i + BATCH_SIZE);
+    executeSqlBatch(batch, `locations_${i}`);
+    process.stdout.write(`   ${Math.min(i + BATCH_SIZE, locationStatements.length)}/${locationStatements.length}\r`);
+  }
+  console.log(`   ✓ ${locations.length} locations\n`);
+
+  // 6. Seed countries
+  console.log('6. Seeding countries...');
+  const countryStatements = countries.map(buildCountryInsert);
+  for (let i = 0; i < countryStatements.length; i += BATCH_SIZE) {
+    const batch = countryStatements.slice(i, i + BATCH_SIZE);
+    executeSqlBatch(batch, `countries_${i}`);
+    process.stdout.write(`   ${Math.min(i + BATCH_SIZE, countryStatements.length)}/${countryStatements.length}\r`);
+  }
+  console.log(`   ✓ ${countries.length} countries\n`);
+
+  // 7. Seed city areas
+  console.log('7. Seeding city areas...');
+  const cityAreaStatements = cityAreas.map(buildCityAreaInsert);
+  for (let i = 0; i < cityAreaStatements.length; i += BATCH_SIZE) {
+    const batch = cityAreaStatements.slice(i, i + BATCH_SIZE);
+    executeSqlBatch(batch, `city_areas_${i}`);
+    process.stdout.write(`   ${Math.min(i + BATCH_SIZE, cityAreaStatements.length)}/${cityAreaStatements.length}\r`);
+  }
+  console.log(`   ✓ ${cityAreas.length} city areas\n`);
+
+  // 8. Seed beans
+  console.log('8. Seeding beans...');
   const beanStatements = [];
   const beanOriginStatements = [];
   const beanTagStatements = [];

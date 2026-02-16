@@ -347,6 +347,18 @@ export async function getAllShops(): Promise<Shop[]> {
   const cached = getCached<Shop[]>(cacheKey);
   if (cached) return cached;
 
+  // Try D1 first (edge SQLite — fast, always fresh via webhooks)
+  try {
+    const { getAllShopsD1 } = await import('./d1-queries');
+    const d1Shops = await getAllShopsD1();
+    if (d1Shops && d1Shops.length > 0) {
+      setCache(cacheKey, d1Shops);
+      return d1Shops;
+    }
+  } catch {
+    // D1 not available (build time, dev without D1)
+  }
+
   // Check for pre-fetched data (from build-time prefetch script)
   const prefetched = await getPrefetched<Shop[]>('shops');
   if (prefetched) {
@@ -524,16 +536,10 @@ export async function getShopsByLocation(locationDocumentId: string): Promise<Sh
 export async function getShopBySlug(shopSlug: string): Promise<Shop | null> {
   // Try D1 first (fast, direct query — no need to load all 1000+ shops)
   try {
-    const { getDB } = await import('./d1');
-    const db = await getDB();
-    const row = await db
-      .prepare('SELECT s.*, b.document_id AS b_document_id, b.name AS b_name, b.type AS b_type, b.logo_url AS b_logo_url, b.statement AS b_statement, b.description AS b_description, b.story AS b_story FROM shops s LEFT JOIN brands b ON b.document_id = s.brand_document_id WHERE s.slug = ?1')
-      .bind(shopSlug)
-      .first();
-    if (row) {
-      return d1RowToShopBasic(row);
-    }
-  } catch (e) {
+    const { getShopBySlugD1 } = await import('./d1-queries');
+    const shop = await getShopBySlugD1(shopSlug);
+    if (shop) return shop;
+  } catch {
     // D1 not available (e.g. during build or local dev without D1)
   }
 
@@ -557,84 +563,3 @@ export async function getShopById(documentId: string): Promise<Shop | null> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseJSONField(v: any): any {
-  if (v === null || v === undefined) return null;
-  if (typeof v === 'string') {
-    try { return JSON.parse(v); } catch { return null; }
-  }
-  return v;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toBoolField(v: any): boolean | undefined {
-  if (v === null || v === undefined) return undefined;
-  return v === 1 || v === true;
-}
-
-/** Convert a D1 row to a basic Shop shape (server-side fallback) */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function d1RowToShopBasic(r: any): Shop {
-  return {
-    id: r.id ?? 0,
-    documentId: r.document_id,
-    name: r.name,
-    slug: r.slug,
-    prefName: r.pref_name,
-    description: r.description,
-    address: r.address,
-    neighbourhood: r.neighbourhood,
-    coordinates: r.lat != null ? { lat: r.lat, lng: r.lng } : null,
-    brand: r.b_document_id ? {
-      documentId: r.b_document_id,
-      name: r.b_name || '',
-      type: r.b_type,
-      logo: r.b_logo_url ? { url: r.b_logo_url } : null,
-      statement: r.b_statement,
-      description: r.b_description,
-      story: r.b_story,
-    } : undefined,
-    location: r.location_document_id ? {
-      documentId: r.location_document_id,
-      name: r.location_name || '',
-      slug: r.location_slug,
-    } : undefined,
-    city_area: r.city_area_document_id ? {
-      documentId: r.city_area_document_id,
-      name: r.city_area_name || '',
-      group: r.city_area_group,
-    } : undefined,
-    country: r.country_code ? { id: 0, documentId: '', name: '', code: r.country_code } : undefined,
-    featured_image: r.featured_image_url ? {
-      url: r.featured_image_url,
-      formats: parseJSONField(r.featured_image_formats),
-    } : null,
-    google_rating: r.google_rating,
-    google_review_count: r.google_review_count,
-    has_wifi: toBoolField(r.has_wifi),
-    has_food: toBoolField(r.has_food),
-    has_outdoor_space: toBoolField(r.has_outdoor_space),
-    is_pet_friendly: toBoolField(r.is_pet_friendly),
-    has_v60: toBoolField(r.has_v60),
-    has_chemex: toBoolField(r.has_chemex),
-    has_filter_coffee: toBoolField(r.has_filter_coffee),
-    has_espresso: toBoolField(r.has_espresso),
-    has_aeropress: toBoolField(r.has_aeropress),
-    has_french_press: toBoolField(r.has_french_press),
-    has_cold_brew: toBoolField(r.has_cold_brew),
-    has_batch_brew: toBoolField(r.has_batch_brew),
-    has_slow_bar: toBoolField(r.has_slow_bar),
-    has_kitchen: toBoolField(r.has_kitchen),
-    independent: toBoolField(r.independent),
-    is_chain: toBoolField(r.is_chain),
-    opening_hours: parseJSONField(r.opening_hours),
-    public_tags: parseJSONField(r.public_tags),
-    website: r.website,
-    phone: r.phone,
-    instagram: r.instagram,
-    facebook: r.facebook,
-    tiktok: r.tiktok,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-  } as Shop;
-}

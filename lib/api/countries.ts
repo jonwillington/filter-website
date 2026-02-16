@@ -6,6 +6,19 @@ export async function getAllCountries(): Promise<Country[]> {
   const cached = getCached<Country[]>(cacheKey);
   if (cached) return cached;
 
+  // Try D1 first (edge SQLite — fast, always fresh via webhooks)
+  try {
+    const { getAllCountriesD1 } = await import('./d1-queries');
+    const d1Countries = await getAllCountriesD1();
+    if (d1Countries && d1Countries.length > 0) {
+      console.log('[Countries API] Loaded from D1:', d1Countries.length);
+      setCache(cacheKey, d1Countries);
+      return d1Countries;
+    }
+  } catch {
+    // D1 not available (build time, dev without D1)
+  }
+
   // Try static file first (prefetched data)
   const staticData = await loadFromStaticFile<Country[]>('countries');
   if (staticData && staticData.length > 0) {

@@ -100,6 +100,18 @@ export async function getAllLocations(shops?: Shop[], cityAreas?: CityArea[]): P
   const cached = getCached<Location[]>(cacheKey);
   if (cached) return cached;
 
+  // Try D1 first (edge SQLite — fast, always fresh via webhooks)
+  try {
+    const { getAllLocationsD1 } = await import('./d1-queries');
+    const d1Locations = await getAllLocationsD1();
+    if (d1Locations && d1Locations.length > 0) {
+      setCache(cacheKey, d1Locations);
+      return d1Locations;
+    }
+  } catch {
+    // D1 not available (build time, dev without D1)
+  }
+
   try {
     const locationMap = new Map<string, Location>();
 
@@ -181,6 +193,18 @@ export async function getAllCityAreas(): Promise<CityArea[]> {
   const cacheKey = 'cityAreas:all';
   const cached = getCached<CityArea[]>(cacheKey);
   if (cached) return cached;
+
+  // Try D1 first (edge SQLite — fast, always fresh via webhooks)
+  try {
+    const { getAllCityAreasD1 } = await import('./d1-queries');
+    const d1CityAreas = await getAllCityAreasD1();
+    if (d1CityAreas && d1CityAreas.length > 0) {
+      setCache(cacheKey, d1CityAreas);
+      return d1CityAreas;
+    }
+  } catch {
+    // D1 not available (build time, dev without D1)
+  }
 
   // Check for pre-fetched data (from build-time prefetch script)
   const prefetched = await getPrefetched<CityArea[]>('city-areas');

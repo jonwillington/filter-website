@@ -282,3 +282,110 @@ CREATE TABLE IF NOT EXISTS bean_flavor_tags (
   tag_name TEXT NOT NULL,
   PRIMARY KEY (bean_document_id, tag_name)
 );
+
+-- Locations table
+CREATE TABLE IF NOT EXISTS locations (
+  document_id TEXT PRIMARY KEY,
+  id INTEGER,
+  name TEXT NOT NULL,
+  slug TEXT,
+  story TEXT,
+  headline TEXT,
+  rating_stars REAL,
+  population TEXT,
+  timezone TEXT,
+  in_focus INTEGER,
+  beta INTEGER,
+  coming_soon INTEGER,
+  primary_color TEXT,
+  secondary_color TEXT,
+
+  -- Coordinates & boundaries (JSON)
+  coordinates TEXT, -- JSON array
+  boundary_coordinates TEXT, -- JSON array
+
+  -- Background image
+  bg_image_url TEXT,
+  bg_image_formats TEXT, -- JSON
+
+  -- Story author (denormalized)
+  story_author_id INTEGER,
+  story_author_document_id TEXT,
+  story_author_name TEXT,
+  story_author_photo_url TEXT,
+
+  -- Country (denormalized)
+  country_document_id TEXT,
+  country_name TEXT,
+  country_code TEXT,
+  country_primary_color TEXT,
+  country_secondary_color TEXT,
+
+  -- Strapi metadata
+  created_at TEXT,
+  updated_at TEXT,
+  published_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_locations_slug ON locations(slug);
+CREATE INDEX IF NOT EXISTS idx_locations_country ON locations(country_code);
+
+-- Countries table
+CREATE TABLE IF NOT EXISTS countries (
+  document_id TEXT PRIMARY KEY,
+  id INTEGER,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL,
+  slug TEXT,
+  story TEXT,
+  supported INTEGER,
+  coming_soon INTEGER,
+  primary_color TEXT,
+  primary_color_dark TEXT,
+  secondary_color TEXT,
+  secondary_color_dark TEXT,
+
+  -- Region (denormalized)
+  region_document_id TEXT,
+  region_name TEXT,
+  region_coming_soon INTEGER,
+
+  -- Strapi metadata
+  created_at TEXT,
+  updated_at TEXT,
+  published_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_countries_code ON countries(code);
+
+-- City areas table
+CREATE TABLE IF NOT EXISTS city_areas (
+  document_id TEXT PRIMARY KEY,
+  id INTEGER,
+  name TEXT NOT NULL,
+  slug TEXT,
+  area_group TEXT, -- 'group' is a reserved word in SQL
+  description TEXT,
+  summary TEXT,
+
+  -- Featured image
+  featured_image_url TEXT,
+  featured_image_formats TEXT, -- JSON
+
+  -- Boundaries
+  boundary_coordinates TEXT, -- JSON array
+
+  -- Location (denormalized)
+  location_document_id TEXT,
+  location_name TEXT,
+  location_slug TEXT,
+  location_country_name TEXT,
+  location_country_code TEXT,
+
+  -- Strapi metadata
+  created_at TEXT,
+  updated_at TEXT,
+  published_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_city_areas_location ON city_areas(location_document_id);
