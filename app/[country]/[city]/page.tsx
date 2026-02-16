@@ -1,6 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
-import { getAllShops } from '@/lib/api/shops';
 import { getAllEvents } from '@/lib/api/events';
 import { getAllCountries } from '@/lib/api/countries';
 import { getAllPeople } from '@/lib/api/people';
@@ -71,60 +70,23 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  const [allShops, countries, allEvents, allPeople, allNewsArticles] = await Promise.all([
-    getAllShops(),
+  const [countries, allEvents, allPeople, allNewsArticles] = await Promise.all([
     getAllCountries(),
     getAllEvents(),
     getAllPeople(),
     getAllNewsArticles(),
   ]);
 
-  console.log('[CityPage] Fetched people:', allPeople.length, allPeople.map(p => p.name));
-
-  // Count shops in this location
-  const locationShops = allShops.filter(shop => shop.location?.documentId === location.documentId);
-
-  // JSON-LD structured data for the city
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: `Coffee Shops in ${location.name}`,
-    description: location.story || `Specialty coffee shops in ${location.name}, ${location.country?.name}`,
-    numberOfItems: locationShops.length,
-    itemListElement: locationShops.slice(0, 10).map((shop, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      item: {
-        '@type': 'CafeOrCoffeeShop',
-        name: shop.name,
-        address: shop.address,
-        ...(shop.google_rating && {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: shop.google_rating,
-            reviewCount: shop.google_review_count || 0,
-          },
-        }),
-      },
-    })),
-  };
-
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <MainLayout
-        locations={locations}
-        initialLocation={location}
-        shops={[]}
-        countries={countries}
-        events={allEvents}
-        people={allPeople}
-        newsArticles={allNewsArticles}
-        isClientSideLoading
-      />
-    </>
+    <MainLayout
+      locations={locations}
+      initialLocation={location}
+      shops={[]}
+      countries={countries}
+      events={allEvents}
+      people={allPeople}
+      newsArticles={allNewsArticles}
+      isClientSideLoading
+    />
   );
 }
