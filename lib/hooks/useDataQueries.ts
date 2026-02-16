@@ -96,23 +96,13 @@ export function useShopsQuery() {
   return useQuery<Shop[]>({
     queryKey: ['shops'],
     queryFn: async () => {
-      // Try D1 edge API first (lightweight summaries)
-      try {
-        const response = await fetch('/api/v2/shops');
-        if (response.ok) {
-          const summaries: ShopSummary[] = await response.json();
-          return summaries.map(summaryToShop);
-        }
-      } catch {
-        // D1 not available, fall back to static JSON
-      }
-
-      // Fallback: static JSON files (original approach)
+      // Fetch shops (slim brand data) and full brands in parallel
       const [shops, brands] = await Promise.all([
         fetchWithFallback<Shop[]>('/data/shops.json', '/api/data/shops'),
         fetchWithFallback<Brand[]>('/data/brands.json', '/api/data/brands'),
       ]);
 
+      // Merge full brand data into shops (same pattern as prefetch script)
       const brandMap = new Map(brands.map(b => [b.documentId, b]));
       return shops.map(shop => {
         if (shop.brand?.documentId) {
