@@ -522,15 +522,7 @@ export async function getShopsByLocation(locationDocumentId: string): Promise<Sh
 }
 
 export async function getShopBySlug(shopSlug: string): Promise<Shop | null> {
-  try {
-    const allShops = await getAllShops();
-    const found = allShops.find((shop) => generateShopSlug(shop) === shopSlug) ?? null;
-    if (found) return found;
-  } catch (error) {
-    console.error('Failed to fetch shop from Strapi:', error);
-  }
-
-  // Fallback: try D1 directly (works on Cloudflare Workers when Strapi is unavailable)
+  // Try D1 first (fast, direct query — no need to load all 1000+ shops)
   try {
     const { getDB } = await import('./d1');
     const db = await getDB();
@@ -542,10 +534,17 @@ export async function getShopBySlug(shopSlug: string): Promise<Shop | null> {
       return d1RowToShopBasic(row);
     }
   } catch (e) {
-    console.error('D1 shop lookup also failed:', e);
+    // D1 not available (e.g. during build or local dev without D1)
   }
 
-  return null;
+  // Fallback: search through all shops from Strapi/static data
+  try {
+    const allShops = await getAllShops();
+    return allShops.find((shop) => generateShopSlug(shop) === shopSlug) ?? null;
+  } catch (error) {
+    console.error('Failed to fetch shop:', error);
+    return null;
+  }
 }
 
 export async function getShopById(documentId: string): Promise<Shop | null> {
