@@ -497,7 +497,17 @@ export const PREFETCH_TIMESTAMP = ${Date.now()};
 
   } catch (error) {
     console.error('❌ Error pre-fetching data:', error.message);
-    process.exit(1);
+
+    // If existing static data files are present, continue the build with stale data
+    // rather than failing entirely. D1 serves fresh data at runtime anyway.
+    if (fs.existsSync(path.join(PUBLIC_DATA_DIR, 'shops.json')) &&
+        fs.existsSync(path.join(PUBLIC_DATA_DIR, 'locations.json'))) {
+      console.log('⚠️  Using existing static data files (may be stale). Build will continue.');
+      console.log('   D1 serves fresh shop data at runtime, so this is safe.');
+    } else {
+      console.error('❌ No existing data files found. Cannot continue build.');
+      process.exit(1);
+    }
   }
 }
 
