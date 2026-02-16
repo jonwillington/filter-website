@@ -4,7 +4,7 @@
  */
 function getStrapiConfig() {
   return {
-    url: process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337/api',
+    url: process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api',
     token: process.env.NEXT_PUBLIC_STRAPI_TOKEN,
   };
 }

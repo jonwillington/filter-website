@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
 import { getStoryText } from '@/lib/utils/storyBlocks';
+import { withTimeout } from '@/lib/utils/timeout';
 
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
@@ -73,10 +74,10 @@ export default async function CityPage({ params }: CityPageProps) {
   }
 
   const [countries, allEvents, allPeople, allNewsArticles] = await Promise.all([
-    getAllCountries(),
-    getAllEvents(),
-    getAllPeople(),
-    getAllNewsArticles(),
+    withTimeout(getAllCountries(), 5000, []),
+    withTimeout(getAllEvents(), 5000, []),
+    withTimeout(getAllPeople(), 5000, []),
+    withTimeout(getAllNewsArticles(), 5000, []),
   ]);
 
   return (

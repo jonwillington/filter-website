@@ -5,6 +5,7 @@ import { getAllEvents } from '@/lib/api/events';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { deslugify, slugify, getMediaUrl } from '@/lib/utils';
+import { withTimeout } from '@/lib/utils/timeout';
 
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
@@ -74,8 +75,8 @@ export default async function AreaPage({ params }: AreaPageProps) {
   }
 
   const [countries, events] = await Promise.all([
-    getAllCountries(),
-    getAllEvents(),
+    withTimeout(getAllCountries(), 5000, []),
+    withTimeout(getAllEvents(), 5000, []),
   ]);
 
   return (

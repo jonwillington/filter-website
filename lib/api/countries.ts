@@ -1,31 +1,30 @@
-import { apiClient } from './client';
 import { Country } from '../types';
+import { getCached, setCache, loadFromStaticFile } from './cache';
 
-// Cache for countries (initialized lazily to avoid HMR issues)
-let countriesCache: Country[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-// Fetch all countries
 export async function getAllCountries(): Promise<Country[]> {
-  const now = Date.now();
+  const cacheKey = 'countries:all';
+  const cached = getCached<Country[]>(cacheKey);
+  if (cached) return cached;
 
-  if (countriesCache && now - cacheTimestamp < CACHE_TTL) {
-    return countriesCache;
+  // Try static file first (prefetched data)
+  const staticData = await loadFromStaticFile<Country[]>('countries');
+  if (staticData && staticData.length > 0) {
+    console.log('[Countries API] Loaded from static file:', staticData.length);
+    setCache(cacheKey, staticData);
+    return staticData;
   }
 
+  // Fall back to live Strapi API
   try {
-    // Use explicit field population instead of populate=* to avoid circular reference errors
+    const { apiClient } = await import('./client');
     const countries = await apiClient<Country[]>(
       '/countries?pagination[pageSize]=500&populate[region][fields][0]=Name&populate[region][fields][1]=comingSoon',
       { revalidate: 300 }
     );
-
-    countriesCache = countries;
-    cacheTimestamp = now;
+    setCache(cacheKey, countries);
     return countries;
   } catch (error) {
     console.error('Failed to fetch countries:', error);
-    return countriesCache ?? [];
+    return [];
   }
 }
