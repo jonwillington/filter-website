@@ -26,26 +26,8 @@ async function loadPrefetchedData(): Promise<Map<string, unknown>> {
     // Dynamic import to handle case where file doesn't exist (dev mode)
     const prefetched = await import('@/lib/data/prefetched');
 
-    if (prefetched.prefetchedShops?.length > 0) {
-      prefetchedData.set('shops', prefetched.prefetchedShops);
-      console.log(`[Cache] Loaded bundled shops: ${prefetched.prefetchedShops.length} items`);
-    }
-    if (prefetched.prefetchedCountries?.length > 0) {
-      prefetchedData.set('countries', prefetched.prefetchedCountries);
-      console.log(`[Cache] Loaded bundled countries: ${prefetched.prefetchedCountries.length} items`);
-    }
-    if (prefetched.prefetchedCityAreas?.length > 0) {
-      prefetchedData.set('city-areas', prefetched.prefetchedCityAreas);
-      console.log(`[Cache] Loaded bundled city-areas: ${prefetched.prefetchedCityAreas.length} items`);
-    }
-    if (prefetched.prefetchedBrands?.length > 0) {
-      prefetchedData.set('brands', prefetched.prefetchedBrands);
-      console.log(`[Cache] Loaded bundled brands: ${prefetched.prefetchedBrands.length} items`);
-    }
-    if (prefetched.prefetchedLocations?.length > 0) {
-      prefetchedData.set('locations', prefetched.prefetchedLocations);
-      console.log(`[Cache] Loaded bundled locations: ${prefetched.prefetchedLocations.length} items`);
-    }
+    // Shops, brands, city-areas, locations, and countries are served from D1 at runtime
+    // Only small static datasets (events, people, etc.) use bundled prefetch
 
     if (prefetched.PREFETCH_TIMESTAMP) {
       const age = Date.now() - prefetched.PREFETCH_TIMESTAMP;
@@ -63,12 +45,8 @@ async function loadPrefetchedData(): Promise<Map<string, unknown>> {
 // In dev: reads from filesystem. On Cloudflare Workers: fetches from own static assets.
 async function fetchStaticData<T>(key: string): Promise<T | null> {
   // Map keys to file names
+  // Shops, brands, city-areas, locations, and countries are served from D1 API routes
   const fileMap: Record<string, string> = {
-    shops: 'shops.json',
-    countries: 'countries.json',
-    'city-areas': 'city-areas.json',
-    brands: 'brands.json',
-    locations: 'locations.json',
     regions: 'regions.json',
     events: 'events.json',
     people: 'people.json',

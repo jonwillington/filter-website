@@ -214,9 +214,66 @@ function d1RowToShop(r: any): Shop {
   } as Shop;
 }
 
+/** Convert a D1 brand row to a Brand object */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function d1RowToBrand(r: any): Brand {
+  return {
+    id: r.id ?? 0,
+    documentId: r.document_id,
+    name: r.name || '',
+    type: r.type,
+    role: r.role,
+    description: r.description,
+    story: r.story,
+    statement: r.statement,
+    founded: r.founded,
+    founder: r.founder,
+    hq: r.hq,
+    price: r.price,
+    quality_tier: r.quality_tier,
+    logo: r.logo_url ? { url: r.logo_url, formats: parseJSON(r.logo_formats) } : null,
+    'bg-image': r.bg_image_url ? { url: r.bg_image_url, formats: parseJSON(r.bg_image_formats) } : null,
+    website: r.website,
+    instagram: r.instagram,
+    facebook: r.facebook,
+    tiktok: r.tiktok,
+    twitter: r.twitter,
+    youtube: r.youtube,
+    phone: r.phone,
+    whatsapp: r.whatsapp,
+    line: r.line,
+    roastOwnBeans: toBool(r.roast_own_beans),
+    ownRoastDesc: r.own_roast_desc,
+    ownBeanLink: r.own_bean_link,
+    specializes_light: toBool(r.specializes_light),
+    specializes_medium: toBool(r.specializes_medium),
+    specializes_dark: toBool(r.specializes_dark),
+    has_wifi: toBool(r.has_wifi),
+    has_food: toBool(r.has_food),
+    has_outdoor_space: toBool(r.has_outdoor_space),
+    is_pet_friendly: toBool(r.is_pet_friendly),
+    has_espresso: toBool(r.has_espresso),
+    has_filter_coffee: toBool(r.has_filter_coffee),
+    has_v60: toBool(r.has_v60),
+    has_chemex: toBool(r.has_chemex),
+    has_aeropress: toBool(r.has_aeropress),
+    has_french_press: toBool(r.has_french_press),
+    has_cold_brew: toBool(r.has_cold_brew),
+    has_batch_brew: toBool(r.has_batch_brew),
+    has_siphon: toBool(r.has_siphon),
+    oat_milk: toBool(r.oat_milk),
+    plant_milk: toBool(r.plant_milk),
+    equipment: parseJSON(r.equipment),
+    awards: parseJSON(r.awards),
+    research: parseJSON(r.research),
+    citedSources: parseJSON(r.cited_sources),
+    observations: parseJSON(r.observations),
+  } as Brand;
+}
+
 /** Convert a D1 location row to a Location object */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function d1RowToLocation(r: any): Location {
+export function d1RowToLocation(r: any): Location {
   return {
     id: r.id ?? 0,
     documentId: r.document_id,
@@ -255,7 +312,7 @@ function d1RowToLocation(r: any): Location {
 
 /** Convert a D1 country row to a Country object */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function d1RowToCountry(r: any): Country {
+export function d1RowToCountry(r: any): Country {
   return {
     id: r.id ?? 0,
     documentId: r.document_id,
@@ -280,7 +337,7 @@ function d1RowToCountry(r: any): Country {
 
 /** Convert a D1 city_area row to a CityArea object */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function d1RowToCityArea(r: any): CityArea {
+export function d1RowToCityArea(r: any): CityArea {
   return {
     id: r.id ?? 0,
     documentId: r.document_id,
@@ -414,6 +471,41 @@ export async function getAllCityAreasD1(): Promise<CityArea[] | null> {
     return result.results.map(d1RowToCityArea);
   } catch (e) {
     console.error('[D1] getAllCityAreasD1 failed:', e);
+    return null;
+  }
+}
+
+/** Fetch all brands from D1 */
+export async function getAllBrandsD1(): Promise<Brand[] | null> {
+  const db = await getD1DB();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .prepare('SELECT * FROM brands ORDER BY name')
+      .all();
+    console.log(`[D1] Loaded ${result.results.length} brands`);
+    return result.results.map(d1RowToBrand);
+  } catch (e) {
+    console.error('[D1] getAllBrandsD1 failed:', e);
+    return null;
+  }
+}
+
+/** Fetch shops by location from D1 */
+export async function getShopsByLocationD1(locationDocumentId: string): Promise<Shop[] | null> {
+  const db = await getD1DB();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .prepare(`${SHOP_BRAND_SELECT} WHERE s.location_document_id = ?1 ORDER BY s.name`)
+      .bind(locationDocumentId)
+      .all();
+    console.log(`[D1] Loaded ${result.results.length} shops for location ${locationDocumentId}`);
+    return result.results.map(d1RowToShop);
+  } catch (e) {
+    console.error('[D1] getShopsByLocationD1 failed:', e);
     return null;
   }
 }

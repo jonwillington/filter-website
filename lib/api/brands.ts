@@ -1,4 +1,4 @@
-import { getCached, setCache, getPrefetched } from './cache';
+import { getCached, setCache } from './cache';
 
 export interface Brand {
   id: number;
@@ -63,153 +63,36 @@ export interface ApiResponse<T> {
 }
 
 /**
- * Fetch all brands in a single batch request
- * Returns a Map for O(1) lookup by documentId
+ * Fetch all brands from D1.
+ * Returns a Map for O(1) lookup by documentId.
  */
 export async function getAllBrands(): Promise<Map<string, Brand>> {
   const cacheKey = 'brands:all';
   const cached = getCached<Map<string, Brand>>(cacheKey);
   if (cached) return cached;
 
-  // Check for pre-fetched data (from build-time prefetch script)
-  const prefetched = await getPrefetched<Brand[]>('brands');
-  if (prefetched) {
-    const brandMap = new Map<string, Brand>();
-    for (const brand of prefetched) {
-      if (brand.documentId) {
-        brandMap.set(brand.documentId, brand);
-      }
-    }
-    setCache(cacheKey, brandMap);
-    return brandMap;
-  }
-
+  // D1 is the source of truth
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
-    const populateParams = [
-      'populate[logo][fields][0]=url',
-      'populate[logo][fields][1]=formats',
-      'populate[suppliers][populate][logo][fields][0]=url',
-      'populate[suppliers][populate][logo][fields][1]=formats',
-      'populate[suppliers][populate][bg-image][fields][0]=url',
-      'populate[suppliers][populate][bg-image][fields][1]=formats',
-      'populate[suppliers][populate][country][fields][0]=name',
-      'populate[suppliers][populate][country][fields][1]=code',
-      'populate[suppliers][populate][ownRoastCountry][fields][0]=name',
-      'populate[suppliers][populate][ownRoastCountry][fields][1]=code',
-      'populate[ownRoastCountry][fields][0]=name',
-      'populate[ownRoastCountry][fields][1]=code',
-      'populate[beans][fields][0]=name',
-      'populate[beans][fields][1]=type',
-      'populate[beans][populate][origins][fields][0]=name',
-      'populate[beans][populate][origins][fields][1]=code',
-      'populate[beans][populate][flavorTags][fields][0]=name',
-      'populate[beans][populate][photo][fields][0]=url',
-      'populate[beans][populate][photo][fields][1]=formats',
-    ].join('&');
-    const fetchOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-      },
-      next: { revalidate: 300 },
-    };
-
-    // Fetch first page to get total page count
-    const firstResponse = await fetch(
-      `${baseUrl}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=1`,
-      fetchOptions
-    );
-
-    if (!firstResponse.ok) {
-      throw new Error(`Brands API Error: ${firstResponse.statusText}`);
-    }
-
-    const firstJson = await firstResponse.json();
-    const pageCount = firstJson.meta?.pagination?.pageCount || 1;
-    const allBrands: Brand[] = [...(firstJson.data || [])];
-
-    // Fetch remaining pages in parallel
-    if (pageCount > 1) {
-      const pagePromises = [];
-      for (let page = 2; page <= pageCount; page++) {
-        pagePromises.push(
-          fetch(
-            `${baseUrl}/brands?${populateParams}&pagination[pageSize]=100&pagination[page]=${page}`,
-            fetchOptions
-          ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
-        );
+    const { getAllBrandsD1 } = await import('./d1-queries');
+    const brands = await getAllBrandsD1();
+    if (brands && brands.length > 0) {
+      const brandMap = new Map<string, Brand>();
+      for (const brand of brands) {
+        if (brand.documentId) {
+          brandMap.set(brand.documentId, brand as unknown as Brand);
+        }
       }
-
-      const results = await Promise.all(pagePromises);
-      for (const json of results) {
-        allBrands.push(...(json.data || []));
-      }
+      setCache(cacheKey, brandMap);
+      return brandMap;
     }
-
-    // Create lookup map by documentId
-    const brandMap = new Map<string, Brand>();
-    for (const brand of allBrands) {
-      if (brand.documentId) {
-        brandMap.set(brand.documentId, brand);
-      }
-    }
-
-    setCache(cacheKey, brandMap);
-    return brandMap;
-  } catch (error) {
-    console.error('Failed to fetch brands:', error);
-    return new Map();
+  } catch {
+    // D1 not available (build time, dev without D1)
   }
+
+  return new Map();
 }
 
 export async function getBrandById(documentId: string): Promise<Brand | null> {
-  // Use batch-fetched brands cache when available
   const brandMap = await getAllBrands();
-  const cached = brandMap.get(documentId);
-  if (cached) return cached;
-
-  // Fallback to individual fetch (shouldn't happen often)
-  try {
-    const populateParams = [
-      'populate[logo][fields][0]=url',
-      'populate[logo][fields][1]=formats',
-      'populate[suppliers][populate][logo][fields][0]=url',
-      'populate[suppliers][populate][logo][fields][1]=formats',
-      'populate[suppliers][populate][bg-image][fields][0]=url',
-      'populate[suppliers][populate][bg-image][fields][1]=formats',
-      'populate[suppliers][populate][country][fields][0]=name',
-      'populate[suppliers][populate][country][fields][1]=code',
-      'populate[ownRoastCountry][fields][0]=name',
-      'populate[ownRoastCountry][fields][1]=code',
-      'populate[beans][fields][0]=name',
-      'populate[beans][fields][1]=type',
-      'populate[beans][populate][origins][fields][0]=name',
-      'populate[beans][populate][origins][fields][1]=code',
-      'populate[beans][populate][flavorTags][fields][0]=name',
-      'populate[beans][populate][photo][fields][0]=url',
-      'populate[beans][populate][photo][fields][1]=formats',
-    ].join('&');
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api'}/brands/${documentId}?${populateParams}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_STRAPI_TOKEN}`,
-        },
-        next: { revalidate: 300 },
-      }
-    );
-
-    if (!response.ok) {
-      console.error(`Failed to fetch brand ${documentId}:`, response.statusText);
-      return null;
-    }
-
-    const json: ApiResponse<Brand> = await response.json();
-    return json.data;
-  } catch (error) {
-    console.error(`Error fetching brand ${documentId}:`, error);
-    return null;
-  }
+  return brandMap.get(documentId) || null;
 }

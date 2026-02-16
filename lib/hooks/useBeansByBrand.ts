@@ -5,17 +5,21 @@ import { Bean, Brand } from '@/lib/types';
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
-async function fetchBrandsJSON(): Promise<Brand[]> {
+async function fetchBrands(): Promise<Brand[]> {
+  // D1 API route (no beans nested — brands table only)
   try {
-    // Try static file first (served from CDN, very fast)
+    const response = await fetch('/api/v2/brands');
+    if (response.ok) {
+      return response.json();
+    }
+  } catch {}
+  // Fallback to static JSON (still has beans nested from prefetch)
+  try {
     const response = await fetch('/data/brands.json');
     if (response.ok) {
       return response.json();
     }
-  } catch (e) {
-    // Static file not available
-  }
-  // Fall back to API route
+  } catch {}
   const response = await fetch('/api/data/brands');
   if (!response.ok) {
     throw new Error(`Failed to fetch brands: ${response.statusText}`);
@@ -31,7 +35,7 @@ export function useBrandsWithBeans() {
   return useQuery<Set<string>>({
     queryKey: ['brands-with-beans'],
     queryFn: async () => {
-      const brands = await fetchBrandsJSON();
+      const brands = await fetchBrands();
       const result = new Set<string>();
       for (const brand of brands) {
         if (brand.beans && (brand.beans as Bean[]).length > 0) {
@@ -45,8 +49,9 @@ export function useBrandsWithBeans() {
 }
 
 /**
- * Hook to fetch beans for a specific brand from prefetched data.
- * Beans are nested on brands in the prefetched data.
+ * Hook to fetch beans for a specific brand.
+ * First tries the shop detail endpoint (which includes beans),
+ * then falls back to static brands JSON.
  */
 export function useBeansByBrand(brandDocumentId: string | null | undefined, enabled = true) {
   return useQuery<Bean[]>({
@@ -54,10 +59,9 @@ export function useBeansByBrand(brandDocumentId: string | null | undefined, enab
     queryFn: async () => {
       if (!brandDocumentId) return [];
 
-      const brands = await fetchBrandsJSON();
+      const brands = await fetchBrands();
       const brand = brands.find(b => b.documentId === brandDocumentId);
 
-      // Beans are nested on the brand from prefetch
       return (brand?.beans as Bean[]) || [];
     },
     enabled: enabled && !!brandDocumentId,
