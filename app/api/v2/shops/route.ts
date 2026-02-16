@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllShopsD1, getShopsByLocationD1 } from '@/lib/api/d1-queries';
+import { getDB } from '@/lib/api/d1';
+import { SHOP_BRAND_SELECT, d1RowToShop } from '@/lib/api/d1-queries';
 
 /**
  * GET /api/v2/shops — Shop data for map/list from D1
@@ -13,32 +14,33 @@ import { getAllShopsD1, getShopsByLocationD1 } from '@/lib/api/d1-queries';
  */
 export async function GET(request: NextRequest) {
   try {
+    const db = await getDB();
     const { searchParams } = new URL(request.url);
-    const location = searchParams.get('location');
     const country = searchParams.get('country');
+    const location = searchParams.get('location');
 
-    let shops;
-
-    if (location) {
-      // Optimized: location-scoped query
-      shops = await getShopsByLocationD1(location);
-    } else {
-      // All shops
-      shops = await getAllShopsD1();
-    }
-
-    if (!shops) {
-      return NextResponse.json(
-        { error: 'D1 not available' },
-        { status: 503 }
-      );
-    }
-
-    // Apply country filter if specified (client-side filter on already-transformed data)
+    const conditions: string[] = [];
+    const params: string[] = [];
     if (country) {
-      const countryUpper = country.toUpperCase();
-      shops = shops.filter(s => s.country?.code === countryUpper);
+      params.push(country.toUpperCase());
+      conditions.push(`s.country_code = ?${params.length}`);
     }
+    if (location) {
+      params.push(location);
+      conditions.push(`s.location_document_id = ?${params.length}`);
+    }
+
+    let query = SHOP_BRAND_SELECT;
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    query += ' ORDER BY s.name';
+
+    const result = params.length > 0
+      ? await db.prepare(query).bind(...params).all()
+      : await db.prepare(query).all();
+
+    const shops = result.results.map(d1RowToShop);
 
     return NextResponse.json(shops, {
       headers: {

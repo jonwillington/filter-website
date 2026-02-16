@@ -26,7 +26,7 @@ function toBool(v: any): boolean | undefined {
  * The full SELECT query for shops with brand JOIN.
  * Reused by getAllShopsD1 and getShopBySlugD1.
  */
-const SHOP_BRAND_SELECT = `
+export const SHOP_BRAND_SELECT = `
   SELECT
     s.document_id, s.id, s.name, s.slug, s.pref_name, s.description,
     s.address, s.postal_code, s.neighbourhood,
@@ -86,7 +86,7 @@ const SHOP_BRAND_SELECT = `
  * Ported from useDataQueries.ts client-side d1RowToShop.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function d1RowToShop(r: any): Shop {
+export function d1RowToShop(r: any): Shop {
   const brand: Brand | undefined = r.b_document_id ? {
     id: r.b_id ?? 0,
     documentId: r.b_document_id,
