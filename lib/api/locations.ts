@@ -154,6 +154,7 @@ export async function getLocationBySlug(slug: string): Promise<Location | null> 
     const nameSearch = deslugify(slug).toLowerCase();
 
     return (
+      locations.find((loc) => loc.slug === slug) ??
       locations.find(
         (loc) =>
           loc.name.toLowerCase() === nameSearch ||

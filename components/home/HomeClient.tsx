@@ -5,6 +5,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { LandingPage } from './LandingPage';
 import { useHomeData } from '@/lib/hooks/useDataQueries';
 import { Country, Location, Shop } from '@/lib/types';
+import { slugify } from '@/lib/utils';
 
 /**
  * HomeClient handles client-side data fetching for the homepage.
@@ -69,17 +70,25 @@ export function HomeClient() {
 
   const handleLocationSelect = useCallback((location: Location) => {
     setInitialLocation(location);
+    const countrySlug = slugify(location.country?.name ?? '');
+    const citySlug = location.slug || slugify(location.name);
+    window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
     transitionToMap();
   }, [transitionToMap]);
 
   const handleShopSelect = useCallback((shop: Shop) => {
     // Find the shop's location so MainLayout can center on it
-    if (shop.location) {
-      setInitialLocation(shop.location);
-    } else if (shop.city_area?.location) {
-      setInitialLocation(shop.city_area.location as Location);
+    const location = shop.location || (shop.city_area?.location as Location);
+    if (location) {
+      setInitialLocation(location);
     }
     setInitialShop(shop);
+    const countrySlug = slugify(location?.country?.name ?? '');
+    const citySlug = location?.slug || slugify(location?.name ?? '');
+    const cityArea = shop.city_area || shop.cityArea;
+    const areaSlug = cityArea?.slug || (cityArea?.name ? slugify(cityArea.name) : 'all');
+    const shopSlug = shop.slug || slugify(shop.name);
+    window.history.pushState(null, '', `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`);
     transitionToMap();
   }, [transitionToMap]);
 
