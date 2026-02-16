@@ -14,7 +14,13 @@
     "preview": "wrangler pages dev",
     "start": "next start",
     "lint": "next lint",
-    "trigger-rebuild": "./scripts/trigger-rebuild.sh"
+    "trigger-rebuild": "./scripts/trigger-rebuild.sh",
+    "d1:schema": "npx wrangler d1 execute filter-db --file=db/schema.sql",
+    "d1:schema:remote": "npx wrangler d1 execute filter-db --file=db/schema.sql --remote",
+    "d1:seed": "node scripts/seed-d1.js",
+    "d1:seed:remote": "node scripts/seed-d1.js --remote",
+    "d1:setup": "npm run d1:schema && npm run d1:seed",
+    "d1:setup:remote": "npm run d1:schema:remote && npm run d1:seed:remote"
   },
   "dependencies": {
     "@heroui/react": "2.6.14",

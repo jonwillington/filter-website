@@ -54,3 +54,6 @@ Thumbs.db
 
 # Build marker file
 .open-next-building
+
+# Wrangler local state
+.wrangler/

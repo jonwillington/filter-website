@@ -4,3 +4,8 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".open-next/assets"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "filter-db"
+database_id = "bd805713-96be-45b4-b26d-d45937360d36"
+
