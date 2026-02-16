@@ -42,6 +42,10 @@ async function loadPrefetchedData(): Promise<Map<string, unknown>> {
       prefetchedData.set('brands', prefetched.prefetchedBrands);
       console.log(`[Cache] Loaded bundled brands: ${prefetched.prefetchedBrands.length} items`);
     }
+    if (prefetched.prefetchedLocations?.length > 0) {
+      prefetchedData.set('locations', prefetched.prefetchedLocations);
+      console.log(`[Cache] Loaded bundled locations: ${prefetched.prefetchedLocations.length} items`);
+    }
 
     if (prefetched.PREFETCH_TIMESTAMP) {
       const age = Date.now() - prefetched.PREFETCH_TIMESTAMP;

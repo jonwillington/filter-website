@@ -68,7 +68,7 @@ export const ComingSoonChip = ({ children = 'Coming Soon', ...props }: Omit<Stat
 /**
  * AmenityChip - Chip for displaying shop amenities
  */
-const chipBase = 'bg-white dark:bg-white/10 border border-border-default h-[34px] min-w-[50px] px-2.5';
+const chipBase = 'bg-white dark:bg-white/10 border border-border-default h-[28px] min-w-[50px] px-[.225rem]';
 const chipContent = 'text-primary text-[11px] font-mono';
 
 export const AmenityChip = ({ children, ...props }: Omit<StatusChipProps, 'status' | 'icon'>) => (
@@ -95,7 +95,7 @@ export const OwnRoastChip = ({ children = 'Own roast', ...props }: Omit<StatusCh
     size="sm"
     radius="full"
     classNames={{
-      base: 'bg-amber-50 dark:bg-amber-900/30 h-[34px] px-1.5',
+      base: 'bg-amber-50 dark:bg-amber-900/30 h-[28px] px-[.225rem]',
       content: 'text-amber-700 dark:text-amber-300 text-[11px] font-medium font-mono pr-0',
     }}
     {...props}
