@@ -4,30 +4,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Shop, Country, Location, CityArea, Event, Person, NewsArticle, Brand } from '@/lib/types';
 
-/** Lightweight shop shape returned by /api/v2/shops (D1 summaries) */
-export interface ShopSummary {
-  documentId: string;
-  name: string;
-  slug: string | null;
-  prefName: string | null;
-  lat: number | null;
-  lng: number | null;
-  brandName: string | null;
-  brandType: string | null;
-  brandLogoUrl: string | null;
-  brandStatement: string | null;
-  brandDocumentId: string | null;
-  countryCode: string | null;
-  locationName: string | null;
-  locationSlug: string | null;
-  cityAreaName: string | null;
-  cityAreaGroup: string | null;
-  googleRating: number | null;
-  localDensity: number;
-  featuredImageUrl: string | null;
-  qualityTier: string | null;
-}
-
 // Stable empty arrays to prevent re-render loops
 const EMPTY_SHOPS: Shop[] = [];
 const EMPTY_COUNTRIES: Country[] = [];
@@ -63,46 +39,136 @@ async function fetchWithFallback<T>(staticPath: string, apiPath: string): Promis
   return fetchJSON<T>(apiPath);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toBool(v: any): boolean | undefined {
+  if (v === null || v === undefined) return undefined;
+  return v === 1 || v === true;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseJSON(v: any): any {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string') {
+    try { return JSON.parse(v); } catch { return null; }
+  }
+  return v;
+}
+
 /**
- * Convert a D1 ShopSummary to the Shop shape expected by map/list components.
- * Only summary fields are populated — detail fields will be null/undefined.
+ * Convert a D1 row (snake_case) to the Shop shape expected by components.
+ * Includes all fields needed for map pins, list cards, filtering, and grouping.
  */
-function summaryToShop(s: ShopSummary): Shop {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function d1RowToShop(r: any): Shop {
   return {
-    id: 0,
-    documentId: s.documentId,
-    name: s.name,
-    slug: s.slug,
-    prefName: s.prefName,
-    coordinates: s.lat != null ? { lat: s.lat, lng: s.lng! } : null,
-    brand: s.brandDocumentId ? {
+    id: r.id ?? 0,
+    documentId: r.document_id,
+    name: r.name,
+    slug: r.slug,
+    prefName: r.pref_name,
+    description: r.description,
+    address: r.address,
+    neighbourhood: r.neighbourhood,
+    coordinates: r.lat != null ? { lat: r.lat, lng: r.lng } : null,
+    localDensity: r.local_density ?? 0,
+    quality_tier: r.quality_tier,
+
+    // Brand
+    brand: r.brand_document_id ? {
       id: 0,
-      documentId: s.brandDocumentId,
-      name: s.brandName || '',
-      type: s.brandType,
-      logo: s.brandLogoUrl ? { url: s.brandLogoUrl } : null,
-      statement: s.brandStatement,
+      documentId: r.brand_document_id,
+      name: r.brand_name || '',
+      type: r.brand_type,
+      logo: r.brand_logo_url ? { url: r.brand_logo_url } : null,
+      statement: r.brand_statement,
+      roastOwnBeans: toBool(r.brand_roast_own_beans),
     } : undefined,
-    country: s.countryCode ? { id: 0, documentId: '', name: '', code: s.countryCode } : undefined,
-    location: s.locationName ? { id: 0, documentId: '', name: s.locationName, slug: s.locationSlug || undefined } : undefined,
-    city_area: s.cityAreaName ? { id: 0, documentId: '', name: s.cityAreaName, group: s.cityAreaGroup } : undefined,
-    google_rating: s.googleRating,
-    localDensity: s.localDensity,
-    featured_image: s.featuredImageUrl ? { url: s.featuredImageUrl } : null,
-  };
+
+    // Location
+    location: r.location_document_id ? {
+      id: 0,
+      documentId: r.location_document_id,
+      name: r.location_name || '',
+      slug: r.location_slug || undefined,
+    } : undefined,
+
+    // City area
+    city_area: r.city_area_document_id ? {
+      id: 0,
+      documentId: r.city_area_document_id,
+      name: r.city_area_name || '',
+      group: r.city_area_group,
+      // Provide nested location for components that access city_area.location.documentId
+      location: r.location_document_id ? {
+        documentId: r.location_document_id,
+        name: r.location_name || '',
+      } : undefined,
+    } : undefined,
+
+    // Country
+    country: r.country_code ? { id: 0, documentId: '', name: '', code: r.country_code } : undefined,
+
+    // Featured image
+    featured_image: r.featured_image_url ? {
+      url: r.featured_image_url,
+      formats: parseJSON(r.featured_image_formats),
+    } : null,
+
+    // Ratings
+    google_rating: r.google_rating,
+    google_review_count: r.google_review_count,
+
+    // Flags
+    independent: toBool(r.independent),
+    is_chain: toBool(r.is_chain),
+    cityarearec: toBool(r.city_area_rec),
+    cityAreaRec: toBool(r.city_area_rec),
+    workingRec: toBool(r.working_rec),
+    interiorRec: toBool(r.interior_rec),
+    brewingRec: toBool(r.brewing_rec),
+
+    // Amenities & brew methods
+    has_wifi: toBool(r.has_wifi),
+    has_food: toBool(r.has_food),
+    has_outdoor_space: toBool(r.has_outdoor_space),
+    is_pet_friendly: toBool(r.is_pet_friendly),
+    has_v60: toBool(r.has_v60),
+    has_chemex: toBool(r.has_chemex),
+    has_filter_coffee: toBool(r.has_filter_coffee),
+    has_slow_bar: toBool(r.has_slow_bar),
+    has_kitchen: toBool(r.has_kitchen),
+    has_espresso: toBool(r.has_espresso),
+    has_aeropress: toBool(r.has_aeropress),
+    has_french_press: toBool(r.has_french_press),
+    has_cold_brew: toBool(r.has_cold_brew),
+    has_batch_brew: toBool(r.has_batch_brew),
+
+    // Tags
+    public_tags: parseJSON(r.public_tags),
+  } as Shop;
 }
 
 export function useShopsQuery() {
   return useQuery<Shop[]>({
     queryKey: ['shops'],
     queryFn: async () => {
-      // Fetch shops (slim brand data) and full brands in parallel
+      // Try D1 edge API first
+      try {
+        const response = await fetch('/api/v2/shops');
+        if (response.ok) {
+          const rows = await response.json();
+          return (rows as Record<string, unknown>[]).map(d1RowToShop);
+        }
+      } catch {
+        // D1 not available, fall back to static JSON
+      }
+
+      // Fallback: static JSON files (original approach)
       const [shops, brands] = await Promise.all([
         fetchWithFallback<Shop[]>('/data/shops.json', '/api/data/shops'),
         fetchWithFallback<Brand[]>('/data/brands.json', '/api/data/brands'),
       ]);
 
-      // Merge full brand data into shops (same pattern as prefetch script)
       const brandMap = new Map(brands.map(b => [b.documentId, b]));
       return shops.map(shop => {
         if (shop.brand?.documentId) {
