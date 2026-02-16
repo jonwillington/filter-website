@@ -59,7 +59,8 @@ async function loadPrefetchedData(): Promise<Map<string, unknown>> {
   return prefetchedData;
 }
 
-// Fetch from static JSON files (used in dev mode when bundled data is empty)
+// Fetch from static JSON files
+// In dev: reads from filesystem. On Cloudflare Workers: fetches from own static assets.
 async function fetchStaticData<T>(key: string): Promise<T | null> {
   // Map keys to file names
   const fileMap: Record<string, string> = {
@@ -77,7 +78,7 @@ async function fetchStaticData<T>(key: string): Promise<T | null> {
   const fileName = fileMap[key];
   if (!fileName) return null;
 
-  // In development, read directly from filesystem (more reliable than fetching)
+  // Try filesystem first (works in dev and during build)
   if (typeof process !== 'undefined' && process.cwd) {
     try {
       const fs = await import('fs/promises');
@@ -88,8 +89,22 @@ async function fetchStaticData<T>(key: string): Promise<T | null> {
       console.log(`[Cache] Loaded ${key} from static file: ${Array.isArray(data) ? data.length : 1} items`);
       return data as T;
     } catch (e) {
-      console.log(`[Cache] Could not load ${key} from static file:`, e);
+      // Filesystem not available (e.g. Cloudflare Workers)
     }
+  }
+
+  // Fallback: fetch from own static assets (works on Cloudflare Pages Workers)
+  // The static JSON files are deployed as CDN assets alongside the Worker
+  try {
+    const siteUrl = process.env.SITE_URL || process.env.CF_PAGES_URL || 'https://filter.coffee';
+    const response = await fetch(`${siteUrl}/data/${fileName}`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`[Cache] Loaded ${key} from static URL: ${Array.isArray(data) ? data.length : 1} items`);
+      return data as T;
+    }
+  } catch (e) {
+    console.log(`[Cache] Could not fetch ${key} from static URL`);
   }
 
   return null;
