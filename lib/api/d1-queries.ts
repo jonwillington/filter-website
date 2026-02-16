@@ -375,15 +375,45 @@ async function getD1DB(): Promise<D1Database | null> {
   }
 }
 
+/**
+ * Merge brand row data into a shop row with b_ prefix, then transform.
+ * Used to work around D1's column limit (cannot JOIN shops + brands in one SELECT).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mergeShopWithBrand(shop: any, brandsMap: Map<string, any>): Shop {
+  const brandDocId = shop.brand_document_id;
+  if (brandDocId) {
+    const brand = brandsMap.get(brandDocId);
+    if (brand) {
+      const merged = { ...shop };
+      for (const [key, value] of Object.entries(brand)) {
+        merged[`b_${key}`] = value;
+      }
+      return d1RowToShop(merged);
+    }
+  }
+  return d1RowToShop(shop);
+}
+
 /** Fetch all shops from D1 with full brand data */
 export async function getAllShopsD1(): Promise<Shop[] | null> {
   const db = await getD1DB();
   if (!db) return null;
 
   try {
-    const result = await db.prepare(`${SHOP_BRAND_SELECT} ORDER BY s.name`).all();
-    console.log(`[D1] Loaded ${result.results.length} shops`);
-    return result.results.map(d1RowToShop);
+    // Two separate queries to avoid D1 column limit on JOINs
+    const [shopsResult, brandsResult] = await Promise.all([
+      db.prepare('SELECT * FROM shops ORDER BY name').all(),
+      db.prepare('SELECT * FROM brands').all(),
+    ]);
+
+    const brandsMap = new Map<string, Record<string, unknown>>();
+    for (const b of brandsResult.results) {
+      brandsMap.set(b.document_id as string, b as Record<string, unknown>);
+    }
+
+    console.log(`[D1] Loaded ${shopsResult.results.length} shops`);
+    return shopsResult.results.map(shop => mergeShopWithBrand(shop, brandsMap));
   } catch (e) {
     console.error('[D1] getAllShopsD1 failed:', e);
     return null;
@@ -396,11 +426,28 @@ export async function getShopBySlugD1(slug: string): Promise<Shop | null> {
   if (!db) return null;
 
   try {
-    const row = await db
-      .prepare(`${SHOP_BRAND_SELECT} WHERE s.slug = ?1`)
+    const shop = await db
+      .prepare('SELECT * FROM shops WHERE slug = ?1')
       .bind(slug)
       .first();
-    return row ? d1RowToShop(row) : null;
+    if (!shop) return null;
+
+    // Fetch brand separately if shop has one (avoids D1 column limit)
+    const brandDocId = shop.brand_document_id as string | null;
+    if (brandDocId) {
+      const brand = await db
+        .prepare('SELECT * FROM brands WHERE document_id = ?1')
+        .bind(brandDocId)
+        .first();
+      if (brand) {
+        const merged: Record<string, unknown> = { ...(shop as Record<string, unknown>) };
+        for (const [key, value] of Object.entries(brand as Record<string, unknown>)) {
+          merged[`b_${key}`] = value;
+        }
+        return d1RowToShop(merged);
+      }
+    }
+    return d1RowToShop(shop);
   } catch (e) {
     console.error('[D1] getShopBySlugD1 failed:', e);
     return null;
@@ -498,12 +545,21 @@ export async function getShopsByLocationD1(locationDocumentId: string): Promise<
   if (!db) return null;
 
   try {
-    const result = await db
-      .prepare(`${SHOP_BRAND_SELECT} WHERE s.location_document_id = ?1 ORDER BY s.name`)
-      .bind(locationDocumentId)
-      .all();
-    console.log(`[D1] Loaded ${result.results.length} shops for location ${locationDocumentId}`);
-    return result.results.map(d1RowToShop);
+    // Two separate queries to avoid D1 column limit on JOINs
+    const [shopsResult, brandsResult] = await Promise.all([
+      db.prepare('SELECT * FROM shops WHERE location_document_id = ?1 ORDER BY name')
+        .bind(locationDocumentId)
+        .all(),
+      db.prepare('SELECT * FROM brands').all(),
+    ]);
+
+    const brandsMap = new Map<string, Record<string, unknown>>();
+    for (const b of brandsResult.results) {
+      brandsMap.set(b.document_id as string, b as Record<string, unknown>);
+    }
+
+    console.log(`[D1] Loaded ${shopsResult.results.length} shops for location ${locationDocumentId}`);
+    return shopsResult.results.map(shop => mergeShopWithBrand(shop, brandsMap));
   } catch (e) {
     console.error('[D1] getShopsByLocationD1 failed:', e);
     return null;
