@@ -2,7 +2,7 @@ import { Country } from '../types';
 import { getCached, setCache, loadFromStaticFile } from './cache';
 
 export async function getAllCountries(): Promise<Country[]> {
-  const cacheKey = 'countries:all';
+  const cacheKey = 'countries:list';
   const cached = getCached<Country[]>(cacheKey);
   if (cached) return cached;
 
