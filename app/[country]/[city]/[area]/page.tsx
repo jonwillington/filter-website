@@ -1,5 +1,6 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug, getCityAreaBySlug, getAllCityAreas } from '@/lib/api/locations';
+import { getAllShops } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { getAllEvents } from '@/lib/api/events';
 import { notFound } from 'next/navigation';
@@ -74,7 +75,8 @@ export default async function AreaPage({ params }: AreaPageProps) {
     notFound();
   }
 
-  const [countries, events] = await Promise.all([
+  const [allShops, countries, events] = await Promise.all([
+    withTimeout(getAllShops(), 8000, []),
     withTimeout(getAllCountries(), 5000, []),
     withTimeout(getAllEvents(), 5000, []),
   ]);
@@ -83,10 +85,9 @@ export default async function AreaPage({ params }: AreaPageProps) {
     <MainLayout
       locations={locations}
       initialLocation={location}
-      shops={[]}
+      shops={allShops}
       countries={countries}
       events={events}
-      isClientSideLoading
     />
   );
 }

@@ -1,6 +1,6 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
-import { getShopBySlug, getAllShops } from '@/lib/api/shops';
+import { getAllShops, getShopBySlug } from '@/lib/api/shops';
 import { getAllCountries } from '@/lib/api/countries';
 import { getAllEvents } from '@/lib/api/events';
 import { notFound } from 'next/navigation';
@@ -114,7 +114,8 @@ export default async function ShopPage({ params }: ShopPageProps) {
     notFound();
   }
 
-  const [countries, events] = await Promise.all([
+  const [allShops, countries, events] = await Promise.all([
+    withTimeout(getAllShops(), 8000, []),
     withTimeout(getAllCountries(), 5000, []),
     withTimeout(getAllEvents(), 5000, []),
   ]);
@@ -186,11 +187,10 @@ export default async function ShopPage({ params }: ShopPageProps) {
       <MainLayout
         locations={locations}
         initialLocation={location}
-        shops={[]}
+        shops={allShops}
         initialShop={shop}
         countries={countries}
         events={events}
-        isClientSideLoading
       />
     </>
   );
