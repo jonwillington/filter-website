@@ -1,7 +1,11 @@
-const { initOpenNextCloudflareForDev } = require('@opennextjs/cloudflare');
-
+// Enable D1 access during local dev (only runs in dev mode)
 if (process.env.NODE_ENV === 'development') {
-  initOpenNextCloudflareForDev();
+  try {
+    const { initOpenNextCloudflareForDev } = require('@opennextjs/cloudflare');
+    initOpenNextCloudflareForDev();
+  } catch {
+    // Silently skip if not available
+  }
 }
 
 /** @type {import('next').NextConfig} */
