@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDB } from '@/lib/api/d1';
 
-export const runtime = 'edge';
-
 /**
  * GET /api/v2/shops — Shop summaries for map/list
  *
