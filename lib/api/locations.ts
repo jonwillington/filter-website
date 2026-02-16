@@ -54,7 +54,7 @@ async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
 
     // Fetch first page to get total page count
     const firstResponse = await fetch(
-      `${baseUrl}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=1`,
+      `${baseUrl}/locations?populate[country]=*&populate[background_image]=*&populate[story_author][fields][0]=name&populate[story_author][populate][avatar][fields][0]=url&pagination[pageSize]=100&pagination[page]=1`,
       fetchOptions
     );
 
@@ -73,7 +73,7 @@ async function fetchAllLocationsFromStrapi(): Promise<Location[]> {
       for (let page = 2; page <= pageCount; page++) {
         pagePromises.push(
           fetch(
-            `${baseUrl}/locations?populate[country]=*&populate[background_image]=*&pagination[pageSize]=100&pagination[page]=${page}`,
+            `${baseUrl}/locations?populate[country]=*&populate[background_image]=*&populate[story_author][fields][0]=name&populate[story_author][populate][avatar][fields][0]=url&pagination[pageSize]=100&pagination[page]=${page}`,
             fetchOptions
           ).then(res => res.ok ? res.json() : Promise.reject(new Error(`Page ${page} failed`)))
         );

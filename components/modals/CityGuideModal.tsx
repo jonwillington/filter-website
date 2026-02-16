@@ -122,6 +122,31 @@ export function CityGuideModal({
             <p key={i}>{paragraph}</p>
           ))}
         </div>
+
+        {/* Story author attribution */}
+        {location.story_author?.name && (
+          <div className="mt-6 pt-4 border-t border-border-default flex items-center gap-3">
+            {getMediaUrl(location.story_author.avatar) ? (
+              <Image
+                src={getMediaUrl(location.story_author.avatar)!}
+                alt={location.story_author.name}
+                width={28}
+                height={28}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-border-default flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+            )}
+            <span className="text-sm italic text-text-secondary">
+              Written by {location.story_author.name}
+            </span>
+          </div>
+        )}
       </div>
     </ResponsiveModal>
   );

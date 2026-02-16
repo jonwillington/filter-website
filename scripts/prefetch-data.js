@@ -250,6 +250,8 @@ async function main() {
       'populate[country][fields][4]=secondaryColor',
       'populate[background_image][fields][0]=url',
       'populate[background_image][fields][1]=formats',
+      'populate[story_author][fields][0]=name',
+      'populate[story_author][populate][avatar][fields][0]=url',
     ].join('&');
     const locations = await fetchPaginated('locations', locationPopulate);
     fs.writeFileSync(path.join(dataDir, 'locations.json'), JSON.stringify(locations, null, 2));

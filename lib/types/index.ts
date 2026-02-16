@@ -56,6 +56,12 @@ export interface Location {
   beta?: boolean;
   comingSoon?: boolean;
   story?: string | null;
+  story_author?: {
+    id: number;
+    documentId: string;
+    name: string;
+    avatar?: MediaAsset | null;
+  } | null;
   headline?: string | null;
   primaryColor?: string;
   secondaryColor?: string;
