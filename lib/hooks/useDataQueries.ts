@@ -55,11 +55,53 @@ function parseJSON(v: any): any {
 }
 
 /**
- * Convert a D1 row (snake_case) to the Shop shape expected by components.
- * Includes all fields needed for map pins, list cards, filtering, and grouping.
+ * Convert a D1 row (snake_case with b_ prefixed brand columns) to the
+ * Shop shape expected by all components. Includes full brand data.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function d1RowToShop(r: any): Shop {
+  // Build full brand object from b_ prefixed columns
+  const brand: Brand | undefined = r.b_document_id ? {
+    id: r.b_id ?? 0,
+    documentId: r.b_document_id,
+    name: r.b_name || '',
+    type: r.b_type,
+    role: r.b_role,
+    description: r.b_description,
+    story: r.b_story,
+    statement: r.b_statement,
+    founded: r.b_founded,
+    founder: r.b_founder,
+    logo: r.b_logo_url ? { url: r.b_logo_url, formats: parseJSON(r.b_logo_formats) } : null,
+    'bg-image': r.b_bg_image_url ? { url: r.b_bg_image_url, formats: parseJSON(r.b_bg_image_formats) } : null,
+    website: r.b_website,
+    instagram: r.b_instagram,
+    facebook: r.b_facebook,
+    tiktok: r.b_tiktok,
+    phone: r.b_phone,
+    roastOwnBeans: toBool(r.b_roast_own_beans),
+    ownRoastDesc: r.b_own_roast_desc,
+    ownBeanLink: r.b_own_bean_link,
+    specializes_light: toBool(r.b_specializes_light),
+    specializes_medium: toBool(r.b_specializes_medium),
+    specializes_dark: toBool(r.b_specializes_dark),
+    has_wifi: toBool(r.b_has_wifi),
+    has_food: toBool(r.b_has_food),
+    has_outdoor_space: toBool(r.b_has_outdoor_space),
+    is_pet_friendly: toBool(r.b_is_pet_friendly),
+    has_espresso: toBool(r.b_has_espresso),
+    has_filter_coffee: toBool(r.b_has_filter_coffee),
+    has_v60: toBool(r.b_has_v60),
+    has_chemex: toBool(r.b_has_chemex),
+    has_aeropress: toBool(r.b_has_aeropress),
+    has_french_press: toBool(r.b_has_french_press),
+    has_cold_brew: toBool(r.b_has_cold_brew),
+    has_batch_brew: toBool(r.b_has_batch_brew),
+    equipment: parseJSON(r.b_equipment),
+    awards: parseJSON(r.b_awards),
+    citedSources: parseJSON(r.b_cited_sources),
+  } : undefined;
+
   return {
     id: r.id ?? 0,
     documentId: r.document_id,
@@ -71,18 +113,9 @@ function d1RowToShop(r: any): Shop {
     neighbourhood: r.neighbourhood,
     coordinates: r.lat != null ? { lat: r.lat, lng: r.lng } : null,
     localDensity: r.local_density ?? 0,
-    quality_tier: r.quality_tier,
 
-    // Brand
-    brand: r.brand_document_id ? {
-      id: 0,
-      documentId: r.brand_document_id,
-      name: r.brand_name || '',
-      type: r.brand_type,
-      logo: r.brand_logo_url ? { url: r.brand_logo_url } : null,
-      statement: r.brand_statement,
-      roastOwnBeans: toBool(r.brand_roast_own_beans),
-    } : undefined,
+    // Brand (full object)
+    brand,
 
     // Location
     location: r.location_document_id ? {
@@ -98,7 +131,6 @@ function d1RowToShop(r: any): Shop {
       documentId: r.city_area_document_id,
       name: r.city_area_name || '',
       group: r.city_area_group,
-      // Provide nested location for components that access city_area.location.documentId
       location: r.location_document_id ? {
         documentId: r.location_document_id,
         name: r.location_name || '',
@@ -114,9 +146,33 @@ function d1RowToShop(r: any): Shop {
       formats: parseJSON(r.featured_image_formats),
     } : null,
 
+    // Gallery & menus
+    gallery: parseJSON(r.gallery),
+    menus: parseJSON(r.menus),
+
+    // Coffee partner
+    coffee_partner: r.coffee_partner_document_id ? {
+      id: 0,
+      documentId: r.coffee_partner_document_id,
+      name: r.coffee_partner_name || '',
+      logo: r.coffee_partner_logo_url ? { url: r.coffee_partner_logo_url } : null,
+    } : null,
+
     // Ratings
     google_rating: r.google_rating,
     google_review_count: r.google_review_count,
+
+    // Google Places
+    google_place_id: r.google_place_id,
+    google_formatted_address: r.google_formatted_address,
+
+    // Contact
+    website: r.website,
+    phone: r.phone,
+    phone_number: r.phone_number,
+    instagram: r.instagram,
+    facebook: r.facebook,
+    tiktok: r.tiktok,
 
     // Flags
     independent: toBool(r.independent),
@@ -143,8 +199,18 @@ function d1RowToShop(r: any): Shop {
     has_cold_brew: toBool(r.has_cold_brew),
     has_batch_brew: toBool(r.has_batch_brew),
 
-    // Tags
+    // Tags & hours
     public_tags: parseJSON(r.public_tags),
+    opening_hours: parseJSON(r.opening_hours),
+
+    // JSON fields
+    research: parseJSON(r.research),
+    citedSources: parseJSON(r.cited_sources),
+
+    // Metadata
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    publishedAt: r.published_at,
   } as Shop;
 }
 
