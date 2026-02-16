@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDB } from '@/lib/api/d1';
-import { SHOP_BRAND_SELECT, d1RowToShop } from '@/lib/api/d1-queries';
+import { SHOP_BRAND_SELECT } from '@/lib/api/d1-queries';
 
 /**
  * GET /api/v2/shops — Shop data for map/list from D1
  *
- * Returns transformed Shop objects with full brand data.
- * Only beans and suppliers are deferred to /api/v2/shops/[id].
+ * Returns raw D1 rows (snake_case with b_ brand prefix).
+ * Client transforms to TypeScript Shop shape via d1RowToShop.
  *
  * Query params:
  *   ?country=tr              — filter by ISO country code
@@ -40,9 +40,7 @@ export async function GET(request: NextRequest) {
       ? await db.prepare(query).bind(...params).all()
       : await db.prepare(query).all();
 
-    const shops = result.results.map(d1RowToShop);
-
-    return NextResponse.json(shops, {
+    return NextResponse.json(result.results, {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
