@@ -130,9 +130,9 @@ export function CityGuideModal({
         {/* Story author attribution */}
         {location.storyAuthor?.name && (
           <div className="mt-6 pt-4 border-t border-border-default flex items-center gap-3">
-            {getMediaUrl(location.storyAuthor.avatar) ? (
+            {getMediaUrl(location.storyAuthor.photo) ? (
               <Image
-                src={getMediaUrl(location.storyAuthor.avatar)!}
+                src={getMediaUrl(location.storyAuthor.photo)!}
                 alt={location.storyAuthor.name}
                 width={28}
                 height={28}

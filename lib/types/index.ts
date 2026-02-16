@@ -81,7 +81,7 @@ export interface Location {
     id: number;
     documentId: string;
     name: string;
-    avatar?: MediaAsset | null;
+    photo?: MediaAsset | null;
   } | null;
   headline?: string | null;
   primaryColor?: string;

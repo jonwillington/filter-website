@@ -251,7 +251,7 @@ async function main() {
       'populate[background_image][fields][0]=url',
       'populate[background_image][fields][1]=formats',
       'populate[storyAuthor][fields][0]=name',
-      'populate[storyAuthor][populate][avatar][fields][0]=url',
+      'populate[storyAuthor][populate][photo][fields][0]=url',
     ].join('&');
     const locations = await fetchPaginated('locations', locationPopulate);
     fs.writeFileSync(path.join(dataDir, 'locations.json'), JSON.stringify(locations, null, 2));
