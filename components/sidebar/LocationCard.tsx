@@ -4,6 +4,7 @@ import { memo } from 'react';
 import Image from 'next/image';
 import { Location } from '@/lib/types';
 import { getMediaUrl } from '@/lib/utils';
+import { getStoryText } from '@/lib/utils/storyBlocks';
 import { Star, ArrowRight } from 'lucide-react';
 
 interface LocationCardProps {
@@ -25,7 +26,7 @@ function LocationCardComponent({ location, onReadCityGuide }: LocationCardProps)
     location.country?.primaryColor ||
     '#8B6F47';
 
-  const storyText = location.story || `Discover the best specialty coffee shops in ${location.name}. Our curated guide covers independent roasters, hidden gems, and the cafes locals love.`;
+  const storyText = getStoryText(location.story) || `Discover the best specialty coffee shops in ${location.name}. Our curated guide covers independent roasters, hidden gems, and the cafes locals love.`;
 
   return (
     <div className="border-b border-border-default">

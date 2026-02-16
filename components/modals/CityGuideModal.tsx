@@ -8,6 +8,7 @@ import { StarRating } from '@/components/ui/StarRating';
 import { getMediaUrl } from '@/lib/utils';
 import { CircleFlag } from 'react-circle-flags';
 import { filterShopsByLocation } from '@/lib/utils/shopFiltering';
+import { getStoryText, RenderStory } from '@/lib/utils/storyBlocks';
 
 interface CityGuideModalProps {
   isOpen: boolean;
@@ -43,7 +44,8 @@ export function CityGuideModal({
 
   if (!location) return null;
 
-  const displayStory = location.story?.trim() || placeholderStory;
+  const storyText = getStoryText(location.story);
+  const hasStory = storyText.trim().length > 0;
   const displayHeadline = location.headline?.trim() || `Your guide to specialty coffee in ${location.name}`;
 
   return (
@@ -118,18 +120,20 @@ export function CityGuideModal({
 
         {/* Story */}
         <div className="mt-4 text-sm text-text-secondary leading-relaxed space-y-3">
-          {displayStory.split('\n').filter(Boolean).map((paragraph, i) => (
-            <p key={i}>{paragraph}</p>
-          ))}
+          {hasStory ? (
+            <RenderStory story={location.story} />
+          ) : (
+            <p>{placeholderStory}</p>
+          )}
         </div>
 
         {/* Story author attribution */}
-        {location.story_author?.name && (
+        {location.storyAuthor?.name && (
           <div className="mt-6 pt-4 border-t border-border-default flex items-center gap-3">
-            {getMediaUrl(location.story_author.avatar) ? (
+            {getMediaUrl(location.storyAuthor.avatar) ? (
               <Image
-                src={getMediaUrl(location.story_author.avatar)!}
-                alt={location.story_author.name}
+                src={getMediaUrl(location.storyAuthor.avatar)!}
+                alt={location.storyAuthor.name}
                 width={28}
                 height={28}
                 className="rounded-full object-cover"
@@ -143,7 +147,7 @@ export function CityGuideModal({
               </div>
             )}
             <span className="text-sm italic text-text-secondary">
-              Written by {location.story_author.name}
+              Written by {location.storyAuthor.name}
             </span>
           </div>
         )}

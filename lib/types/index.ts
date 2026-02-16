@@ -1,5 +1,26 @@
 // Core types adapted from filter-expo
 
+// Strapi Blocks rich text format
+export interface StrapiBlockChild {
+  type: 'text' | 'link';
+  text?: string;
+  url?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  code?: boolean;
+  children?: StrapiBlockChild[];
+}
+
+export interface StrapiBlock {
+  type: 'paragraph' | 'heading' | 'list' | 'list-item' | 'quote' | 'code' | 'image';
+  children?: StrapiBlockChild[];
+  level?: number;
+  format?: 'ordered' | 'unordered';
+  image?: { url: string; alternativeText?: string };
+}
+
 export type { Event } from './event';
 
 export interface CitedSource {
@@ -55,8 +76,8 @@ export interface Location {
   inFocus?: boolean;
   beta?: boolean;
   comingSoon?: boolean;
-  story?: string | null;
-  story_author?: {
+  story?: string | StrapiBlock[] | null;
+  storyAuthor?: {
     id: number;
     documentId: string;
     name: string;

@@ -7,6 +7,7 @@ import { getAllNewsArticles } from '@/lib/api/news-articles';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { slugify } from '@/lib/utils';
+import { getStoryText } from '@/lib/utils/storyBlocks';
 
 // Cache pages for 5 minutes, then revalidate in background
 export const revalidate = 300;
@@ -39,11 +40,12 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   const ratingText = location.rating_stars ? ` Rated ${location.rating_stars}★.` : '';
 
   // Use location story if available, otherwise generate a default description
-  const description = location.story
-    ? `${location.story}${ratingText}`
+  const storyText = getStoryText(location.story);
+  const description = storyText
+    ? `${storyText}${ratingText}`
     : `Discover the best specialty coffee shops in ${location.name}, ${countryName}.${ratingText} Browse cafes, see reviews, and find your next favorite coffee spot.`;
 
-  const ogDescription = location.headline || location.story || `Discover specialty coffee in ${location.name}`;
+  const ogDescription = location.headline || storyText || `Discover specialty coffee in ${location.name}`;
 
   return {
     title: `Coffee Shops in ${location.name}, ${countryName} | Filter`,

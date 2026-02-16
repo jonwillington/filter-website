@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Location, Shop, Event, Person } from '@/lib/types';
 import { cn, getMediaUrl, getShopDisplayName } from '@/lib/utils';
+import { getStoryText } from '@/lib/utils/storyBlocks';
 import Image from 'next/image';
 import { StarRating } from '@/components/ui/StarRating';
 import { CircularCloseButton, StickyDrawerHeader } from '@/components/ui';
@@ -190,7 +191,7 @@ export function LocationDrawer({
   const placeholderStory = totalShops > 0
     ? `Discover the best specialty coffee in ${currentLocation.name}. Our curated selection features ${totalShops} carefully chosen cafés, from hidden neighbourhood gems to celebrated roasters.`
     : `We're exploring the specialty coffee scene in ${currentLocation.name}. Check back soon for recommendations.`;
-  const displayStory = currentLocation.story?.trim() || placeholderStory;
+  const displayStory = getStoryText(currentLocation.story).trim() || placeholderStory;
 
   // Footer element (absolutely positioned at bottom)
   const footerElement = countryLocations.length > 1 && onLocationChange && (

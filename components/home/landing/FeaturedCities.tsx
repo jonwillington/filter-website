@@ -3,6 +3,7 @@
 import { ArrowRight, Star } from 'lucide-react';
 import { CircleFlag } from 'react-circle-flags';
 import { Location } from '@/lib/types';
+import { getStoryText } from '@/lib/utils/storyBlocks';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 
@@ -106,7 +107,7 @@ export function FeaturedCities({ cities, onCitySelect, onExploreMap, shopCountBy
                     </h3>
                     {isTop && (city.headline || city.story) && (
                       <p className="text-text-secondary text-xs md:text-sm mt-1 truncate">
-                        {city.headline || (city.story && city.story.length > 80 ? city.story.substring(0, 80) + '…' : city.story)}
+                        {(() => { const t = city.headline || getStoryText(city.story); return t && t.length > 80 ? t.substring(0, 80) + '…' : t; })()}
                       </p>
                     )}
                   </div>
