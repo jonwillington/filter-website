@@ -63,6 +63,9 @@ export interface Country {
   story?: string;
   supported?: boolean;
   comingSoon?: boolean;
+  accentColour?: string;
+  highInflation?: boolean;
+  producer?: boolean;
   locations?: Location[];
 }
 
@@ -200,6 +203,10 @@ export interface Brand {
   has_french_press?: boolean;
   has_cold_brew?: boolean;
   has_batch_brew?: boolean;
+  has_siphon?: boolean;
+  has_turkish_coffee?: boolean;
+  oat_milk?: boolean;
+  plant_milk?: boolean;
 
   // Beans (populated from prefetch)
   beans?: Bean[];

@@ -94,6 +94,9 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDB();
+    if (!db) {
+      return NextResponse.json({ error: 'D1 database unavailable' }, { status: 503 });
+    }
     const isDelete = event === 'entry.delete';
     const documentId = entry.documentId;
 
