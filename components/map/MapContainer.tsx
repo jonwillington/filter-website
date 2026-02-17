@@ -152,6 +152,7 @@ export function MapContainer({
     cityAreas,
     expandedCityAreaId,
     effectiveTheme,
+    selectedShop,
   });
 
   return (

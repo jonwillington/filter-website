@@ -297,7 +297,7 @@ export function MainLayout({
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        // Don't change zoom - keep current zoom level
+        setMapZoom(prev => Math.max(prev, 15));
       }
     }
   }, [selectedShop, initialShop]);

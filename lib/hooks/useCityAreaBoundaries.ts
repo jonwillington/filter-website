@@ -8,6 +8,7 @@ export interface UseCityAreaBoundariesOptions {
   cityAreas: CityArea[];
   expandedCityAreaId: string | null;
   effectiveTheme: 'light' | 'dark';
+  selectedShop?: { documentId: string } | null;
 }
 
 const CITY_AREA_SOURCE_ID = 'city-area-boundaries';
@@ -72,6 +73,7 @@ export function useCityAreaBoundaries({
   cityAreas,
   expandedCityAreaId,
   effectiveTheme,
+  selectedShop,
 }: UseCityAreaBoundariesOptions): void {
   const currentExpandedIdRef = useRef<string | null>(null);
   const lastBoundaryDataRef = useRef<Array<{ lat: number; lng: number }> | null>(null);
@@ -254,13 +256,15 @@ export function useCityAreaBoundaries({
         },
       }, firstClusterLayer);
 
-      // Zoom to fit the expanded city area bounds
-      const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
-      map.fitBounds(areaBounds, {
-        padding: { top: 80, bottom: 80, left: 80, right: 80 },
-        duration: 800,
-        maxZoom: 15,
-      });
+      // Zoom to fit the expanded city area bounds (only when no shop is selected)
+      if (!selectedShop) {
+        const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
+        map.fitBounds(areaBounds, {
+          padding: { top: 80, bottom: 80, left: 80, right: 80 },
+          duration: 800,
+          maxZoom: 15,
+        });
+      }
 
       currentExpandedIdRef.current = expandedCityAreaId;
     } catch (err) {
@@ -270,7 +274,7 @@ export function useCityAreaBoundaries({
     return () => {
       // Cleanup handled in the effect itself when area changes
     };
-  }, [map, mapReady, cityAreas, expandedCityAreaId, effectiveTheme]);
+  }, [map, mapReady, cityAreas, expandedCityAreaId, effectiveTheme, selectedShop]);
 
   // Cleanup on unmount
   useEffect(() => {

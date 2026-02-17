@@ -108,21 +108,23 @@ export async function POST(request: NextRequest) {
     // Webhook payloads are minimal and missing relation data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let fullEntry: any = entry;
+    let useFallback = false;
     if (!isDelete) {
       const fetched = await fetchFullEntry(model, documentId);
-      if (!fetched) {
-        return NextResponse.json(
-          { error: `Failed to fetch full ${model} from Strapi`, documentId },
-          { status: 502 }
-        );
+      if (fetched) {
+        fullEntry = fetched;
+      } else {
+        useFallback = true;
+        console.warn(`[webhook] Strapi re-fetch failed for ${model}/${documentId}. Using partial update fallback.`);
       }
-      fullEntry = fetched;
     }
 
     switch (model) {
       case 'shop': {
         if (isDelete) {
           await db.prepare('DELETE FROM shops WHERE document_id = ?1').bind(documentId).run();
+        } else if (useFallback) {
+          await partialUpdateShop(db, fullEntry);
         } else {
           await upsertShop(db, fullEntry);
         }
@@ -138,6 +140,18 @@ export async function POST(request: NextRequest) {
                              brand_logo_url = NULL, brand_statement = NULL
             WHERE brand_document_id = ?1
           `).bind(documentId).run();
+        } else if (useFallback) {
+          await partialUpdateBrand(db, fullEntry);
+          // Cascade scalar-only fields to shops (skip logo since it's a relation)
+          await db.prepare(`
+            UPDATE shops SET brand_name = ?1, brand_type = ?2, brand_statement = ?3
+            WHERE brand_document_id = ?4
+          `).bind(
+            fullEntry.name,
+            fullEntry.type || null,
+            fullEntry.statement || null,
+            documentId
+          ).run();
         } else {
           await upsertBrand(db, fullEntry);
           await db.prepare(`
@@ -159,6 +173,9 @@ export async function POST(request: NextRequest) {
           await db.prepare('DELETE FROM beans WHERE document_id = ?1').bind(documentId).run();
           await db.prepare('DELETE FROM bean_origins WHERE bean_document_id = ?1').bind(documentId).run();
           await db.prepare('DELETE FROM bean_flavor_tags WHERE bean_document_id = ?1').bind(documentId).run();
+        } else if (useFallback) {
+          await partialUpdateBean(db, fullEntry);
+          // Skip junction tables (origins, flavor tags) — they need populated relations
         } else {
           await upsertBean(db, fullEntry);
         }
@@ -175,6 +192,17 @@ export async function POST(request: NextRequest) {
             UPDATE city_areas SET location_name = NULL, location_slug = NULL
             WHERE location_document_id = ?1
           `).bind(documentId).run();
+        } else if (useFallback) {
+          await partialUpdateLocation(db, fullEntry);
+          // Cascade scalar fields to shops and city_areas
+          await db.prepare(`
+            UPDATE shops SET location_name = ?1, location_slug = ?2
+            WHERE location_document_id = ?3
+          `).bind(fullEntry.name, fullEntry.slug || null, documentId).run();
+          await db.prepare(`
+            UPDATE city_areas SET location_name = ?1, location_slug = ?2
+            WHERE location_document_id = ?3
+          `).bind(fullEntry.name, fullEntry.slug || null, documentId).run();
         } else {
           await upsertLocation(db, fullEntry);
           await db.prepare(`
@@ -196,6 +224,20 @@ export async function POST(request: NextRequest) {
                                  country_primary_color = NULL, country_secondary_color = NULL
             WHERE country_document_id = ?1
           `).bind(documentId).run();
+        } else if (useFallback) {
+          await partialUpdateCountry(db, fullEntry);
+          // Cascade scalar fields to locations
+          await db.prepare(`
+            UPDATE locations SET country_name = ?1, country_code = ?2,
+                                 country_primary_color = ?3, country_secondary_color = ?4
+            WHERE country_document_id = ?5
+          `).bind(
+            fullEntry.name,
+            fullEntry.code || null,
+            fullEntry.primaryColor || null,
+            fullEntry.secondaryColor || null,
+            documentId
+          ).run();
         } else {
           await upsertCountry(db, fullEntry);
           await db.prepare(`
@@ -219,6 +261,17 @@ export async function POST(request: NextRequest) {
             UPDATE shops SET city_area_name = NULL, city_area_group = NULL
             WHERE city_area_document_id = ?1
           `).bind(documentId).run();
+        } else if (useFallback) {
+          await partialUpdateCityArea(db, fullEntry);
+          // Cascade scalar fields to shops
+          await db.prepare(`
+            UPDATE shops SET city_area_name = ?1, city_area_group = ?2
+            WHERE city_area_document_id = ?3
+          `).bind(
+            fullEntry.name,
+            fullEntry.group || null,
+            documentId
+          ).run();
         } else {
           await upsertCityArea(db, fullEntry);
           await db.prepare(`
@@ -236,7 +289,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: `Unhandled model: ${model}` }, { status: 200 });
     }
 
-    return NextResponse.json({ success: true, event, model, documentId });
+    return NextResponse.json({
+      success: true, event, model, documentId,
+      ...(useFallback && { fallback: true, warning: 'Strapi unavailable — scalar fields updated, relation data preserved' }),
+    });
   } catch (error) {
     console.error('Webhook processing failed:', error);
     return NextResponse.json(
@@ -760,6 +816,320 @@ async function upsertCityArea(db: D1Database, entry: any) {
     entry.updatedAt || null,
     entry.publishedAt || null,
   ).run();
+}
+
+// ─── Partial Update Functions (fallback when Strapi re-fetch fails) ───
+// These only UPDATE scalar columns, preserving relation data already in D1.
+// They skip media/relation fields (logo, bg_image, country, location, brand, etc.)
+// and junction tables (suppliers, roast countries, origins, flavor tags).
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function partialUpdateCountry(db: D1Database, entry: any) {
+  await db.prepare(`
+    UPDATE countries SET
+      name = ?1, code = ?2, slug = ?3, story = ?4,
+      supported = ?5, coming_soon = ?6,
+      primary_color = ?7, primary_color_dark = ?8,
+      secondary_color = ?9, secondary_color_dark = ?10,
+      accent_colour = ?11, high_inflation = ?12, producer = ?13,
+      updated_at = ?14, published_at = ?15
+    WHERE document_id = ?16
+  `).bind(
+    entry.name,
+    entry.code || null,
+    entry.slug || null,
+    entry.story || null,
+    toBoolInt(entry.supported),
+    toBoolInt(entry.comingSoon),
+    entry.primaryColor || null,
+    entry.primaryColorDark || null,
+    entry.secondaryColor || null,
+    entry.secondaryColorDark || null,
+    entry.accentColour || null,
+    toBoolInt(entry.highInflation),
+    toBoolInt(entry.producer),
+    entry.updatedAt || null,
+    entry.publishedAt || null,
+    entry.documentId,
+  ).run();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function partialUpdateLocation(db: D1Database, entry: any) {
+  await db.prepare(`
+    UPDATE locations SET
+      name = ?1, slug = ?2, story = ?3, headline = ?4,
+      rating_stars = ?5, population = ?6, timezone = ?7,
+      in_focus = ?8, beta = ?9, coming_soon = ?10,
+      primary_color = ?11, secondary_color = ?12,
+      coordinates = ?13, boundary_coordinates = ?14,
+      media_links = ?15,
+      updated_at = ?16, published_at = ?17
+    WHERE document_id = ?18
+  `).bind(
+    entry.name,
+    entry.slug || null,
+    entry.story || null,
+    entry.headline || null,
+    entry.rating_stars ?? null,
+    entry.population || null,
+    entry.timezone || null,
+    toBoolInt(entry.inFocus),
+    toBoolInt(entry.beta),
+    toBoolInt(entry.comingSoon),
+    entry.primaryColor || null,
+    entry.secondaryColor || null,
+    toJson(entry.coordinates),
+    toJson(entry.boundary_coordinates),
+    toJson(entry.media_links),
+    entry.updatedAt || null,
+    entry.publishedAt || null,
+    entry.documentId,
+  ).run();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function partialUpdateBrand(db: D1Database, entry: any) {
+  await db.prepare(`
+    UPDATE brands SET
+      name = ?1, type = ?2, role = ?3, description = ?4, story = ?5, statement = ?6,
+      founded = ?7, founder = ?8, hq = ?9, price = ?10, quality_tier = ?11,
+      website = ?12, instagram = ?13, facebook = ?14, tiktok = ?15,
+      twitter = ?16, youtube = ?17, phone = ?18, whatsapp = ?19, line = ?20,
+      roast_own_beans = ?21, own_roast_desc = ?22, own_bean_link = ?23,
+      specializes_light = ?24, specializes_medium = ?25, specializes_dark = ?26,
+      has_wifi = ?27, has_food = ?28, has_outdoor_space = ?29, is_pet_friendly = ?30,
+      has_espresso = ?31, has_filter_coffee = ?32, has_v60 = ?33, has_chemex = ?34,
+      has_aeropress = ?35, has_french_press = ?36, has_cold_brew = ?37, has_batch_brew = ?38,
+      has_siphon = ?39, has_turkish_coffee = ?40, oat_milk = ?41, plant_milk = ?42,
+      equipment = ?43, awards = ?44, research = ?45, cited_sources = ?46,
+      observations = ?47, source_articles = ?48,
+      is_dev = ?49, updated_at = ?50, published_at = ?51
+    WHERE document_id = ?52
+  `).bind(
+    entry.name,
+    entry.type || null,
+    entry.role || null,
+    entry.description || null,
+    entry.story || null,
+    entry.statement || null,
+    entry.founded || null,
+    entry.Founder || entry.founder || null,
+    entry.hq || null,
+    entry.price || null,
+    entry.quality_tier || null,
+    entry.website || null,
+    entry.instagram || null,
+    entry.facebook || null,
+    entry.tiktok || null,
+    entry.twitter || null,
+    entry.youtube || null,
+    entry.phone || null,
+    entry.whatsapp || null,
+    entry.line || null,
+    toBoolInt(entry.roastOwnBeans),
+    entry.ownRoastDesc || null,
+    entry.ownBeanLink || null,
+    toBoolInt(entry.specializes_light),
+    toBoolInt(entry.specializes_medium),
+    toBoolInt(entry.specializes_dark),
+    toBoolInt(entry.has_wifi),
+    toBoolInt(entry.has_food),
+    toBoolInt(entry.has_outdoor_space),
+    toBoolInt(entry.is_pet_friendly),
+    toBoolInt(entry.has_espresso),
+    toBoolInt(entry.has_filter_coffee),
+    toBoolInt(entry.has_v60),
+    toBoolInt(entry.has_chemex),
+    toBoolInt(entry.has_aeropress),
+    toBoolInt(entry.has_french_press),
+    toBoolInt(entry.has_cold_brew),
+    toBoolInt(entry.has_batch_brew),
+    toBoolInt(entry.has_siphon),
+    toBoolInt(entry.has_turkish_coffee),
+    toBoolInt(entry.oatMilk),
+    toBoolInt(entry.plantMilk),
+    toJson(entry.equipment),
+    toJson(entry.awards),
+    toJson(entry.research),
+    toJson(entry.citedSources),
+    toJson(entry.observations),
+    toJson(entry.source_articles),
+    toBoolInt(entry.isDev),
+    entry.updatedAt || null,
+    entry.publishedAt || null,
+    entry.documentId,
+  ).run();
+  // Skip junction tables (suppliers, roast countries) — they need populated relations
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function partialUpdateShop(db: D1Database, entry: any) {
+  const coords = getCoords(entry);
+  await db.prepare(`
+    UPDATE shops SET
+      name = ?1, pref_name = ?2, slug = ?3, description = ?4,
+      address = ?5, postal_code = ?6, neighbourhood = ?7, lat = ?8, lng = ?9,
+      has_wifi = ?10, has_food = ?11, has_outdoor_space = ?12, is_pet_friendly = ?13,
+      has_v60 = ?14, has_chemex = ?15, has_filter_coffee = ?16, has_slow_bar = ?17, has_kitchen = ?18,
+      has_espresso = ?19, has_aeropress = ?20, has_french_press = ?21, has_cold_brew = ?22, has_batch_brew = ?23,
+      is_chain = ?24, independent = ?25,
+      city_area_rec = ?26, city_area_rec_exp = ?27, working_rec = ?28, interior_rec = ?29, brewing_rec = ?30,
+      shop_promo = ?31, shop_promo_code = ?32,
+      google_rating = ?33, google_review_count = ?34, rating = ?35, rating_count = ?36,
+      google_place_id = ?37, google_place_verified = ?38, google_place_last_sync = ?39,
+      google_place_match_confidence = ?40, google_business_status = ?41,
+      google_photo_reference = ?42, google_formatted_address = ?43, google_plus_code = ?44,
+      google_types = ?45, google_places_last_updated = ?46, google_coordinates_last_updated = ?47,
+      website = ?48, phone = ?49, phone_number = ?50, instagram = ?51, facebook = ?52, tiktok = ?53,
+      amenity_overrides = ?54, brew_method_overrides = ?55, menu_data = ?56,
+      public_tags = ?57, amenities = ?58,
+      architects = ?59, price = ?60, quality_tier = ?61, opening_hours = ?62, is_open = ?63,
+      local_density = ?64,
+      research = ?65, cited_sources = ?66, observations = ?67, vision_data = ?68, preference_profile = ?69,
+      is_dev = ?70, awards = ?71, source_articles = ?72,
+      gallery = ?73, menus = ?74,
+      updated_at = ?75, published_at = ?76
+    WHERE document_id = ?77
+  `).bind(
+    entry.name,                                          // 1
+    entry.prefName || null,                              // 2
+    entry.slug || null,                                  // 3
+    entry.description || null,                           // 4
+    entry.address || null,                               // 5
+    entry.postal_code || null,                           // 6
+    entry.neighbourhood || null,                         // 7
+    coords.lat,                                          // 8
+    coords.lng,                                          // 9
+    toBoolInt(entry.has_wifi),                           // 10
+    toBoolInt(entry.has_food),                           // 11
+    toBoolInt(entry.has_outdoor_space),                  // 12
+    toBoolInt(entry.is_pet_friendly),                    // 13
+    toBoolInt(entry.has_v60),                            // 14
+    toBoolInt(entry.has_chemex),                         // 15
+    toBoolInt(entry.has_filter_coffee),                  // 16
+    toBoolInt(entry.has_slow_bar),                       // 17
+    toBoolInt(entry.has_kitchen),                        // 18
+    toBoolInt(entry.has_espresso),                       // 19
+    toBoolInt(entry.has_aeropress),                      // 20
+    toBoolInt(entry.has_french_press),                   // 21
+    toBoolInt(entry.has_cold_brew),                      // 22
+    toBoolInt(entry.has_batch_brew),                     // 23
+    toBoolInt(entry.is_chain),                           // 24
+    toBoolInt(entry.independent),                        // 25
+    toBoolInt(entry.cityAreaRec),                        // 26
+    entry.cityAreaRecExp || null,                        // 27
+    toBoolInt(entry.workingRec),                         // 28
+    toBoolInt(entry.interiorRec),                        // 29
+    toBoolInt(entry.brewingRec),                         // 30
+    entry.shopPromo || null,                             // 31
+    entry.shopPromoCode || null,                         // 32
+    entry.google_rating ?? null,                         // 33
+    entry.google_review_count ?? null,                   // 34
+    entry.rating ?? null,                                // 35
+    entry.rating_count ?? null,                          // 36
+    entry.google_place_id || null,                       // 37
+    toBoolInt(entry.google_place_verified),              // 38
+    entry.google_place_last_sync || null,                // 39
+    entry.google_place_match_confidence ?? null,         // 40
+    entry.google_business_status || null,                // 41
+    entry.google_photo_reference || null,                // 42
+    entry.google_formatted_address || null,              // 43
+    entry.google_plus_code || null,                      // 44
+    toJson(entry.google_types),                          // 45
+    entry.google_places_last_updated || null,            // 46
+    entry.google_coordinates_last_updated || null,       // 47
+    entry.website || null,                               // 48
+    entry.phone || null,                                 // 49
+    entry.phone_number || null,                          // 50
+    entry.instagram || null,                             // 51
+    entry.facebook || null,                              // 52
+    entry.tiktok || null,                                // 53
+    toJson(entry.amenity_overrides),                     // 54
+    toJson(entry.brew_method_overrides),                 // 55
+    toJson(entry.menuData),                              // 56
+    toJson(entry.public_tags),                           // 57
+    toJson(entry.amenities),                             // 58
+    entry.architects || null,                            // 59
+    entry.price || null,                                 // 60
+    entry.quality_tier || null,                          // 61
+    toJson(entry.opening_hours),                         // 62
+    toBoolInt(entry.is_open),                            // 63
+    entry.localDensity ?? 0,                             // 64
+    toJson(entry.research),                              // 65
+    toJson(entry.citedSources),                          // 66
+    toJson(entry.observations),                          // 67
+    toJson(entry.visionData),                            // 68
+    toJson(entry.preferenceProfile),                     // 69
+    toBoolInt(entry.isDev),                              // 70
+    toJson(entry.awards),                                // 71
+    toJson(entry.source_articles),                       // 72
+    toJson(entry.gallery),                               // 73
+    toJson(entry.menus),                                 // 74
+    entry.updatedAt || null,                             // 75
+    entry.publishedAt || null,                           // 76
+    entry.documentId,                                    // 77
+  ).run();
+  // Skip brand_*, location_*, city_area_*, country_code, featured_image_*, coffee_partner_* — they need populated relations
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function partialUpdateBean(db: D1Database, entry: any) {
+  await db.prepare(`
+    UPDATE beans SET
+      name = ?1, slug = ?2, type = ?3, roast_level = ?4, process = ?5,
+      short_description = ?6, full_description = ?7, learn_more_url = ?8,
+      region = ?9, farm = ?10, producer = ?11, altitude = ?12,
+      cupping_score = ?13, blend_components = ?14,
+      updated_at = ?15, published_at = ?16
+    WHERE document_id = ?17
+  `).bind(
+    entry.name,
+    entry.slug || null,
+    entry.type || null,
+    entry.roastLevel || null,
+    entry.process || null,
+    entry.shortDescription || null,
+    entry.fullDescription || null,
+    entry.learnMoreUrl || null,
+    entry.region || null,
+    entry.farm || null,
+    entry.producer || null,
+    entry.altitude || null,
+    entry.cuppingScore || null,
+    entry.blendComponents || null,
+    entry.updatedAt || null,
+    entry.publishedAt || null,
+    entry.documentId,
+  ).run();
+  // Skip photo_*, brand_document_id, junction tables — they need populated relations
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function partialUpdateCityArea(db: D1Database, entry: any) {
+  await db.prepare(`
+    UPDATE city_areas SET
+      name = ?1, slug = ?2, area_group = ?3, description = ?4, summary = ?5,
+      boundary_coordinates = ?6, center_coordinates = ?7,
+      postcode = ?8, nearest_tube = ?9, coming_soon = ?10,
+      updated_at = ?11, published_at = ?12
+    WHERE document_id = ?13
+  `).bind(
+    entry.name,
+    entry.slug || null,
+    entry.group || null,
+    entry.description || null,
+    entry.summary || null,
+    toJson(entry.boundary_coordinates),
+    toJson(entry.center_coordinates),
+    entry.postcode || null,
+    entry.nearest_tube || null,
+    toBoolInt(entry.comingSoon),
+    entry.updatedAt || null,
+    entry.publishedAt || null,
+    entry.documentId,
+  ).run();
+  // Skip location_*, featured_image_* — they need populated relations
 }
 
 function toJson(val: unknown): string | null {

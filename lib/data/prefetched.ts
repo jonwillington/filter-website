@@ -4,4 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export const PREFETCH_TIMESTAMP = 0;
+export const PREFETCH_TIMESTAMP = 1771317321491;
+
+// Stats from last prefetch (for reference only):
+// Regions: 9, Tags: 78, Events: 6, People: 12, News: 36
