@@ -1122,9 +1122,16 @@ export function MainLayout({
   const cityAreas = useMemo(() => {
     if (!selectedLocation) return [];
 
-    return cachedCityAreas.filter(
+    const filtered = cachedCityAreas.filter(
       (area) => area.location?.documentId === selectedLocation.documentId
     );
+    console.log('[MainLayout] cityAreas filter:', {
+      cachedCount: cachedCityAreas.length,
+      filteredCount: filtered.length,
+      withBoundaries: filtered.filter(a => a.boundary_coordinates?.length).length,
+      selectedLocationDocId: selectedLocation.documentId,
+    });
+    return filtered;
   }, [cachedCityAreas, selectedLocation]);
 
   // Filter sidebar shops by selected city area (for drill-down navigation)

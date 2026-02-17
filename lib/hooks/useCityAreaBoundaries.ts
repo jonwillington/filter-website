@@ -38,76 +38,28 @@ function calculateBounds(coordinates: Array<{ lat: number; lng: number }>): mapb
 }
 
 /**
- * Calculate convex hull of points using Graham scan algorithm
- * Returns points in counter-clockwise order (suitable for GeoJSON exterior ring)
+ * Check if a ring of coordinates is clockwise.
+ * Uses the shoelace formula — positive area = clockwise in [lng, lat] space.
  */
-function calculateConvexHull(points: Array<[number, number]>): Array<[number, number]> {
-  if (points.length < 3) return points;
-
-  // Find the bottom-most point (or left-most in case of tie)
-  let start = 0;
-  for (let i = 1; i < points.length; i++) {
-    if (points[i][1] < points[start][1] ||
-        (points[i][1] === points[start][1] && points[i][0] < points[start][0])) {
-      start = i;
-    }
+function isClockwise(ring: number[][]): boolean {
+  let sum = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[i + 1];
+    sum += (x2 - x1) * (y2 + y1);
   }
-
-  // Swap start point to index 0
-  [points[0], points[start]] = [points[start], points[0]];
-  const pivot = points[0];
-
-  // Sort points by polar angle with respect to pivot
-  const sorted = points.slice(1).sort((a, b) => {
-    const angleA = Math.atan2(a[1] - pivot[1], a[0] - pivot[0]);
-    const angleB = Math.atan2(b[1] - pivot[1], b[0] - pivot[0]);
-    if (angleA !== angleB) return angleA - angleB;
-    // If same angle, sort by distance
-    const distA = (a[0] - pivot[0]) ** 2 + (a[1] - pivot[1]) ** 2;
-    const distB = (b[0] - pivot[0]) ** 2 + (b[1] - pivot[1]) ** 2;
-    return distA - distB;
-  });
-
-  // Cross product to determine turn direction
-  const cross = (o: [number, number], a: [number, number], b: [number, number]) =>
-    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-
-  // Build hull
-  const hull: Array<[number, number]> = [pivot];
-  for (const point of sorted) {
-    while (hull.length > 1 && cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0) {
-      hull.pop();
-    }
-    hull.push(point);
-  }
-
-  // Close the polygon
-  hull.push(hull[0]);
-  return hull;
+  return sum > 0;
 }
 
 /**
- * Expand a polygon outward from its centroid by a scale factor
+ * Ensure a ring has the desired winding order.
+ * For GeoJSON RFC 7946: exterior = CCW, holes = CW.
  */
-function expandPolygon(points: Array<[number, number]>, scaleFactor: number): Array<[number, number]> {
-  if (points.length < 3) return points;
-
-  // Calculate centroid (excluding the closing point which duplicates the first)
-  const uniquePoints = points.slice(0, -1);
-  const centroid: [number, number] = [
-    uniquePoints.reduce((sum, p) => sum + p[0], 0) / uniquePoints.length,
-    uniquePoints.reduce((sum, p) => sum + p[1], 0) / uniquePoints.length,
-  ];
-
-  // Scale each point outward from centroid
-  const expanded = uniquePoints.map((point): [number, number] => [
-    centroid[0] + (point[0] - centroid[0]) * scaleFactor,
-    centroid[1] + (point[1] - centroid[1]) * scaleFactor,
-  ]);
-
-  // Close the polygon
-  expanded.push(expanded[0]);
-  return expanded;
+function ensureWinding(ring: number[][], clockwise: boolean): number[][] {
+  if (isClockwise(ring) !== clockwise) {
+    return [...ring].reverse();
+  }
+  return ring;
 }
 
 /**
@@ -126,20 +78,18 @@ export function useCityAreaBoundaries({
 
   useEffect(() => {
     if (!map || !mapReady) {
-      console.log('[CityAreaBoundaries] Early return: map or mapReady not available', { map: !!map, mapReady });
       return;
     }
 
-    console.log('[CityAreaBoundaries] Running effect:', {
-      expandedCityAreaId,
-      currentExpandedIdRef: currentExpandedIdRef.current,
-      cityAreasCount: cityAreas.length,
-    });
+    console.log('[CityAreaBoundaries] Effect:', { expandedCityAreaId, mapReady, cityAreasCount: cityAreas.length });
 
-    // CRITICAL: If expandedCityAreaId hasn't changed, don't modify anything
-    // This prevents the boundary from flickering when cityAreas array reference changes
-    if (expandedCityAreaId === currentExpandedIdRef.current && currentExpandedIdRef.current !== null) {
-      console.log('[CityAreaBoundaries] expandedCityAreaId unchanged, keeping current boundary');
+    // Only skip if ID unchanged AND layers still exist on the map
+    // (style changes destroy layers, so we must re-draw even if ID is the same)
+    if (
+      expandedCityAreaId === currentExpandedIdRef.current &&
+      currentExpandedIdRef.current !== null &&
+      map.getLayer(CITY_AREA_MASK_LAYER_ID)
+    ) {
       return;
     }
 
@@ -148,12 +98,10 @@ export function useCityAreaBoundaries({
       (area) => area.boundary_coordinates && area.boundary_coordinates.length >= 3
     );
 
-    console.log('[CityAreaBoundaries] Areas with boundaries:', areasWithBoundaries.length);
-
     // If expandedCityAreaId is null, fade out
     if (!expandedCityAreaId) {
       if (currentExpandedIdRef.current !== null) {
-        console.log('[CityAreaBoundaries] expandedCityAreaId is null, fading out');
+        // Fade out boundary
         fadeOutAndCleanup(map);
         currentExpandedIdRef.current = null;
         lastBoundaryDataRef.current = null;
@@ -164,20 +112,23 @@ export function useCityAreaBoundaries({
     // Find the expanded area
     const expandedArea = areasWithBoundaries.find((area) => area.documentId === expandedCityAreaId);
 
-    // If area not found in current cityAreas but we have it cached, keep showing it
     if (!expandedArea) {
+      console.warn('[CityAreaBoundaries] Area not found:', {
+        expandedCityAreaId,
+        cityAreasCount: cityAreas.length,
+        areasWithBoundaries: areasWithBoundaries.length,
+        availableIds: areasWithBoundaries.map(a => a.documentId),
+      });
       if (lastBoundaryDataRef.current && currentExpandedIdRef.current === expandedCityAreaId) {
-        console.log('[CityAreaBoundaries] Area not in cityAreas but cached, keeping boundary');
         return;
       }
-      console.log('[CityAreaBoundaries] Area not found and not cached, clearing');
       fadeOutAndCleanup(map);
       currentExpandedIdRef.current = null;
       lastBoundaryDataRef.current = null;
       return;
     }
 
-    console.log('[CityAreaBoundaries] Drawing boundary for:', expandedArea.name);
+    // Draw boundary for the expanded area
 
     // Cache the boundary data
     lastBoundaryDataRef.current = expandedArea.boundary_coordinates!;
@@ -216,16 +167,19 @@ export function useCityAreaBoundaries({
     });
 
     // Create mask with holes for all displayed areas (only for single expanded area)
-    const worldBounds: [number, number][] = [
+    // RFC 7946: exterior ring = CCW, holes = CW
+    const worldBounds: number[][] = [
       [-180, -90],
       [-180, 90],
       [180, 90],
       [180, -90],
       [-180, -90],
     ];
+    const worldBoundsCCW = ensureWinding(worldBounds, false); // exterior = CCW
 
-    // Create mask hole using city area boundary
-    const maskHoleCoords = allAreaCoordinates[0];
+    // Create mask hole using city area boundary — must be CW for hole to cut through
+    const rawHoleCoords = allAreaCoordinates[0];
+    const maskHoleCoords = rawHoleCoords ? ensureWinding(rawHoleCoords, true) : null; // hole = CW
 
     const maskGeojson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
@@ -236,7 +190,7 @@ export function useCityAreaBoundaries({
               properties: {},
               geometry: {
                 type: 'Polygon',
-                coordinates: [worldBounds, maskHoleCoords],
+                coordinates: [worldBoundsCCW, maskHoleCoords],
               },
             },
           ]
@@ -271,19 +225,22 @@ export function useCityAreaBoundaries({
         data: outlineGeojson,
       });
 
-      // Add mask layer (only visible when single area is expanded)
+      // Find the first clustering layer to insert boundary layers below markers
+      const firstClusterLayer = map.getLayer('clusters') ? 'clusters' : undefined;
+
+      // Add mask layer below markers (set target opacity directly — skip animation for debugging)
       map.addLayer({
         id: CITY_AREA_MASK_LAYER_ID,
         type: 'fill',
         source: CITY_AREA_SOURCE_ID,
         paint: {
           'fill-color': '#000000',
-          'fill-opacity': 0,
+          'fill-opacity': targetMaskOpacity,
           'fill-opacity-transition': { duration: FADE_DURATION, delay: 0 },
         },
-      });
+      }, firstClusterLayer);
 
-      // Add dotted border lines for all areas
+      // Add dotted border lines below markers
       map.addLayer({
         id: CITY_AREA_LINE_LAYER_ID,
         type: 'line',
@@ -291,28 +248,11 @@ export function useCityAreaBoundaries({
         paint: {
           'line-color': primaryColor,
           'line-width': lineWidth,
-          'line-opacity': 0,
+          'line-opacity': targetLineOpacity,
           'line-opacity-transition': { duration: FADE_DURATION, delay: 0 },
           'line-dasharray': [1, 2],
         },
-      });
-
-      // Trigger fade-in
-      requestAnimationFrame(() => {
-        // Safety check: map may have been destroyed before this frame executes
-        if (!map) return;
-
-        try {
-          if (map.getLayer(CITY_AREA_MASK_LAYER_ID)) {
-            map.setPaintProperty(CITY_AREA_MASK_LAYER_ID, 'fill-opacity', targetMaskOpacity);
-          }
-          if (map.getLayer(CITY_AREA_LINE_LAYER_ID)) {
-            map.setPaintProperty(CITY_AREA_LINE_LAYER_ID, 'line-opacity', targetLineOpacity);
-          }
-        } catch {
-          // Ignore errors if map was destroyed during animation frame
-        }
-      });
+      }, firstClusterLayer);
 
       // Zoom to fit the expanded city area bounds
       const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
