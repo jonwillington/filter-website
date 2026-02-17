@@ -72,25 +72,30 @@ export function HomeClient() {
     setInitialLocation(location);
     const countrySlug = slugify(location.country?.name ?? '');
     const citySlug = location.slug || slugify(location.name);
-    window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
+    if (countrySlug && citySlug) {
+      window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
+    }
     transitionToMap();
   }, [transitionToMap]);
 
   const handleShopSelect = useCallback((shop: Shop) => {
-    // Find the shop's location so MainLayout can center on it
-    const location = shop.location || (shop.city_area?.location as Location);
-    if (location) {
-      setInitialLocation(location);
+    // Find the full location (with country data) from the locations array
+    const shopLocId = shop.location?.documentId || shop.city_area?.location?.documentId;
+    const fullLocation = locations.find(l => l.documentId === shopLocId) || shop.location || (shop.city_area?.location as Location);
+    if (fullLocation) {
+      setInitialLocation(fullLocation);
     }
     setInitialShop(shop);
-    const countrySlug = slugify(location?.country?.name ?? '');
-    const citySlug = location?.slug || slugify(location?.name ?? '');
+    const countrySlug = slugify(fullLocation?.country?.name ?? '');
+    const citySlug = fullLocation?.slug || slugify(fullLocation?.name ?? '');
     const cityArea = shop.city_area || shop.cityArea;
     const areaSlug = cityArea?.slug || (cityArea?.name ? slugify(cityArea.name) : 'all');
     const shopSlug = shop.slug || slugify(shop.name);
-    window.history.pushState(null, '', `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`);
+    if (countrySlug && citySlug) {
+      window.history.pushState(null, '', `/${countrySlug}/${citySlug}/${areaSlug}/${shopSlug}`);
+    }
     transitionToMap();
-  }, [transitionToMap]);
+  }, [transitionToMap, locations]);
 
   const handleExploreMap = useCallback(() => {
     transitionToMap();

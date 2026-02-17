@@ -150,6 +150,7 @@ function d1RowToShop(r: any): Shop {
 
 // Stable empty arrays to prevent re-render loops
 const EMPTY_SHOPS: Shop[] = [];
+const EMPTY_BRANDS: Brand[] = [];
 const EMPTY_COUNTRIES: Country[] = [];
 const EMPTY_LOCATIONS: Location[] = [];
 const EMPTY_CITY_AREAS: CityArea[] = [];
@@ -194,6 +195,18 @@ export function useShopsQuery() {
         return (rows as Record<string, unknown>[]).map(d1RowToShop);
       }
       throw new Error(`Failed to fetch shops: ${response.statusText}`);
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useBrandsQuery() {
+  return useQuery<Brand[]>({
+    queryKey: ['brands'],
+    queryFn: async () => {
+      const res = await fetch('/api/v2/brands');
+      if (res.ok) return res.json();
+      throw new Error(`Failed to fetch brands: ${res.statusText}`);
     },
     staleTime: STALE_TIME,
   });
@@ -292,6 +305,7 @@ export function useNewsArticlesQuery() {
  */
 export function useHomeData() {
   const shopsQuery = useShopsQuery();
+  const brandsQuery = useBrandsQuery();
   const countriesQuery = useCountriesQuery();
   const locationsQuery = useLocationsQuery();
   const cityAreasQuery = useCityAreasQuery();
@@ -299,8 +313,21 @@ export function useHomeData() {
   const peopleQuery = usePeopleQuery();
   const newsArticlesQuery = useNewsArticlesQuery();
 
-  // Use stable empty arrays to prevent re-render loops
-  const shops = shopsQuery.data ?? EMPTY_SHOPS;
+  const rawShops = shopsQuery.data ?? EMPTY_SHOPS;
+  const brands = brandsQuery.data ?? EMPTY_BRANDS;
+
+  // Merge beans from brands into shops' brand objects
+  const shops = useMemo(() => {
+    if (brands.length === 0 || rawShops.length === 0) return rawShops;
+    const brandMap = new Map(brands.map(b => [b.documentId, b]));
+    return rawShops.map(shop => {
+      if (!shop.brand?.documentId) return shop;
+      const fullBrand = brandMap.get(shop.brand.documentId);
+      if (!fullBrand?.beans?.length) return shop;
+      return { ...shop, brand: { ...shop.brand, beans: fullBrand.beans } };
+    });
+  }, [rawShops, brands]);
+
   const countries = countriesQuery.data ?? EMPTY_COUNTRIES;
   const locations = locationsQuery.data ?? EMPTY_LOCATIONS;
   const cityAreas = cityAreasQuery.data ?? EMPTY_CITY_AREAS;
@@ -310,6 +337,7 @@ export function useHomeData() {
 
   const isLoading =
     shopsQuery.isLoading ||
+    brandsQuery.isLoading ||
     countriesQuery.isLoading ||
     locationsQuery.isLoading ||
     cityAreasQuery.isLoading ||
@@ -318,6 +346,7 @@ export function useHomeData() {
 
   const isError =
     shopsQuery.isError ||
+    brandsQuery.isError ||
     countriesQuery.isError ||
     locationsQuery.isError ||
     cityAreasQuery.isError ||
@@ -347,6 +376,7 @@ export function useHomeData() {
     refetchShops: shopsQuery.refetch,
     refetchAll: () => {
       shopsQuery.refetch();
+      brandsQuery.refetch();
       countriesQuery.refetch();
       locationsQuery.refetch();
       cityAreasQuery.refetch();
@@ -365,6 +395,7 @@ export function useHomeData() {
     isLoading,
     isError,
     shopsQuery.isLoading,
+    brandsQuery.isLoading,
     countriesQuery.isLoading,
     locationsQuery.isLoading,
     cityAreasQuery.isLoading,
@@ -372,6 +403,7 @@ export function useHomeData() {
     peopleQuery.isLoading,
     newsArticlesQuery.isLoading,
     shopsQuery.refetch,
+    brandsQuery.refetch,
     countriesQuery.refetch,
     locationsQuery.refetch,
     cityAreasQuery.refetch,

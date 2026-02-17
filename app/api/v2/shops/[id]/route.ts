@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDB } from '@/lib/api/d1';
+import { getDB, proxyToProd } from '@/lib/api/d1';
 
 /**
  * GET /api/v2/shops/[id] — Full shop detail
@@ -17,6 +17,7 @@ export async function GET(
   try {
     const db = await getDB();
     const shopId = params.id;
+    if (!db) return proxyToProd(`/api/v2/shops/${shopId}`);
 
     // Fetch the shop
     const shop = await db

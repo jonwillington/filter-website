@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS brands (
   has_cold_brew INTEGER,
   has_batch_brew INTEGER,
   has_siphon INTEGER,
+  has_turkish_coffee INTEGER,
   oat_milk INTEGER,
   plant_milk INTEGER,
 
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS brands (
   research TEXT, -- JSON
   cited_sources TEXT, -- JSON
   observations TEXT, -- JSON
+  source_articles TEXT, -- JSON
 
   -- Strapi metadata
   is_dev INTEGER DEFAULT 0,
@@ -187,6 +189,11 @@ CREATE TABLE IF NOT EXISTS shops (
   instagram TEXT,
   facebook TEXT,
   tiktok TEXT,
+
+  -- Override data (shop-specific overrides of brand defaults)
+  amenity_overrides TEXT, -- JSON
+  brew_method_overrides TEXT, -- JSON
+  menu_data TEXT, -- JSON
 
   -- Tags
   public_tags TEXT, -- JSON array
@@ -314,6 +321,9 @@ CREATE TABLE IF NOT EXISTS locations (
   story_author_name TEXT,
   story_author_photo_url TEXT,
 
+  -- Media
+  media_links TEXT, -- JSON
+
   -- Country (denormalized)
   country_document_id TEXT,
   country_name TEXT,
@@ -345,6 +355,11 @@ CREATE TABLE IF NOT EXISTS countries (
   secondary_color TEXT,
   secondary_color_dark TEXT,
 
+  -- Additional metadata
+  accent_colour TEXT,
+  high_inflation INTEGER,
+  producer INTEGER,
+
   -- Region (denormalized)
   region_document_id TEXT,
   region_name TEXT,
@@ -372,8 +387,12 @@ CREATE TABLE IF NOT EXISTS city_areas (
   featured_image_url TEXT,
   featured_image_formats TEXT, -- JSON
 
-  -- Boundaries
+  -- Boundaries & geography
   boundary_coordinates TEXT, -- JSON array
+  center_coordinates TEXT, -- JSON {lat, lng}
+  postcode TEXT,
+  nearest_tube TEXT,
+  coming_soon INTEGER,
 
   -- Location (denormalized)
   location_document_id TEXT,

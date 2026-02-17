@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDB } from '@/lib/api/d1';
+import { getDB, proxyToProd } from '@/lib/api/d1';
 import { d1RowToCountry } from '@/lib/api/d1-queries';
 
 /**
@@ -8,6 +8,7 @@ import { d1RowToCountry } from '@/lib/api/d1-queries';
 export async function GET() {
   try {
     const db = await getDB();
+    if (!db) return proxyToProd('/api/v2/countries');
     const result = await db.prepare('SELECT * FROM countries ORDER BY name').all();
     const countries = result.results.map(d1RowToCountry);
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDB } from '@/lib/api/d1';
+import { getDB, proxyToProd } from '@/lib/api/d1';
 import { d1RowToBrand } from '@/lib/api/d1-queries';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,6 +17,7 @@ function parseJSON(val: unknown): any {
 export async function GET() {
   try {
     const db = await getDB();
+    if (!db) return proxyToProd('/api/v2/brands');
 
     // Batch fetch all data in parallel
     const [brandsResult, beansResult, originsResult, tagsResult] = await Promise.all([

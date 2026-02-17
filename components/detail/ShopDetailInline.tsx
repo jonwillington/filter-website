@@ -72,7 +72,7 @@ export function ShopDetailInline({ shop, allShops, onShopSelect, onOpenLoginModa
       </div>
 
       {/* Content with padding */}
-      <div className="px-5 py-4 space-y-10">
+      <div className="px-5 py-4 space-y-6">
 
         {/* Action bar */}
         <div className="shop-card-animate" style={staggerStyle(isTopChoice ? 2 : 1)}>

@@ -56,7 +56,7 @@ export function ExploreModal({
     <ResponsiveModal
       isOpen={isOpen}
       onClose={onClose}
-      size="4xl"
+      size="5xl"
       modalClassNames={{
         wrapper: 'z-[1100]',
         backdrop: 'bg-black/60 backdrop-blur-sm z-[1100]',

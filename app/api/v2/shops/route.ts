@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDB } from '@/lib/api/d1';
+import { getDB, proxyToProd } from '@/lib/api/d1';
 
 /**
  * GET /api/v2/shops — Shop data for map/list from D1
@@ -17,6 +17,11 @@ import { getDB } from '@/lib/api/d1';
 export async function GET(request: NextRequest) {
   try {
     const db = await getDB();
+    if (!db) {
+      const { searchParams } = new URL(request.url);
+      const qs = searchParams.toString();
+      return proxyToProd(`/api/v2/shops${qs ? `?${qs}` : ''}`);
+    }
     const { searchParams } = new URL(request.url);
     const country = searchParams.get('country');
     const location = searchParams.get('location');

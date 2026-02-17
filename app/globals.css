@@ -954,9 +954,21 @@ h1, h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-scroll-left,
-  .animate-scroll-right {
+  .animate-scroll-right,
+  .animate-masonry-scroll {
     animation: none !important;
   }
+}
+
+/* Hero masonry grid — slow vertical scroll */
+@keyframes masonryScroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-33.333%); }
+}
+
+.animate-masonry-scroll {
+  animation: masonryScroll 120s linear infinite;
+  will-change: transform;
 }
 
 

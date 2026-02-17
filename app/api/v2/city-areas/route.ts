@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDB } from '@/lib/api/d1';
+import { getDB, proxyToProd } from '@/lib/api/d1';
 import { d1RowToCityArea } from '@/lib/api/d1-queries';
 
 /**
@@ -8,6 +8,7 @@ import { d1RowToCityArea } from '@/lib/api/d1-queries';
 export async function GET() {
   try {
     const db = await getDB();
+    if (!db) return proxyToProd('/api/v2/city-areas');
     const result = await db.prepare('SELECT * FROM city_areas ORDER BY name').all();
     const cityAreas = result.results.map(d1RowToCityArea);
 

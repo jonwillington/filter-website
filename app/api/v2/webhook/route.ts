@@ -273,6 +273,7 @@ async function upsertShop(db: D1Database, entry: any) {
       google_business_status, google_photo_reference, google_formatted_address, google_plus_code,
       google_types, google_places_last_updated, google_coordinates_last_updated,
       website, phone, phone_number, instagram, facebook, tiktok,
+      amenity_overrides, brew_method_overrides, menu_data,
       public_tags, amenities,
       architects, price, quality_tier, opening_hours, is_open,
       local_density,
@@ -299,13 +300,14 @@ async function upsertShop(db: D1Database, entry: any) {
       ?59, ?60, ?61, ?62,
       ?63, ?64, ?65,
       ?66, ?67, ?68, ?69, ?70, ?71,
-      ?72, ?73,
-      ?74, ?75, ?76, ?77, ?78,
-      ?79,
-      ?80, ?81, ?82, ?83, ?84,
-      ?85, ?86, ?87,
+      ?72, ?73, ?74,
+      ?75, ?76,
+      ?77, ?78, ?79, ?80, ?81,
+      ?82,
+      ?83, ?84, ?85, ?86, ?87,
       ?88, ?89, ?90,
-      ?91, ?92, ?93
+      ?91, ?92, ?93,
+      ?94, ?95, ?96
     )
   `).bind(
     entry.documentId,                                    // 1
@@ -379,87 +381,123 @@ async function upsertShop(db: D1Database, entry: any) {
     entry.instagram || null,                             // 69
     entry.facebook || null,                              // 70
     entry.tiktok || null,                                // 71
-    toJson(entry.public_tags),                           // 72
-    toJson(entry.amenities),                             // 73
-    entry.architects || null,                            // 74
-    entry.price || null,                                 // 75
-    entry.quality_tier || null,                          // 76
-    toJson(entry.opening_hours),                         // 77
-    toBoolInt(entry.is_open),                            // 78
-    entry.localDensity ?? 0,                             // 79
-    toJson(entry.research),                              // 80
-    toJson(entry.citedSources),                          // 81
-    toJson(entry.observations),                          // 82
-    toJson(entry.visionData),                            // 83
-    toJson(entry.preferenceProfile),                     // 84
-    cp?.documentId || null,                              // 85
-    cp?.name || null,                                    // 86
-    cp?.logo?.url || null,                               // 87
-    toBoolInt(entry.isDev),                              // 88
-    toJson(entry.awards),                                // 89
-    toJson(entry.source_articles),                       // 90
-    entry.createdAt || null,                             // 91
-    entry.updatedAt || null,                             // 92
-    entry.publishedAt || null,                           // 93
+    toJson(entry.amenity_overrides),                     // 72
+    toJson(entry.brew_method_overrides),                  // 73
+    toJson(entry.menuData),                              // 74
+    toJson(entry.public_tags),                           // 75
+    toJson(entry.amenities),                             // 76
+    entry.architects || null,                            // 77
+    entry.price || null,                                 // 78
+    entry.quality_tier || null,                          // 79
+    toJson(entry.opening_hours),                         // 80
+    toBoolInt(entry.is_open),                            // 81
+    entry.localDensity ?? 0,                             // 82
+    toJson(entry.research),                              // 83
+    toJson(entry.citedSources),                          // 84
+    toJson(entry.observations),                          // 85
+    toJson(entry.visionData),                            // 86
+    toJson(entry.preferenceProfile),                     // 87
+    cp?.documentId || null,                              // 88
+    cp?.name || null,                                    // 89
+    cp?.logo?.url || null,                               // 90
+    toBoolInt(entry.isDev),                              // 91
+    toJson(entry.awards),                                // 92
+    toJson(entry.source_articles),                       // 93
+    entry.createdAt || null,                             // 94
+    entry.updatedAt || null,                             // 95
+    entry.publishedAt || null,                           // 96
   ).run();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function upsertBrand(db: D1Database, entry: any) {
-  // Simplified upsert for webhook — just the core fields
-  // Full re-seed handles all fields
   await db.prepare(`
     INSERT OR REPLACE INTO brands (
       document_id, id, name, type, role, description, story, statement,
-      founded, founder, logo_url, logo_formats,
-      website, instagram, facebook, tiktok,
-      roast_own_beans, own_roast_desc,
-      equipment, awards, research, cited_sources,
-      created_at, updated_at, published_at
+      founded, founder, hq, price, quality_tier,
+      logo_url, logo_formats, bg_image_url, bg_image_formats,
+      website, instagram, facebook, tiktok, twitter, youtube, phone, whatsapp, line,
+      roast_own_beans, own_roast_desc, own_bean_link,
+      specializes_light, specializes_medium, specializes_dark,
+      has_wifi, has_food, has_outdoor_space, is_pet_friendly,
+      has_espresso, has_filter_coffee, has_v60, has_chemex,
+      has_aeropress, has_french_press, has_cold_brew, has_batch_brew,
+      has_siphon, has_turkish_coffee, oat_milk, plant_milk,
+      equipment, awards, research, cited_sources, observations, source_articles,
+      is_dev, created_at, updated_at, published_at
     ) VALUES (
-      ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-      ?9, ?10, ?11, ?12,
-      ?13, ?14, ?15, ?16,
-      ?17, ?18,
-      ?19, ?20, ?21, ?22,
-      ?23, ?24, ?25
+      ?1,  ?2,  ?3,  ?4,  ?5,  ?6,  ?7,  ?8,
+      ?9,  ?10, ?11, ?12, ?13,
+      ?14, ?15, ?16, ?17,
+      ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26,
+      ?27, ?28, ?29,
+      ?30, ?31, ?32,
+      ?33, ?34, ?35, ?36,
+      ?37, ?38, ?39, ?40,
+      ?41, ?42, ?43, ?44,
+      ?45, ?46, ?47, ?48,
+      ?49, ?50, ?51, ?52, ?53, ?54,
+      ?55, ?56, ?57, ?58
     )
   `).bind(
-    entry.documentId,
-    entry.id || null,
-    entry.name,
-    entry.type || null,
-    entry.role || null,
-    entry.description || null,
-    entry.story || null,
-    entry.statement || null,
-    entry.founded || null,
-    entry.Founder || entry.founder || null,
-    entry.logo?.url || null,
-    entry.logo?.formats
-      ? JSON.stringify(entry.logo.formats)
-      : null,
-    entry.website || null,
-    entry.instagram || null,
-    entry.facebook || null,
-    entry.tiktok || null,
-    toBoolInt(entry.roastOwnBeans),
-    entry.ownRoastDesc || null,
-    entry.equipment
-      ? JSON.stringify(entry.equipment)
-      : null,
-    entry.awards
-      ? JSON.stringify(entry.awards)
-      : null,
-    entry.research
-      ? JSON.stringify(entry.research)
-      : null,
-    entry.citedSources
-      ? JSON.stringify(entry.citedSources)
-      : null,
-    entry.createdAt || null,
-    entry.updatedAt || null,
-    entry.publishedAt || null,
+    entry.documentId,                                    // 1
+    entry.id || null,                                    // 2
+    entry.name,                                          // 3
+    entry.type || null,                                  // 4
+    entry.role || null,                                  // 5
+    entry.description || null,                           // 6
+    entry.story || null,                                 // 7
+    entry.statement || null,                             // 8
+    entry.founded || null,                               // 9
+    entry.Founder || entry.founder || null,               // 10
+    entry.hq || null,                                    // 11
+    entry.price || null,                                 // 12
+    entry.quality_tier || null,                           // 13
+    entry.logo?.url || null,                             // 14
+    toJson(entry.logo?.formats),                         // 15
+    entry['bg-image']?.url || null,                      // 16
+    toJson(entry['bg-image']?.formats),                  // 17
+    entry.website || null,                               // 18
+    entry.instagram || null,                             // 19
+    entry.facebook || null,                              // 20
+    entry.tiktok || null,                                // 21
+    entry.twitter || null,                               // 22
+    entry.youtube || null,                               // 23
+    entry.phone || null,                                 // 24
+    entry.whatsapp || null,                              // 25
+    entry.line || null,                                  // 26
+    toBoolInt(entry.roastOwnBeans),                      // 27
+    entry.ownRoastDesc || null,                          // 28
+    entry.ownBeanLink || null,                           // 29
+    toBoolInt(entry.specializes_light),                  // 30
+    toBoolInt(entry.specializes_medium),                 // 31
+    toBoolInt(entry.specializes_dark),                   // 32
+    toBoolInt(entry.has_wifi),                           // 33
+    toBoolInt(entry.has_food),                           // 34
+    toBoolInt(entry.has_outdoor_space),                  // 35
+    toBoolInt(entry.is_pet_friendly),                    // 36
+    toBoolInt(entry.has_espresso),                       // 37
+    toBoolInt(entry.has_filter_coffee),                  // 38
+    toBoolInt(entry.has_v60),                            // 39
+    toBoolInt(entry.has_chemex),                         // 40
+    toBoolInt(entry.has_aeropress),                      // 41
+    toBoolInt(entry.has_french_press),                   // 42
+    toBoolInt(entry.has_cold_brew),                      // 43
+    toBoolInt(entry.has_batch_brew),                     // 44
+    toBoolInt(entry.has_siphon),                         // 45
+    toBoolInt(entry.has_turkish_coffee),                 // 46
+    toBoolInt(entry.oatMilk),                            // 47
+    toBoolInt(entry.plantMilk),                          // 48
+    toJson(entry.equipment),                             // 49
+    toJson(entry.awards),                                // 50
+    toJson(entry.research),                              // 51
+    toJson(entry.citedSources),                          // 52
+    toJson(entry.observations),                          // 53
+    toJson(entry.source_articles),                       // 54
+    toBoolInt(entry.isDev),                              // 55
+    entry.createdAt || null,                             // 56
+    entry.updatedAt || null,                             // 57
+    entry.publishedAt || null,                           // 58
   ).run();
 
   // Re-sync brand suppliers
@@ -576,7 +614,7 @@ async function upsertLocation(db: D1Database, entry: any) {
       in_focus, beta, coming_soon,
       primary_color, secondary_color,
       coordinates, boundary_coordinates,
-      bg_image_url, bg_image_formats,
+      bg_image_url, bg_image_formats, media_links,
       story_author_id, story_author_document_id, story_author_name, story_author_photo_url,
       country_document_id, country_name, country_code,
       country_primary_color, country_secondary_color,
@@ -587,11 +625,11 @@ async function upsertLocation(db: D1Database, entry: any) {
       ?10, ?11, ?12,
       ?13, ?14,
       ?15, ?16,
-      ?17, ?18,
-      ?19, ?20, ?21, ?22,
-      ?23, ?24, ?25,
-      ?26, ?27,
-      ?28, ?29, ?30
+      ?17, ?18, ?19,
+      ?20, ?21, ?22, ?23,
+      ?24, ?25, ?26,
+      ?27, ?28,
+      ?29, ?30, ?31
     )
   `).bind(
     entry.documentId,
@@ -612,6 +650,7 @@ async function upsertLocation(db: D1Database, entry: any) {
     toJson(entry.boundary_coordinates),
     bgImage?.url || null,
     toJson(bgImage?.formats),
+    toJson(entry.media_links),
     storyAuthor?.id || null,
     storyAuthor?.documentId || null,
     storyAuthor?.name || null,
@@ -636,6 +675,7 @@ async function upsertCountry(db: D1Database, entry: any) {
       document_id, id, name, code, slug, story,
       supported, coming_soon,
       primary_color, primary_color_dark, secondary_color, secondary_color_dark,
+      accent_colour, high_inflation, producer,
       region_document_id, region_name, region_coming_soon,
       created_at, updated_at, published_at
     ) VALUES (
@@ -643,7 +683,8 @@ async function upsertCountry(db: D1Database, entry: any) {
       ?7,  ?8,
       ?9,  ?10, ?11, ?12,
       ?13, ?14, ?15,
-      ?16, ?17, ?18
+      ?16, ?17, ?18,
+      ?19, ?20, ?21
     )
   `).bind(
     entry.documentId,
@@ -658,6 +699,9 @@ async function upsertCountry(db: D1Database, entry: any) {
     entry.primaryColorDark || null,
     entry.secondaryColor || null,
     entry.secondaryColorDark || null,
+    entry.accentColour || null,
+    toBoolInt(entry.highInflation),
+    toBoolInt(entry.producer),
     region?.documentId || null,
     region?.Name || region?.name || null,
     toBoolInt(region?.comingSoon),
@@ -676,6 +720,7 @@ async function upsertCityArea(db: D1Database, entry: any) {
       document_id, id, name, slug, area_group, description, summary,
       featured_image_url, featured_image_formats,
       boundary_coordinates,
+      center_coordinates, postcode, nearest_tube, coming_soon,
       location_document_id, location_name, location_slug,
       location_country_name, location_country_code,
       created_at, updated_at, published_at
@@ -683,9 +728,10 @@ async function upsertCityArea(db: D1Database, entry: any) {
       ?1,  ?2,  ?3,  ?4,  ?5,  ?6,  ?7,
       ?8,  ?9,
       ?10,
-      ?11, ?12, ?13,
-      ?14, ?15,
-      ?16, ?17, ?18
+      ?11, ?12, ?13, ?14,
+      ?15, ?16, ?17,
+      ?18, ?19,
+      ?20, ?21, ?22
     )
   `).bind(
     entry.documentId,
@@ -698,6 +744,10 @@ async function upsertCityArea(db: D1Database, entry: any) {
     entry.featuredImage?.url || entry.featured_image?.url || null,
     toJson(entry.featuredImage?.formats || entry.featured_image?.formats),
     toJson(entry.boundary_coordinates),
+    toJson(entry.center_coordinates),
+    entry.postcode || null,
+    entry.nearest_tube || null,
+    toBoolInt(entry.comingSoon),
     loc?.documentId || null,
     loc?.name || null,
     loc?.slug || null,

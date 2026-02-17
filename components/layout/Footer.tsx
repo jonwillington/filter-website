@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Sun, Moon, Mail, Instagram, Settings } from 'lucide-react';
+import { Mail, Instagram, Settings } from 'lucide-react';
 import { LegalModal } from '../modals/LegalModal';
-import { useTheme } from '@/lib/context/ThemeContext';
 import { DevTools } from '../dev/DevTools';
 import { Shop } from '@/lib/types';
 
@@ -16,12 +15,6 @@ interface FooterProps {
 export function Footer({ shops = [], isFirstTimeVisitor, onToggleFirstTimeVisitor }: FooterProps) {
   const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const [showDevTools, setShowDevTools] = useState(false);
-  const { effectiveTheme, setThemeMode } = useTheme();
-
-  const toggleTheme = () => {
-    setThemeMode(effectiveTheme === 'dark' ? 'light' : 'dark');
-  };
-
   return (
     <>
       <footer className="footer">
@@ -58,18 +51,6 @@ export function Footer({ shops = [], isFirstTimeVisitor, onToggleFirstTimeVisito
           </a>
           <span className="text-border">•</span>
           <span>© {new Date().getFullYear()} Filter</span>
-          <span className="text-border">•</span>
-          <button
-            onClick={toggleTheme}
-            className="hover:text-accent transition-colors cursor-pointer p-1"
-            aria-label={effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {effectiveTheme === 'dark' ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </button>
           {process.env.NODE_ENV === 'development' && (
             <>
               <span className="text-border">•</span>

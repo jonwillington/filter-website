@@ -17,22 +17,22 @@ export function RegionView({ groupedData, onLocationSelect }: RegionViewProps) {
       {/* Desktop: 3-column grid with row-aligned regions */}
       <div className="hidden lg:block py-6 px-8">
         {(() => {
-          // Create rows of 3 regions each
+          // Create rows of 4 regions each
           const rows: (typeof groupedData)[] = [];
-          for (let i = 0; i < groupedData.length; i += 3) {
-            rows.push(groupedData.slice(i, i + 3));
+          for (let i = 0; i < groupedData.length; i += 4) {
+            rows.push(groupedData.slice(i, i + 4));
           }
 
           return rows.map((rowRegions, rowIndex) => (
             <div
               key={rowIndex}
               className={cn(
-                'grid grid-cols-3 divide-x divide-border-default',
+                'grid grid-cols-4 divide-x divide-border-default',
                 rowIndex > 0 && 'mt-8 pt-8 border-t border-border-default'
               )}
             >
-              {/* Render 3 columns, with empty placeholder if fewer regions */}
-              {[0, 1, 2].map((colIndex) => {
+              {/* Render 4 columns, with empty placeholder if fewer regions */}
+              {[0, 1, 2, 3].map((colIndex) => {
                 const regionData = rowRegions[colIndex];
                 return (
                   <div key={colIndex} className="px-6 first:pl-0 last:pr-0">

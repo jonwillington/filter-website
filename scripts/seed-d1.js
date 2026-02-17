@@ -74,8 +74,8 @@ function buildBrandInsert(brand) {
     'has_wifi', 'has_food', 'has_outdoor_space', 'is_pet_friendly',
     'has_espresso', 'has_filter_coffee', 'has_v60', 'has_chemex',
     'has_aeropress', 'has_french_press', 'has_cold_brew', 'has_batch_brew',
-    'has_siphon', 'oat_milk', 'plant_milk',
-    'equipment', 'awards', 'research', 'cited_sources', 'observations',
+    'has_siphon', 'has_turkish_coffee', 'oat_milk', 'plant_milk',
+    'equipment', 'awards', 'research', 'cited_sources', 'observations', 'source_articles',
     'is_dev', 'created_at', 'updated_at', 'published_at',
   ];
 
@@ -92,12 +92,13 @@ function buildBrandInsert(brand) {
     boolInt(brand.has_wifi), boolInt(brand.has_food), boolInt(brand.has_outdoor_space), boolInt(brand.is_pet_friendly),
     boolInt(brand.has_espresso), boolInt(brand.has_filter_coffee), boolInt(brand.has_v60), boolInt(brand.has_chemex),
     boolInt(brand.has_aeropress), boolInt(brand.has_french_press), boolInt(brand.has_cold_brew), boolInt(brand.has_batch_brew),
-    boolInt(brand.has_siphon), boolInt(brand.oatMilk), boolInt(brand.plantMilk),
+    boolInt(brand.has_siphon), boolInt(brand.has_turkish_coffee), boolInt(brand.oatMilk), boolInt(brand.plantMilk),
     brand.equipment ? esc(brand.equipment) : 'NULL',
     brand.awards ? esc(brand.awards) : 'NULL',
     brand.research ? esc(brand.research) : 'NULL',
     brand.citedSources ? esc(brand.citedSources) : 'NULL',
     brand.observations ? esc(brand.observations) : 'NULL',
+    brand.source_articles ? esc(brand.source_articles) : 'NULL',
     boolInt(brand.isDev), esc(brand.createdAt), esc(brand.updatedAt), esc(brand.publishedAt),
   ];
 
@@ -130,6 +131,7 @@ function buildShopInsert(shop, brandMap) {
     'google_business_status', 'google_photo_reference', 'google_formatted_address', 'google_plus_code',
     'google_types', 'google_places_last_updated', 'google_coordinates_last_updated',
     'website', 'phone', 'phone_number', 'instagram', 'facebook', 'tiktok',
+    'amenity_overrides', 'brew_method_overrides', 'menu_data',
     'public_tags', 'amenities',
     'architects', 'price', 'quality_tier', 'opening_hours', 'is_open',
     'local_density',
@@ -169,6 +171,9 @@ function buildShopInsert(shop, brandMap) {
     esc(shop.google_places_last_updated), esc(shop.google_coordinates_last_updated),
     esc(shop.website), esc(shop.phone), esc(shop.phone_number),
     esc(shop.instagram), esc(shop.facebook), esc(shop.tiktok),
+    shop.amenity_overrides ? esc(shop.amenity_overrides) : 'NULL',
+    shop.brew_method_overrides ? esc(shop.brew_method_overrides) : 'NULL',
+    shop.menuData ? esc(shop.menuData) : 'NULL',
     shop.public_tags ? esc(shop.public_tags) : 'NULL',
     shop.amenities ? esc(shop.amenities) : 'NULL',
     esc(shop.architects), esc(shop.price), esc(shop.quality_tier),
@@ -201,7 +206,7 @@ function buildLocationInsert(loc) {
     'in_focus', 'beta', 'coming_soon',
     'primary_color', 'secondary_color',
     'coordinates', 'boundary_coordinates',
-    'bg_image_url', 'bg_image_formats',
+    'bg_image_url', 'bg_image_formats', 'media_links',
     'story_author_id', 'story_author_document_id', 'story_author_name', 'story_author_photo_url',
     'country_document_id', 'country_name', 'country_code',
     'country_primary_color', 'country_secondary_color',
@@ -217,6 +222,7 @@ function buildLocationInsert(loc) {
     loc.coordinates ? esc(loc.coordinates) : 'NULL',
     loc.boundary_coordinates ? esc(loc.boundary_coordinates) : 'NULL',
     esc(bgImage?.url), bgImage?.formats ? esc(bgImage.formats) : 'NULL',
+    loc.media_links ? esc(loc.media_links) : 'NULL',
     storyAuthor?.id || 'NULL', esc(storyAuthor?.documentId), esc(storyAuthor?.name),
     esc(storyAuthor?.photo?.url),
     esc(country?.documentId), esc(country?.name), esc(country?.code),
@@ -234,6 +240,7 @@ function buildCountryInsert(country) {
     'document_id', 'id', 'name', 'code', 'slug', 'story',
     'supported', 'coming_soon',
     'primary_color', 'primary_color_dark', 'secondary_color', 'secondary_color_dark',
+    'accent_colour', 'high_inflation', 'producer',
     'region_document_id', 'region_name', 'region_coming_soon',
     'created_at', 'updated_at', 'published_at',
   ];
@@ -244,6 +251,7 @@ function buildCountryInsert(country) {
     boolInt(country.supported), boolInt(country.comingSoon),
     esc(country.primaryColor), esc(country.primaryColorDark),
     esc(country.secondaryColor), esc(country.secondaryColorDark),
+    esc(country.accentColour), boolInt(country.highInflation), boolInt(country.producer),
     esc(region?.documentId), esc(region?.Name), boolInt(region?.comingSoon),
     esc(country.createdAt), esc(country.updatedAt), esc(country.publishedAt),
   ];
@@ -258,6 +266,7 @@ function buildCityAreaInsert(ca) {
     'document_id', 'id', 'name', 'slug', 'area_group', 'description', 'summary',
     'featured_image_url', 'featured_image_formats',
     'boundary_coordinates',
+    'center_coordinates', 'postcode', 'nearest_tube', 'coming_soon',
     'location_document_id', 'location_name', 'location_slug',
     'location_country_name', 'location_country_code',
     'created_at', 'updated_at', 'published_at',
@@ -267,7 +276,9 @@ function buildCityAreaInsert(ca) {
     esc(ca.documentId), ca.id || 'NULL', esc(ca.name), esc(ca.slug), esc(ca.group),
     esc(ca.description), esc(ca.summary),
     esc(ca.featuredImage?.url), ca.featuredImage?.formats ? esc(ca.featuredImage.formats) : 'NULL',
-    'NULL', // boundary_coordinates omitted — too large for batch SQL inserts
+    'NULL', // boundary_coordinates seeded separately (too large for SQL string inserts)
+    ca.center_coordinates ? esc(ca.center_coordinates) : 'NULL',
+    esc(ca.postcode), esc(ca.nearest_tube), boolInt(ca.comingSoon),
     esc(loc?.documentId), esc(loc?.name), esc(loc?.slug),
     esc(loc?.country?.name), esc(loc?.country?.code),
     esc(ca.createdAt), esc(ca.updatedAt), esc(ca.publishedAt),
@@ -419,6 +430,59 @@ async function main() {
     process.stdout.write(`   ${Math.min(i + BATCH_SIZE, cityAreaStatements.length)}/${cityAreaStatements.length}\r`);
   }
   console.log(`   ✓ ${cityAreas.length} city areas\n`);
+
+  // 7b. Seed city area boundary_coordinates separately (too large for batch SQL strings)
+  const areasWithBoundary = cityAreas.filter(ca => ca.boundary_coordinates);
+  if (areasWithBoundary.length > 0) {
+    console.log('7b. Seeding city area boundaries...');
+    let skipped = 0;
+    for (let i = 0; i < areasWithBoundary.length; i++) {
+      const ca = areasWithBoundary[i];
+      let coords = ca.boundary_coordinates;
+
+      // Simplify coordinates: reduce precision to 5 decimals (~1m accuracy)
+      // and thin large polygons to stay under wrangler's ~90KB SQL statement limit
+      if (Array.isArray(coords)) {
+        coords = coords.map(c => ({
+          lat: Math.round(c.lat * 100000) / 100000,
+          lng: Math.round(c.lng * 100000) / 100000,
+        }));
+        // Thin large polygons: keep every Nth point to stay under size limit
+        const MAX_POINTS = 1500;
+        if (coords.length > MAX_POINTS) {
+          const step = Math.ceil(coords.length / MAX_POINTS);
+          coords = coords.filter((_, idx) => idx % step === 0);
+        }
+      }
+
+      const json = JSON.stringify(coords);
+      const sql = `UPDATE city_areas SET boundary_coordinates = '${json.replace(/'/g, "''")}' WHERE document_id = ${esc(ca.documentId)};`;
+
+      // Skip if still too large (shouldn't happen after thinning)
+      if (sql.length > 90000) {
+        console.warn(`   ⚠ Skipping ${ca.name} boundary (${(sql.length/1024).toFixed(0)}KB still too large)`);
+        skipped++;
+        continue;
+      }
+
+      const tmpFile = path.join(__dirname, `../.data/_seed_boundary_${i}.sql`);
+      fs.writeFileSync(tmpFile, sql);
+      const remoteFlag = isRemote ? ' --remote' : '';
+      try {
+        execSync(`npx wrangler@latest d1 execute filter-db --file="${tmpFile}"${remoteFlag}`, {
+          stdio: 'pipe',
+          cwd: path.join(__dirname, '..'),
+          timeout: 120000,
+        });
+      } finally {
+        try { fs.unlinkSync(tmpFile); } catch {}
+      }
+      if ((i + 1) % 10 === 0 || i === areasWithBoundary.length - 1) {
+        process.stdout.write(`   ${i + 1}/${areasWithBoundary.length}\r`);
+      }
+    }
+    console.log(`   ✓ ${areasWithBoundary.length - skipped} boundaries${skipped ? ` (${skipped} skipped — too large)` : ''}\n`);
+  }
 
   // 8. Seed beans
   console.log('8. Seeding beans...');

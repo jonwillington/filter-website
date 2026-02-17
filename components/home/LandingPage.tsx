@@ -3,10 +3,12 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Location, Shop, Country, Event, Person, NewsArticle } from '@/lib/types';
-import { getMediaUrl, hasCityAreaRecommendation } from '@/lib/utils';
+import { getMediaUrl, hasCityAreaRecommendation, getShopCoordinates } from '@/lib/utils';
 import { BrandLogo, LocationLogoGroup } from '@/components/sidebar/BrandLogoCarousel';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from './landing/HeroSection';
+import { HeroSectionGrid } from './landing/HeroSectionGrid';
+import { LocationImageGroup, GridTile } from './landing/PerspectiveImageGrid';
 import { FeaturedCities } from './landing/FeaturedCities';
 import { FeaturedShops } from './landing/FeaturedShops';
 import { FeaturedEvents } from './landing/FeaturedEvents';
@@ -16,9 +18,10 @@ import { CriticsPicks } from './landing/CriticsPicks';
 import { LatestNews } from './landing/LatestNews';
 import { CoffeeAroundWorld } from './landing/CoffeeAroundWorld';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Search, LogIn } from 'lucide-react';
+import { Search, LogIn, Sun, Moon } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { UserMenu } from '@/components/auth/UserMenu';
+import { useTheme } from '@/lib/context/ThemeContext';
 
 const SearchModal = dynamic(
   () => import('@/components/modals/SearchModal').then(mod => ({ default: mod.SearchModal })),
@@ -65,12 +68,20 @@ export function LandingPage({
   onExploreMap,
   onFindNearMe,
 }: LandingPageProps) {
+  const [heroVariant, setHeroVariant] = useState<'logos' | 'grid'>('logos');
   const [exploreOpen, setExploreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [headerLight, setHeaderLight] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const { user, loading: authLoading } = useAuth();
+  const { effectiveTheme, setThemeMode } = useTheme();
+
+  // Read hero variant from URL query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('hero') === 'grid') setHeroVariant('grid');
+  }, []);
 
   // Unlock scroll when landing page is active
   useEffect(() => {
@@ -144,6 +155,83 @@ export function LandingPage({
       .filter(g => g.logos.length >= 4)
       .sort((a, b) => b.logos.length - a.logos.length)
       .map(({ locationName, countryCode, primaryColor, logos }) => ({ locationName, countryCode, primaryColor, logos }));
+  }, [shops]);
+
+  // Group shop photos by location for the grid hero variant
+  const imageGroups = useMemo<LocationImageGroup[]>(() => {
+    const groupMap = new Map<string, {
+      locationName: string;
+      countryCode?: string;
+      tiles: GridTile[];
+      brandLogos: string[];
+      brandSeen: Set<string>;
+      shopCoords: [number, number][];
+      shopCount: number;
+    }>();
+
+    for (const shop of shops) {
+      const locName = shop.location?.name;
+      if (!locName) continue;
+
+      // Initialize group
+      if (!groupMap.has(locName)) {
+        groupMap.set(locName, {
+          locationName: locName,
+          countryCode: shop.location?.country?.code,
+          tiles: [],
+          brandLogos: [],
+          brandSeen: new Set(),
+          shopCoords: [],
+          shopCount: 0,
+        });
+      }
+      const group = groupMap.get(locName)!;
+      group.shopCount++;
+
+      // Collect coordinates for map tiles
+      const coords = getShopCoordinates(shop);
+      if (coords) group.shopCoords.push(coords);
+
+      // Collect unique brand logos
+      if (shop.brand?.documentId && shop.brand.logo && !group.brandSeen.has(shop.brand.documentId)) {
+        const logoUrl = getMediaUrl(shop.brand.logo);
+        if (logoUrl) {
+          group.brandSeen.add(shop.brand.documentId);
+          group.brandLogos.push(logoUrl);
+        }
+      }
+
+      // Only recommended shops with featured images become photo tiles
+      if (!hasCityAreaRecommendation(shop) || !shop.featured_image) continue;
+
+      const asset = shop.featured_image as any;
+      const imageUrl = asset?.formats?.small?.url || asset?.formats?.thumbnail?.url || getMediaUrl(shop.featured_image);
+      if (!imageUrl) continue;
+
+      const brandLogoUrl = getMediaUrl(shop.brand?.logo) || undefined;
+      group.tiles.push({
+        imageUrl,
+        shopName: shop.name || '',
+        brandLogoUrl,
+      });
+    }
+
+    // Require at least 3 photo tiles per group, sort by count desc, cap total ~50 tiles
+    const sorted = Array.from(groupMap.values())
+      .filter(g => g.tiles.length >= 3)
+      .sort((a, b) => b.tiles.length - a.tiles.length);
+
+    let total = 0;
+    const capped: LocationImageGroup[] = [];
+    for (const group of sorted) {
+      const remaining = 50 - total;
+      if (remaining <= 0) break;
+      const tiles = group.tiles.slice(0, remaining);
+      const { brandSeen, ...rest } = group;
+      capped.push({ ...rest, tiles });
+      total += tiles.length;
+    }
+    return capped;
   }, [shops]);
 
   // Shop count per location
@@ -242,6 +330,16 @@ export function LandingPage({
               isIconOnly
               variant="flat"
               radius="full"
+              onPress={() => setThemeMode(effectiveTheme === 'dark' ? 'light' : 'dark')}
+              size="sm"
+              aria-label={effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {effectiveTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <Button
+              isIconOnly
+              variant="flat"
+              radius="full"
               onPress={() => setSearchOpen(true)}
               size="sm"
               aria-label="Search"
@@ -270,14 +368,25 @@ export function LandingPage({
 
       {/* Hero on contrastBlock bg */}
       <div ref={heroRef} className="bg-contrastBlock pt-14">
-        <HeroSection
-          headline={headline}
-          subtitle={subtitle}
-          locationGroups={locationGroups}
-          isLoading={isLoading}
-          onExploreMap={() => setExploreOpen(true)}
-          onFindNearMe={onFindNearMe}
-        />
+        {heroVariant === 'grid' && imageGroups.length > 0 ? (
+          <HeroSectionGrid
+            headline={headline}
+            subtitle={subtitle}
+            imageGroups={imageGroups}
+            isLoading={isLoading}
+            onExploreMap={() => setExploreOpen(true)}
+            onFindNearMe={onFindNearMe}
+          />
+        ) : (
+          <HeroSection
+            headline={headline}
+            subtitle={subtitle}
+            locationGroups={locationGroups}
+            isLoading={isLoading}
+            onExploreMap={() => setExploreOpen(true)}
+            onFindNearMe={onFindNearMe}
+          />
+        )}
       </div>
 
       <FeaturedCities cities={featuredCities} onCitySelect={onLocationSelect} onExploreMap={() => setExploreOpen(true)} shopCountByLocation={shopCountByLocation} />
