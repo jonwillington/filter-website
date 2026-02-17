@@ -1,21 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDB } from '@/lib/api/d1';
+import { SHOP_POPULATE, LOCATION_POPULATE, CITY_AREA_POPULATE } from '@/lib/api/strapiPopulate';
+
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://helpful-oasis-8bb949e05d.strapiapp.com/api';
+const STRAPI_TOKEN = process.env.NEXT_PUBLIC_STRAPI_TOKEN;
+
+/**
+ * Fetch the full entry from Strapi with proper population.
+ * Webhook payloads are minimal — we re-fetch to get all relations.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchFullEntry(model: string, documentId: string): Promise<any> {
+  const populateMap: Record<string, string> = {
+    shop: SHOP_POPULATE + '&populate[menus]=*&populate[coffee_partner][populate][logo]=*',
+    brand: [
+      'populate[logo][fields][0]=url',
+      'populate[logo][fields][1]=formats',
+      'populate[ownRoastCountry][fields][0]=name',
+      'populate[ownRoastCountry][fields][1]=code',
+    ].join('&'),
+    bean: [
+      'populate[brand][fields][0]=documentId',
+      'populate[photo][fields][0]=url',
+      'populate[photo][fields][1]=formats',
+      'populate[origins]=*',
+      'populate[flavorTags]=*',
+    ].join('&'),
+    location: LOCATION_POPULATE + '&populate[storyAuthor][populate][photo]=*',
+    country: 'populate[region]=*',
+    'city-area': CITY_AREA_POPULATE + '&populate[featured_image]=*',
+  };
+
+  // Map model names to Strapi plural endpoints
+  const endpointMap: Record<string, string> = {
+    shop: 'shops',
+    brand: 'brands',
+    bean: 'beans',
+    location: 'locations',
+    country: 'countries',
+    'city-area': 'city-areas',
+  };
+
+  const endpoint = endpointMap[model];
+  const populate = populateMap[model] || 'populate=*';
+  if (!endpoint) return null;
+
+  const url = `${STRAPI_URL}/${endpoint}/${documentId}?${populate}`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${STRAPI_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    console.error(`Failed to fetch ${model}/${documentId} from Strapi: ${res.status}`);
+    return null;
+  }
+
+  const json = await res.json();
+  return json.data || json;
+}
 
 /**
  * POST /api/v2/webhook — Strapi webhook handler
  *
- * Receives create/update/delete events from Strapi and syncs
- * the relevant row in D1.
- *
- * Expected headers:
- *   X-Webhook-Secret: <shared secret>
- *
- * Expected body (Strapi v5 webhook format):
- *   {
- *     "event": "entry.create" | "entry.update" | "entry.delete",
- *     "model": "shop" | "brand" | "bean",
- *     "entry": { ...full entry data... }
- *   }
+ * Receives create/update/delete events from Strapi, then re-fetches
+ * the full entry from Strapi (with populated relations) before syncing to D1.
  */
 export async function POST(request: NextRequest) {
   // Verify webhook secret
@@ -48,36 +100,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
     }
 
+    // For create/update events, re-fetch the full entry from Strapi with populated relations
+    // Webhook payloads are minimal and missing relation data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let fullEntry: any = entry;
+    if (!isDelete) {
+      const fetched = await fetchFullEntry(model, documentId);
+      if (!fetched) {
+        return NextResponse.json(
+          { error: `Failed to fetch full ${model} from Strapi`, documentId },
+          { status: 502 }
+        );
+      }
+      fullEntry = fetched;
+    }
+
     switch (model) {
       case 'shop': {
         if (isDelete) {
           await db.prepare('DELETE FROM shops WHERE document_id = ?1').bind(documentId).run();
         } else {
-          await upsertShop(db, entry);
+          await upsertShop(db, fullEntry);
         }
         break;
       }
       case 'brand': {
         if (isDelete) {
           await db.prepare('DELETE FROM brands WHERE document_id = ?1').bind(documentId).run();
-          // Also update denormalized brand fields in shops
           await db.prepare(`
             UPDATE shops SET brand_name = NULL, brand_type = NULL,
                              brand_logo_url = NULL, brand_statement = NULL
             WHERE brand_document_id = ?1
           `).bind(documentId).run();
         } else {
-          await upsertBrand(db, entry);
-          // Update denormalized brand fields in all shops with this brand
+          await upsertBrand(db, fullEntry);
           await db.prepare(`
             UPDATE shops SET brand_name = ?1, brand_type = ?2,
                              brand_logo_url = ?3, brand_statement = ?4
             WHERE brand_document_id = ?5
           `).bind(
-            entry.name,
-            entry.type || null,
-            entry.logo?.url || null,
-            entry.statement || null,
+            fullEntry.name,
+            fullEntry.type || null,
+            fullEntry.logo?.url || null,
+            fullEntry.statement || null,
             documentId
           ).run();
         }
@@ -89,59 +154,53 @@ export async function POST(request: NextRequest) {
           await db.prepare('DELETE FROM bean_origins WHERE bean_document_id = ?1').bind(documentId).run();
           await db.prepare('DELETE FROM bean_flavor_tags WHERE bean_document_id = ?1').bind(documentId).run();
         } else {
-          await upsertBean(db, entry);
+          await upsertBean(db, fullEntry);
         }
         break;
       }
       case 'location': {
         if (isDelete) {
           await db.prepare('DELETE FROM locations WHERE document_id = ?1').bind(documentId).run();
-          // Null out denormalized location fields in shops
           await db.prepare(`
             UPDATE shops SET location_name = NULL, location_slug = NULL
             WHERE location_document_id = ?1
           `).bind(documentId).run();
-          // Null out denormalized location fields in city_areas
           await db.prepare(`
             UPDATE city_areas SET location_name = NULL, location_slug = NULL
             WHERE location_document_id = ?1
           `).bind(documentId).run();
         } else {
-          await upsertLocation(db, entry);
-          // Cascade denormalized location fields to shops
+          await upsertLocation(db, fullEntry);
           await db.prepare(`
             UPDATE shops SET location_name = ?1, location_slug = ?2
             WHERE location_document_id = ?3
-          `).bind(entry.name, entry.slug || null, documentId).run();
-          // Cascade denormalized location fields to city_areas
+          `).bind(fullEntry.name, fullEntry.slug || null, documentId).run();
           await db.prepare(`
             UPDATE city_areas SET location_name = ?1, location_slug = ?2
             WHERE location_document_id = ?3
-          `).bind(entry.name, entry.slug || null, documentId).run();
+          `).bind(fullEntry.name, fullEntry.slug || null, documentId).run();
         }
         break;
       }
       case 'country': {
         if (isDelete) {
           await db.prepare('DELETE FROM countries WHERE document_id = ?1').bind(documentId).run();
-          // Null out denormalized country fields in locations
           await db.prepare(`
             UPDATE locations SET country_name = NULL, country_code = NULL,
                                  country_primary_color = NULL, country_secondary_color = NULL
             WHERE country_document_id = ?1
           `).bind(documentId).run();
         } else {
-          await upsertCountry(db, entry);
-          // Cascade denormalized country fields to locations
+          await upsertCountry(db, fullEntry);
           await db.prepare(`
             UPDATE locations SET country_name = ?1, country_code = ?2,
                                  country_primary_color = ?3, country_secondary_color = ?4
             WHERE country_document_id = ?5
           `).bind(
-            entry.name,
-            entry.code || null,
-            entry.primaryColor || null,
-            entry.secondaryColor || null,
+            fullEntry.name,
+            fullEntry.code || null,
+            fullEntry.primaryColor || null,
+            fullEntry.secondaryColor || null,
             documentId
           ).run();
         }
@@ -150,20 +209,18 @@ export async function POST(request: NextRequest) {
       case 'city-area': {
         if (isDelete) {
           await db.prepare('DELETE FROM city_areas WHERE document_id = ?1').bind(documentId).run();
-          // Null out denormalized city_area fields in shops
           await db.prepare(`
             UPDATE shops SET city_area_name = NULL, city_area_group = NULL
             WHERE city_area_document_id = ?1
           `).bind(documentId).run();
         } else {
-          await upsertCityArea(db, entry);
-          // Cascade denormalized city_area fields to shops
+          await upsertCityArea(db, fullEntry);
           await db.prepare(`
             UPDATE shops SET city_area_name = ?1, city_area_group = ?2
             WHERE city_area_document_id = ?3
           `).bind(
-            entry.name,
-            entry.group || null,
+            fullEntry.name,
+            fullEntry.group || null,
             documentId
           ).run();
         }
