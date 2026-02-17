@@ -31,8 +31,13 @@ export async function POST(request: NextRequest) {
     const body: any = await request.json();
     const { event, model, entry } = body;
 
+    // Strapi test trigger sends {"event":"trigger-test"} with no model/entry
+    if (event === 'trigger-test') {
+      return NextResponse.json({ success: true, event: 'trigger-test' });
+    }
+
     if (!event || !model || !entry) {
-      return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid webhook payload', received: body }, { status: 400 });
     }
 
     const db = await getDB();
