@@ -18,6 +18,7 @@ async function fetchFullEntry(model: string, documentId: string): Promise<any> {
       'populate[logo][fields][1]=formats',
       'populate[ownRoastCountry][fields][0]=name',
       'populate[ownRoastCountry][fields][1]=code',
+      'populate[suppliers][fields][0]=documentId',
     ].join('&'),
     bean: [
       'populate[brand][fields][0]=documentId',
@@ -127,6 +128,8 @@ export async function POST(request: NextRequest) {
       case 'brand': {
         if (isDelete) {
           await db.prepare('DELETE FROM brands WHERE document_id = ?1').bind(documentId).run();
+          await db.prepare('DELETE FROM brand_suppliers WHERE brand_document_id = ?1').bind(documentId).run();
+          await db.prepare('DELETE FROM brand_roast_countries WHERE brand_document_id = ?1').bind(documentId).run();
           await db.prepare(`
             UPDATE shops SET brand_name = NULL, brand_type = NULL,
                              brand_logo_url = NULL, brand_statement = NULL
@@ -458,6 +461,34 @@ async function upsertBrand(db: D1Database, entry: any) {
     entry.updatedAt || null,
     entry.publishedAt || null,
   ).run();
+
+  // Re-sync brand suppliers
+  await db.prepare('DELETE FROM brand_suppliers WHERE brand_document_id = ?1')
+    .bind(entry.documentId as string).run();
+  const suppliers = entry.suppliers;
+  if (suppliers) {
+    for (const supplier of suppliers) {
+      if (supplier.documentId) {
+        await db.prepare(
+          'INSERT INTO brand_suppliers (brand_document_id, supplier_document_id) VALUES (?1, ?2)'
+        ).bind(entry.documentId as string, supplier.documentId).run();
+      }
+    }
+  }
+
+  // Re-sync brand roast countries
+  await db.prepare('DELETE FROM brand_roast_countries WHERE brand_document_id = ?1')
+    .bind(entry.documentId as string).run();
+  const roastCountries = entry.ownRoastCountry;
+  if (roastCountries) {
+    for (const country of roastCountries) {
+      if (country.code) {
+        await db.prepare(
+          'INSERT INTO brand_roast_countries (brand_document_id, country_name, country_code) VALUES (?1, ?2, ?3)'
+        ).bind(entry.documentId as string, country.name || null, country.code).run();
+      }
+    }
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
