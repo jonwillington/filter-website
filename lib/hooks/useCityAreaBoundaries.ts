@@ -87,10 +87,17 @@ export function useCityAreaBoundaries({
 
     // Only skip if ID unchanged AND layers still exist on the map
     // (style changes destroy layers, so we must re-draw even if ID is the same)
+    // Guard map.getLayer with try-catch — it throws if map style is mid-swap
+    let layerExists = false;
+    try {
+      layerExists = !!map.getLayer(CITY_AREA_MASK_LAYER_ID);
+    } catch {
+      // Style not loaded yet — let effect proceed to re-draw when ready
+    }
     if (
       expandedCityAreaId === currentExpandedIdRef.current &&
       currentExpandedIdRef.current !== null &&
-      map.getLayer(CITY_AREA_MASK_LAYER_ID)
+      layerExists
     ) {
       return;
     }

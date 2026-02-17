@@ -36,6 +36,39 @@ import { BrandLogo } from '../sidebar/BrandLogoCarousel';
 // Stable empty Map to prevent re-render loops
 const EMPTY_SHOP_MATCH_INFO = new Map<string, string[]>();
 
+const LOADING_MESSAGES = [
+  'Grinding beans',
+  'Tamping',
+  'Pulling shots',
+  'Steaming milk',
+  'Loading shops',
+];
+
+function ShopsLoadingState() {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative w-10 h-10">
+          <div className="absolute inset-0 border-2 border-border-default rounded-full" />
+          <div className="absolute inset-0 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-sm text-text-secondary transition-opacity duration-300">
+          {LOADING_MESSAGES[messageIndex]}...
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // Zoom level for city area view (slightly zoomed in from city overview)
 const CITY_AREA_ZOOM = 13;
 
@@ -1378,6 +1411,11 @@ export function MainLayout({
 
     // Location selected - show area list or shop list
     if (selectedLocation) {
+      // Show coffee-themed loading state while D1 data is still fetching
+      if (isClientSideLoading && cachedShops.length === 0) {
+        return <ShopsLoadingState />;
+      }
+
       // If shops span multiple city areas, no area selected, and no filter active - show area list first
       if (uniqueShopAreaCount > 1 && !selectedCityAreaId && shopFilter === 'all') {
         return (
