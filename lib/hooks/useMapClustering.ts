@@ -519,18 +519,8 @@ export function useMapClustering({
         if (shop) {
           // Mark as programmatic move so badges stay visible
           isProgrammaticMove.current = true;
+          // Let useMapPosition handle the animation (single source of truth)
           onShopSelectRef.current(shop);
-          const geometry = features[0].geometry as GeoJSON.Point;
-          const currentMapZoom = m.getZoom();
-          const targetZoom = Math.max(currentMapZoom, 14); // Don't zoom out if already zoomed in
-          m.flyTo({
-            center: geometry.coordinates as [number, number],
-            zoom: targetZoom,
-            duration: currentMapZoom >= 14 ? 800 : 1200, // Faster if just panning
-            padding: { left: 200, right: 0, top: 0, bottom: 0 },
-            essential: true,
-            easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // ease-in-out cubic
-          });
         }
       };
 
@@ -553,18 +543,8 @@ export function useMapClustering({
         const shop = shopsRef.current.find((s) => s.documentId === shopId);
         if (shop) {
           isProgrammaticMove.current = true;
+          // Let useMapPosition handle the animation (single source of truth)
           onShopSelectRef.current(shop);
-          const geometry = features[0].geometry as GeoJSON.Point;
-          const currentMapZoom = m.getZoom();
-          const targetZoom = Math.max(currentMapZoom, 14);
-          m.flyTo({
-            center: geometry.coordinates as [number, number],
-            zoom: targetZoom,
-            duration: currentMapZoom >= 14 ? 800 : 1200,
-            padding: { left: 200, right: 0, top: 0, bottom: 0 },
-            essential: true,
-            easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
-          });
         }
       };
 

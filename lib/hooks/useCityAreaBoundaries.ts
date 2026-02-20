@@ -103,8 +103,12 @@ export function useCityAreaBoundaries({
       currentExpandedIdRef.current !== null &&
       layerExists
     ) {
+      // Layers still exist and same area — nothing to do
       return;
     }
+
+    // If same area but layers were destroyed (e.g. by style change), allow re-draw
+    // by NOT returning early — the effect will recreate the layers below
 
     // Get city areas with valid boundaries
     const areasWithBoundaries = cityAreas.filter(
@@ -223,7 +227,20 @@ export function useCityAreaBoundaries({
     const targetLineOpacity = 0.7;
     const lineWidth = 2;
 
-    // Remove existing layers
+    // If layers already exist (same area, layers destroyed and re-drawn, or switching areas),
+    // try to update sources in place to avoid flicker
+    const existingMaskSource = map.getSource(CITY_AREA_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    const existingOutlineSource = map.getSource(CITY_AREA_SOURCE_ID + '-outline') as mapboxgl.GeoJSONSource | undefined;
+
+    if (existingMaskSource && existingOutlineSource && layerExists) {
+      // Update source data in place — no layer removal, no flicker
+      existingMaskSource.setData(maskGeojson);
+      existingOutlineSource.setData(outlineGeojson);
+      currentExpandedIdRef.current = expandedCityAreaId;
+      return;
+    }
+
+    // Remove existing layers before creating new ones
     cleanupLayersInstant(map);
 
     try {
@@ -271,7 +288,7 @@ export function useCityAreaBoundaries({
       if (!selectedShopRef.current) {
         const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
         map.fitBounds(areaBounds, {
-          padding: { top: 80, bottom: 80, left: 280, right: 80 },
+          padding: { top: 80, bottom: 80, left: 200, right: 80 },
           duration: 800,
           maxZoom: 15,
         });

@@ -261,6 +261,9 @@ export function MainLayout({
     }
   }, []); // Only run once on mount
 
+  // Store zoom level before shop selection for restore on back navigation
+  const preShopZoomRef = useRef<number | null>(null);
+
   // Track previous initialShop to detect shop-to-shop transitions
   const prevInitialShopRef = useRef<Shop | null>(null);
   // Track previous initialLocation to prevent duplicate map animations
@@ -942,6 +945,11 @@ export function MainLayout({
         setShopHistory((prev) => [...prev, selectedShop]);
       }
 
+      // Save current zoom before zooming in (only on first shop selection, not shop-to-shop)
+      if (!selectedShop) {
+        preShopZoomRef.current = mapZoom;
+      }
+
       setSelectedShop(shop);
       setIsMobileSidebarOpen(false);
 
@@ -975,9 +983,14 @@ export function MainLayout({
     setShopHistory([]); // Clear history when closing drawer
     // Note: Keep expandedCityAreaId unchanged - preserve the area highlight
 
-    // Zoom out slightly to show the area
+    // Restore the zoom level from before shop selection, or fall back to city area zoom
     if (selectedLocation) {
-      setMapZoom(CITY_AREA_ZOOM);
+      if (preShopZoomRef.current !== null) {
+        setMapZoom(preShopZoomRef.current);
+        preShopZoomRef.current = null;
+      } else {
+        setMapZoom(CITY_AREA_ZOOM);
+      }
 
       // Stay on the city view when closing a shop drawer (shallow URL update)
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
@@ -1011,8 +1024,13 @@ export function MainLayout({
       openModal('mobileCityGuide'); // Keep drawer open on mobile to show city guide
       // Note: Keep expandedCityAreaId unchanged - preserve the area highlight
 
-      // Zoom out slightly to show the area (not the whole city)
-      setMapZoom(CITY_AREA_ZOOM);
+      // Restore the zoom level from before shop selection, or fall back to city area zoom
+      if (preShopZoomRef.current !== null) {
+        setMapZoom(preShopZoomRef.current);
+        preShopZoomRef.current = null;
+      } else {
+        setMapZoom(CITY_AREA_ZOOM);
+      }
 
       // Update URL to location page
       const countrySlug = slugify(selectedLocation.country?.name ?? '');
