@@ -85,11 +85,15 @@ export function useMapPosition({
           easing: easing.inOutCubic,
         });
       } else {
-        // Super smooth, slow easeTo for shop selection (same area)
+        // Gentle easeTo for shop selection (same area)
+        // easeTo smoothly overrides any in-progress animation — no map.stop() needed
+        // Use actual map zoom to avoid stale React state from fitBounds calls
+        const actualZoom = map.getZoom();
+        const targetZoom = Math.max(zoom, actualZoom);
         map.easeTo({
           center,
-          zoom,
-          duration: 2500,
+          zoom: targetZoom,
+          duration: 1800,
           padding: { left: 200, right: 0, top: 0, bottom: 0 },
           easing: easing.outQuint,
         });
@@ -124,10 +128,14 @@ export function useMapPosition({
           easing: easing.inOutCubic,
         });
       } else {
+        // easeTo smoothly overrides any in-progress animation — no map.stop() needed
+        // Use actual map zoom to avoid stale React state from fitBounds calls
+        const actualZoom = map.getZoom();
+        const targetZoom = Math.max(pendingZoom.current, actualZoom);
         map.easeTo({
           center: pendingCenter.current,
-          zoom: pendingZoom.current,
-          duration: 2500,
+          zoom: targetZoom,
+          duration: 1800,
           padding: { left: 200, right: 0, top: 0, bottom: 0 },
           easing: easing.outQuint,
         });

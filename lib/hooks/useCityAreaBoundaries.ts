@@ -11,6 +11,8 @@ export interface UseCityAreaBoundariesOptions {
   selectedShop?: { documentId: string } | null;
 }
 
+// Track selectedShop via ref to avoid re-running boundary effect on every shop change
+
 const CITY_AREA_SOURCE_ID = 'city-area-boundaries';
 const CITY_AREA_MASK_LAYER_ID = 'city-area-mask';
 const CITY_AREA_LINE_LAYER_ID = 'city-area-line';
@@ -77,6 +79,8 @@ export function useCityAreaBoundaries({
 }: UseCityAreaBoundariesOptions): void {
   const currentExpandedIdRef = useRef<string | null>(null);
   const lastBoundaryDataRef = useRef<Array<{ lat: number; lng: number }> | null>(null);
+  const selectedShopRef = useRef(selectedShop);
+  selectedShopRef.current = selectedShop;
 
   useEffect(() => {
     if (!map || !mapReady) {
@@ -264,10 +268,10 @@ export function useCityAreaBoundaries({
       }, firstClusterLayer);
 
       // Zoom to fit the expanded city area bounds (only when no shop is selected)
-      if (!selectedShop) {
+      if (!selectedShopRef.current) {
         const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
         map.fitBounds(areaBounds, {
-          padding: { top: 80, bottom: 80, left: 80, right: 80 },
+          padding: { top: 80, bottom: 80, left: 280, right: 80 },
           duration: 800,
           maxZoom: 15,
         });
@@ -281,7 +285,7 @@ export function useCityAreaBoundaries({
     return () => {
       // Cleanup handled in the effect itself when area changes
     };
-  }, [map, mapReady, cityAreas, expandedCityAreaId, effectiveTheme, selectedShop]);
+  }, [map, mapReady, cityAreas, expandedCityAreaId, effectiveTheme]);
 
   // Cleanup on unmount
   useEffect(() => {
