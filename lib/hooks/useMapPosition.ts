@@ -86,9 +86,8 @@ export function useMapPosition({
         });
       } else {
         // Gentle easeTo for shop selection (same area)
-        // Stop any in-progress animation (e.g. fitBounds) before starting the new one
-        map.stop();
-        // Use actual map zoom to avoid stale React state from fitBounds calls
+        // easeTo implicitly cancels any in-progress animation (flyTo/fitBounds/easeTo)
+        // — no explicit map.stop() needed, which avoids a snap frame
         const actualZoom = map.getZoom();
         const targetZoom = Math.max(zoom, actualZoom);
         map.easeTo({
@@ -129,9 +128,7 @@ export function useMapPosition({
           easing: easing.inOutCubic,
         });
       } else {
-        // Stop any in-progress animation before starting the new one
-        map.stop();
-        // Use actual map zoom to avoid stale React state from fitBounds calls
+        // easeTo implicitly cancels any in-progress animation
         const actualZoom = map.getZoom();
         const targetZoom = Math.max(pendingZoom.current, actualZoom);
         map.easeTo({
