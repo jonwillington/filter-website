@@ -523,7 +523,7 @@ export function useMapClustering({
           // will seamlessly override this ~32ms later (same destination, same type)
           const geometry = features[0].geometry as GeoJSON.Point;
           const currentMapZoom = m.getZoom();
-          const targetZoom = Math.max(currentMapZoom, 15);
+          const targetZoom = Math.max(currentMapZoom, 16);
           m.easeTo({
             center: geometry.coordinates as [number, number],
             zoom: targetZoom,
@@ -558,7 +558,7 @@ export function useMapClustering({
           // will seamlessly override this ~32ms later (same destination, same type)
           const geometry = features[0].geometry as GeoJSON.Point;
           const currentMapZoom = m.getZoom();
-          const targetZoom = Math.max(currentMapZoom, 15);
+          const targetZoom = Math.max(currentMapZoom, 16);
           m.easeTo({
             center: geometry.coordinates as [number, number],
             zoom: targetZoom,

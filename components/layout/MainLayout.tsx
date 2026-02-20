@@ -330,7 +330,7 @@ export function MainLayout({
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(prev => Math.max(prev, 15));
+        setMapZoom(prev => Math.max(prev, 16));
       }
     }
   }, [selectedShop, initialShop]);
