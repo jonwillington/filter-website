@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { getAllLocations, getLocationBySlug } from '@/lib/api/locations';
+import { getAllLocations, getLocationBySlug, getAllCityAreas } from '@/lib/api/locations';
 import { getAllShops } from '@/lib/api/shops';
 import { getAllEvents } from '@/lib/api/events';
 import { getAllCountries } from '@/lib/api/countries';
@@ -74,9 +74,10 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  const [allShops, countries, allEvents, allPeople, allNewsArticles] = await Promise.all([
+  const [allShops, countries, allCityAreas, allEvents, allPeople, allNewsArticles] = await Promise.all([
     withTimeout(getAllShops(), 8000, []),
     withTimeout(getAllCountries(), 5000, []),
+    withTimeout(getAllCityAreas(), 5000, []),
     withTimeout(getAllEvents(), 5000, []),
     withTimeout(getAllPeople(), 5000, []),
     withTimeout(getAllNewsArticles(), 5000, []),
@@ -88,6 +89,7 @@ export default async function CityPage({ params }: CityPageProps) {
       initialLocation={location}
       shops={allShops}
       countries={countries}
+      cityAreas={allCityAreas}
       events={allEvents}
       people={allPeople}
       newsArticles={allNewsArticles}

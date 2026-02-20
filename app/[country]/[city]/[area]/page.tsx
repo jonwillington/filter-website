@@ -75,9 +75,10 @@ export default async function AreaPage({ params }: AreaPageProps) {
     notFound();
   }
 
-  const [allShops, countries, events] = await Promise.all([
+  const [allShops, countries, allCityAreas, events] = await Promise.all([
     withTimeout(getAllShops(), 8000, []),
     withTimeout(getAllCountries(), 5000, []),
+    withTimeout(getAllCityAreas(), 5000, []),
     withTimeout(getAllEvents(), 5000, []),
   ]);
 
@@ -87,6 +88,7 @@ export default async function AreaPage({ params }: AreaPageProps) {
       initialLocation={location}
       shops={allShops}
       countries={countries}
+      cityAreas={allCityAreas}
       events={events}
     />
   );
