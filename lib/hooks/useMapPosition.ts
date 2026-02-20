@@ -51,14 +51,17 @@ export function useMapPosition({
   // Update center when it changes
   useEffect(() => {
     // Wait for map AND style to be fully loaded before animating
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      console.log('[useMapPosition] Skipping: map=%s mapReady=%s', !!map, mapReady);
+      return;
+    }
 
     // Additional safety check - verify style is actually loaded
     if (!map.isStyleLoaded()) {
+      console.log('[useMapPosition] Style not loaded, queuing');
       // Queue the position update to run when style loads
       const onStyleLoad = () => {
         map.off('style.load', onStyleLoad);
-        // Trigger re-run by updating refs (the effect will re-run due to dependency changes)
       };
       map.once('style.load', onStyleLoad);
       return;
@@ -67,9 +70,15 @@ export function useMapPosition({
     // Detect major center changes (city-to-city navigation) - ~50km at equator
     const isMajorCenterChange = getDistance(center, lastCenter.current) > 0.5;
 
+    console.log('[useMapPosition] Effect:', {
+      center, zoom, isLoading, isMajorCenterChange,
+      lastZoom: lastZoom.current, actualZoom: map.getZoom(),
+    });
+
     // City-level changes (major center changes) should animate immediately
     // Only queue minor pans (shop-to-shop in same area) during loading
     if (isLoading && !isMajorCenterChange) {
+      console.log('[useMapPosition] Queuing (loading)');
       // Only queue transitions during loading
       pendingCenter.current = center;
       pendingZoom.current = zoom;

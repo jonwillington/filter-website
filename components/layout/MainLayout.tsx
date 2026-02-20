@@ -324,13 +324,17 @@ export function MainLayout({
   }, [initialShop, initialLocation, shops]); // Update when initialShop changes
 
   // Update map center when selectedShop changes (for same-location navigation via pushState)
-  // Note: No zoom change - just pan to center on the shop
   useEffect(() => {
     if (selectedShop && selectedShop.documentId !== initialShop?.documentId) {
       const coords = getShopCoords(selectedShop);
+      console.log('[ShopZoom] Effect fired:', { shopId: selectedShop.documentId, coords, currentMapZoom: mapZoom });
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(prev => Math.max(prev, 16));
+        setMapZoom(prev => {
+          const next = Math.max(prev, 16);
+          console.log('[ShopZoom] setMapZoom:', { prev, next });
+          return next;
+        });
       }
     }
   }, [selectedShop, initialShop]);
