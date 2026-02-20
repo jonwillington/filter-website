@@ -327,14 +327,9 @@ export function MainLayout({
   useEffect(() => {
     if (selectedShop && selectedShop.documentId !== initialShop?.documentId) {
       const coords = getShopCoords(selectedShop);
-      console.log('[ShopZoom] Effect fired:', { shopId: selectedShop.documentId, coords, currentMapZoom: mapZoom });
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(prev => {
-          const next = Math.max(prev, 16);
-          console.log('[ShopZoom] setMapZoom:', { prev, next });
-          return next;
-        });
+        setMapZoom(prev => Math.max(prev, 16));
       }
     }
   }, [selectedShop, initialShop]);
