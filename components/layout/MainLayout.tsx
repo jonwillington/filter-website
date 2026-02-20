@@ -329,7 +329,7 @@ export function MainLayout({
       const coords = getShopCoords(selectedShop);
       if (coords) {
         setMapCenter([coords.lng, coords.lat]);
-        setMapZoom(prev => Math.max(prev, 16));
+        setMapZoom(prev => Math.max(prev, 14.5));
       }
     }
   }, [selectedShop, initialShop]);
