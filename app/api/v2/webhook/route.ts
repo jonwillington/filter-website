@@ -29,7 +29,7 @@ async function fetchFullEntry(model: string, documentId: string): Promise<any> {
     ].join('&'),
     location: LOCATION_POPULATE + '&populate[storyAuthor][populate][photo]=*',
     country: 'populate[region]=*',
-    'city-area': CITY_AREA_POPULATE + '&populate[featured_image]=*',
+    'city-area': CITY_AREA_POPULATE,
   };
 
   // Map model names to Strapi plural endpoints
@@ -1124,14 +1124,17 @@ async function partialUpdateBean(db: D1Database, entry: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function partialUpdateCityArea(db: D1Database, entry: any) {
+  // Use INSERT OR REPLACE so new entries are created (not just updated)
+  // This handles the case where fetchFullEntry fails for a newly created entry
   await db.prepare(`
-    UPDATE city_areas SET
-      name = ?1, slug = ?2, area_group = ?3, description = ?4, summary = ?5,
-      boundary_coordinates = ?6, center_coordinates = ?7,
-      postcode = ?8, nearest_tube = ?9, coming_soon = ?10,
-      updated_at = ?11, published_at = ?12
-    WHERE document_id = ?13
+    INSERT OR REPLACE INTO city_areas (
+      document_id, name, slug, area_group, description, summary,
+      boundary_coordinates, center_coordinates,
+      postcode, nearest_tube, coming_soon,
+      updated_at, published_at
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
   `).bind(
+    entry.documentId,
     entry.name,
     entry.slug || null,
     entry.group || null,
@@ -1144,7 +1147,6 @@ async function partialUpdateCityArea(db: D1Database, entry: any) {
     toBoolInt(entry.comingSoon),
     entry.updatedAt || null,
     entry.publishedAt || null,
-    entry.documentId,
   ).run();
   // Skip location_*, featured_image_* — they need populated relations
 }
