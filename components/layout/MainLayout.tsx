@@ -535,24 +535,41 @@ export function MainLayout({
             setExpandedCityAreaId(null);
           }
 
-          // Location only - clear shop, center on location
+          // Location only - clear shop, center on location or area
           setSelectedShop(null);
           setShopHistory([]);
-          const locationShops = cachedShops.filter(
-            (s) =>
-              s.location?.documentId === matchedLocation.documentId ||
-              s.city_area?.location?.documentId === matchedLocation.documentId
-          );
-          const validShops = locationShops.filter((s) => getShopCoordinates(s));
-          if (validShops.length > 0) {
-            const avgLng =
-              validShops.reduce((sum, s) => sum + (getShopCoordinates(s)?.[0] ?? 0), 0) /
-              validShops.length;
-            const avgLat =
-              validShops.reduce((sum, s) => sum + (getShopCoordinates(s)?.[1] ?? 0), 0) /
-              validShops.length;
-            setMapCenter([avgLng, avgLat]);
-            setMapZoom(12);
+
+          // If we matched a city area (3 segments), center on area shops
+          // Otherwise center on all location shops
+          const areaMatch = segments.length >= 3
+            ? cachedCityAreas.find(
+                (area) =>
+                  slugify(area.name) === segments[2] &&
+                  area.location?.documentId === matchedLocation.documentId
+              )
+            : null;
+
+          if (areaMatch?.boundary_coordinates?.length) {
+            // Let useCityAreaBoundaries handle fitBounds to area —
+            // just set zoom to area level, don't override center
+            setMapZoom(CITY_AREA_ZOOM);
+          } else {
+            const locationShops = cachedShops.filter(
+              (s) =>
+                s.location?.documentId === matchedLocation.documentId ||
+                s.city_area?.location?.documentId === matchedLocation.documentId
+            );
+            const validShops = locationShops.filter((s) => getShopCoordinates(s));
+            if (validShops.length > 0) {
+              const avgLng =
+                validShops.reduce((sum, s) => sum + (getShopCoordinates(s)?.[0] ?? 0), 0) /
+                validShops.length;
+              const avgLat =
+                validShops.reduce((sum, s) => sum + (getShopCoordinates(s)?.[1] ?? 0), 0) /
+                validShops.length;
+              setMapCenter([avgLng, avgLat]);
+              setMapZoom(12);
+            }
           }
         }
       }
@@ -560,7 +577,7 @@ export function MainLayout({
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [cachedLocations, cachedShops, onReturnToLanding]);
+  }, [cachedLocations, cachedShops, cachedCityAreas, onReturnToLanding]);
 
   // Sync state with props - only update if the ID actually changed
   // This prevents double-renders when navigating between shops
@@ -975,8 +992,20 @@ export function MainLayout({
     setShopHistory([]); // Clear history when closing drawer
     // Note: Keep expandedCityAreaId unchanged - preserve the area highlight
 
-    // Zoom back to city area level
+    // Zoom back to city area level and center on expanded area if available
     if (selectedLocation) {
+      // If an area is expanded, center on that area's bounds
+      if (expandedCityAreaId) {
+        const expandedArea = cachedCityAreas.find(a => a.documentId === expandedCityAreaId);
+        if (expandedArea?.boundary_coordinates?.length) {
+          const bounds = expandedArea.boundary_coordinates;
+          const lats = bounds.map(c => c.lat);
+          const lngs = bounds.map(c => c.lng);
+          const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+          const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+          setMapCenter([centerLng, centerLat]);
+        }
+      }
       setMapZoom(CITY_AREA_ZOOM);
 
       // Stay on the city view when closing a shop drawer (shallow URL update)
@@ -984,7 +1013,7 @@ export function MainLayout({
       const citySlug = slugify(selectedLocation.name);
       window.history.pushState(null, '', `/${countrySlug}/${citySlug}`);
     }
-  }, [selectedLocation]);
+  }, [selectedLocation, expandedCityAreaId, cachedCityAreas]);
 
   // Handle going back - either to previous shop or to location drawer
   const handleShopBack = useCallback(() => {
@@ -1011,7 +1040,18 @@ export function MainLayout({
       openModal('mobileCityGuide'); // Keep drawer open on mobile to show city guide
       // Note: Keep expandedCityAreaId unchanged - preserve the area highlight
 
-      // Zoom back to city area level
+      // Zoom back to city area level and center on expanded area
+      if (expandedCityAreaId) {
+        const expandedArea = cachedCityAreas.find(a => a.documentId === expandedCityAreaId);
+        if (expandedArea?.boundary_coordinates?.length) {
+          const bounds = expandedArea.boundary_coordinates;
+          const lats = bounds.map(c => c.lat);
+          const lngs = bounds.map(c => c.lng);
+          const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+          const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+          setMapCenter([centerLng, centerLat]);
+        }
+      }
       setMapZoom(CITY_AREA_ZOOM);
 
       // Update URL to location page
@@ -1024,7 +1064,7 @@ export function MainLayout({
       // No history and no location - just close
       setSelectedShop(null);
     }
-  }, [shopHistory, selectedLocation]);
+  }, [shopHistory, selectedLocation, expandedCityAreaId, cachedCityAreas]);
 
   const handleNearbyToggle = useCallback(async () => {
     // Clear any existing timeout

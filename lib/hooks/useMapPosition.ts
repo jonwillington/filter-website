@@ -89,7 +89,10 @@ export function useMapPosition({
         // easeTo implicitly cancels any in-progress animation (flyTo/fitBounds/easeTo)
         // — no explicit map.stop() needed, which avoids a snap frame
         const actualZoom = map.getZoom();
-        const targetZoom = Math.max(zoom, actualZoom);
+        // When zooming IN (e.g. shop selection), preserve user's manual zoom if higher
+        // When zooming OUT (e.g. back to area view), use the exact target zoom
+        const isZoomingOut = zoom < lastZoom.current;
+        const targetZoom = isZoomingOut ? zoom : Math.max(zoom, actualZoom);
         map.easeTo({
           center,
           zoom: targetZoom,
@@ -130,7 +133,8 @@ export function useMapPosition({
       } else {
         // easeTo implicitly cancels any in-progress animation
         const actualZoom = map.getZoom();
-        const targetZoom = Math.max(pendingZoom.current, actualZoom);
+        const isZoomingOut = pendingZoom.current < lastZoom.current;
+        const targetZoom = isZoomingOut ? pendingZoom.current : Math.max(pendingZoom.current, actualZoom);
         map.easeTo({
           center: pendingCenter.current,
           zoom: targetZoom,
