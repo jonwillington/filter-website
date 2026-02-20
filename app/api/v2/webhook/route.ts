@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
     const body: any = await request.json();
     const { event, model, entry } = body;
 
+    console.log('[webhook] Received:', { event, model, documentId: entry?.documentId, bodyKeys: Object.keys(body) });
+
     // Strapi test trigger sends {"event":"trigger-test"} with no model/entry
     if (event === 'trigger-test') {
       return NextResponse.json({ success: true, event: 'trigger-test' });
@@ -97,8 +99,22 @@ export async function POST(request: NextRequest) {
     if (!db) {
       return NextResponse.json({ error: 'D1 database unavailable' }, { status: 503 });
     }
-    const isDelete = event === 'entry.delete';
+    const isDelete = event === 'entry.delete' || event === 'entry.unpublish';
     const documentId = entry.documentId;
+
+    // Normalize model name — Strapi v5 may send variations like
+    // "city_area", "cityArea", "city-area", or "api::city-area.city-area"
+    const normalizeModel = (m: string): string => {
+      // Strip Strapi UID prefix (e.g. "api::city-area.city-area" → "city-area")
+      const stripped = m.includes('::') ? m.split('.').pop()! : m;
+      // Normalize separators: snake_case and camelCase → kebab-case
+      return stripped
+        .replace(/_/g, '-')
+        .replace(/([a-z])([A-Z])/g, '$1-$2')
+        .toLowerCase();
+    };
+    const normalizedModel = normalizeModel(model);
+    console.log('[webhook] Normalized model:', { raw: model, normalized: normalizedModel });
 
     if (!documentId) {
       return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
@@ -110,7 +126,7 @@ export async function POST(request: NextRequest) {
     let fullEntry: any = entry;
     let useFallback = false;
     if (!isDelete) {
-      const fetched = await fetchFullEntry(model, documentId);
+      const fetched = await fetchFullEntry(normalizedModel, documentId);
       if (fetched) {
         fullEntry = fetched;
       } else {
@@ -119,7 +135,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    switch (model) {
+    switch (normalizedModel) {
       case 'shop': {
         if (isDelete) {
           await db.prepare('DELETE FROM shops WHERE document_id = ?1').bind(documentId).run();
@@ -286,11 +302,12 @@ export async function POST(request: NextRequest) {
         break;
       }
       default:
-        return NextResponse.json({ message: `Unhandled model: ${model}` }, { status: 200 });
+        console.warn(`[webhook] Unhandled model: raw="${model}", normalized="${normalizedModel}"`);
+        return NextResponse.json({ message: `Unhandled model: ${model} (normalized: ${normalizedModel})` }, { status: 200 });
     }
 
     return NextResponse.json({
-      success: true, event, model, documentId,
+      success: true, event, model: normalizedModel, documentId,
       ...(useFallback && { fallback: true, warning: 'Strapi unavailable — scalar fields updated, relation data preserved' }),
     });
   } catch (error) {
