@@ -227,8 +227,8 @@ export function useCityAreaBoundaries({
     const targetLineOpacity = 0.7;
     const lineWidth = 2;
 
-    // If layers already exist (same area, layers destroyed and re-drawn, or switching areas),
-    // try to update sources in place to avoid flicker
+    // If layers already exist (switching areas), update sources in place to avoid flicker
+    // but still update paint properties and fitBounds for the new area
     const existingMaskSource = map.getSource(CITY_AREA_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     const existingOutlineSource = map.getSource(CITY_AREA_SOURCE_ID + '-outline') as mapboxgl.GeoJSONSource | undefined;
 
@@ -236,6 +236,25 @@ export function useCityAreaBoundaries({
       // Update source data in place — no layer removal, no flicker
       existingMaskSource.setData(maskGeojson);
       existingOutlineSource.setData(outlineGeojson);
+
+      // Update paint properties for the new area's theme/colors
+      try {
+        map.setPaintProperty(CITY_AREA_MASK_LAYER_ID, 'fill-opacity', targetMaskOpacity);
+        map.setPaintProperty(CITY_AREA_LINE_LAYER_ID, 'line-color', primaryColor);
+      } catch {
+        // Ignore paint property errors
+      }
+
+      // Zoom to new area bounds
+      if (!selectedShopRef.current) {
+        const areaBounds = calculateBounds(expandedArea.boundary_coordinates!);
+        map.fitBounds(areaBounds, {
+          padding: { top: 80, bottom: 80, left: 200, right: 80 },
+          duration: 800,
+          maxZoom: 15,
+        });
+      }
+
       currentExpandedIdRef.current = expandedCityAreaId;
       return;
     }
