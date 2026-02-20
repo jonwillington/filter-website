@@ -147,6 +147,10 @@ export function useMapInstance({
       .filter(Boolean);
   }, []);
 
+  // Capture initial values in refs so the init effect doesn't re-run on prop changes
+  const initialCenterRef = useRef(center);
+  const initialZoomRef = useRef(zoom);
+
   // Initialize map (only once)
   useEffect(() => {
     console.log('[useMapInstance] Init effect running', {
@@ -157,24 +161,27 @@ export function useMapInstance({
     if (!containerRef.current || initializedRef.current) return;
     initializedRef.current = true;
 
+    const initialZoom = initialZoomRef.current;
+    const initialCenter = initialCenterRef.current;
+
     console.log('[useMapInstance] Creating new map...');
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
     currentThemeRef.current = effectiveTheme;
 
     // Choose initial style based on zoom level
-    const initialStyleMode = zoom >= STYLE_SWITCH_ZOOM ? 'street' : 'globe';
+    const initialStyleMode = initialZoom >= STYLE_SWITCH_ZOOM ? 'street' : 'globe';
     currentStyleModeRef.current = initialStyleMode;
     const initialStyle = initialStyleMode === 'street'
       ? STREET_STYLES[effectiveTheme]
       : GLOBE_STYLES[effectiveTheme];
 
-    console.log('[useMapInstance] Initial style mode:', initialStyleMode, 'zoom:', zoom);
+    console.log('[useMapInstance] Initial style mode:', initialStyleMode, 'zoom:', initialZoom);
 
     const newMap = new mapboxgl.Map({
       container: containerRef.current,
       style: initialStyle,
-      center,
-      zoom,
+      center: initialCenter,
+      zoom: initialZoom,
       attributionControl: false,
     });
 
@@ -307,7 +314,8 @@ export function useMapInstance({
       setMap(null);
       initializedRef.current = false;
     };
-  }, [zoom, getSupportedCountryCodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally run once: zoom/center captured in refs, effectiveTheme handled by separate effect
+  }, [getSupportedCountryCodes]);
 
   // Handle theme changes
   useEffect(() => {
