@@ -628,12 +628,23 @@ export function MainLayout({
       // Set location state first to ensure consistency
       setSelectedLocation(location);
 
-      // Calculate map center from location boundary or shop positions
+      // Calculate map center from shop positions (preferred) or location boundary
       if (location) {
-        let centered = false;
+        // Primary: center on actual shop cluster
+        const locationShops = cachedShops.filter(s =>
+          s.location?.documentId === location.documentId ||
+          s.city_area?.location?.documentId === location.documentId
+        );
+        const validShops = locationShops.filter((s) => getShopCoords(s));
 
-        // Primary: use bounding box center of location boundary polygon
-        if (Array.isArray(location.coordinates) && location.coordinates.length > 1) {
+        if (validShops.length > 0) {
+          const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
+          const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
+          navigationLocationIdRef.current = location.documentId;
+          setMapCenter([avgLng, avgLat]);
+          setMapZoom(12);
+        } else if (Array.isArray(location.coordinates) && location.coordinates.length > 1) {
+          // Fallback: boundary polygon center (when no shops exist yet)
           const lats = location.coordinates.map((c: { lat: number; lng: number }) => c.lat);
           const lngs = location.coordinates.map((c: { lat: number; lng: number }) => c.lng);
           const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
@@ -641,30 +652,12 @@ export function MainLayout({
           navigationLocationIdRef.current = location.documentId;
           setMapCenter([centerLng, centerLat]);
           setMapZoom(12);
-          centered = true;
         } else if (location.coordinates && !Array.isArray(location.coordinates)) {
-          // Fallback: single {lat, lng} coordinate object
+          // Fallback: single coordinate point
           const coords = location.coordinates as { lat: number; lng: number };
           if (coords.lat && coords.lng) {
             navigationLocationIdRef.current = location.documentId;
             setMapCenter([coords.lng, coords.lat]);
-            setMapZoom(12);
-            centered = true;
-          }
-        }
-
-        // Last resort: average shop positions
-        if (!centered) {
-          const locationShops = cachedShops.filter(s =>
-            s.location?.documentId === location.documentId ||
-            s.city_area?.location?.documentId === location.documentId
-          );
-          const validShops = locationShops.filter((s) => getShopCoords(s));
-          if (validShops.length > 0) {
-            const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
-            const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
-            navigationLocationIdRef.current = location.documentId;
-            setMapCenter([avgLng, avgLat]);
             setMapZoom(12);
           }
         }
