@@ -638,10 +638,14 @@ export function MainLayout({
         const validShops = locationShops.filter((s) => getShopCoords(s));
 
         if (validShops.length > 0) {
-          const avgLng = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lng ?? 0), 0) / validShops.length;
-          const avgLat = validShops.reduce((sum, s) => sum + (getShopCoords(s)?.lat ?? 0), 0) / validShops.length;
+          // Use median (not mean) to avoid outlier shops in suburbs pulling the center
+          const lngs = validShops.map(s => getShopCoords(s)!.lng).sort((a, b) => a - b);
+          const lats = validShops.map(s => getShopCoords(s)!.lat).sort((a, b) => a - b);
+          const mid = Math.floor(lngs.length / 2);
+          const medianLng = lngs.length % 2 ? lngs[mid] : (lngs[mid - 1] + lngs[mid]) / 2;
+          const medianLat = lats.length % 2 ? lats[mid] : (lats[mid - 1] + lats[mid]) / 2;
           navigationLocationIdRef.current = location.documentId;
-          setMapCenter([avgLng, avgLat]);
+          setMapCenter([medianLng, medianLat]);
           setMapZoom(12);
         } else if (Array.isArray(location.coordinates) && location.coordinates.length > 1) {
           // Fallback: boundary polygon center (when no shops exist yet)
