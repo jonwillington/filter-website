@@ -45,6 +45,7 @@ interface LandingPageProps {
   people?: Person[];
   newsArticles?: NewsArticle[];
   visitorCountry?: Country | null;
+  visitorCountryResolved?: boolean;
   isLoading?: boolean;
   isTransitioning: boolean;
   onLocationSelect: (location: Location) => void;
@@ -61,6 +62,7 @@ export function LandingPage({
   people = [],
   newsArticles = [],
   visitorCountry,
+  visitorCountryResolved = false,
   isLoading = false,
   isTransitioning,
   onLocationSelect,
@@ -383,6 +385,7 @@ export function LandingPage({
             subtitle={subtitle}
             locationGroups={locationGroups}
             isLoading={isLoading}
+            showSkeleton={isLoading || !visitorCountryResolved}
             onExploreMap={() => setExploreOpen(true)}
             onFindNearMe={onFindNearMe}
           />

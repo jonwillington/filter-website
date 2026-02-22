@@ -15,6 +15,7 @@ import { slugify } from '@/lib/utils';
 export function HomeClient() {
   const { shops, countries, locations, cityAreas, events, people, newsArticles, isLoading } = useHomeData();
   const [visitorCountry, setVisitorCountry] = useState<Country | null>(null);
+  const [visitorCountryResolved, setVisitorCountryResolved] = useState(false);
 
   const [showLanding, setShowLanding] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -36,10 +37,16 @@ export function HomeClient() {
     async function detectVisitorCountry() {
       try {
         const response = await fetch('/api/visitor');
-        if (!response.ok) return;
+        if (!response.ok) {
+          setVisitorCountryResolved(true);
+          return;
+        }
 
         const { countryCode } = await response.json();
-        if (!countryCode || countries.length === 0) return;
+        if (!countryCode || countries.length === 0) {
+          setVisitorCountryResolved(true);
+          return;
+        }
 
         const matchedCountry = countries.find(
           (c) => c.code?.toUpperCase() === countryCode.toUpperCase()
@@ -50,6 +57,8 @@ export function HomeClient() {
         }
       } catch (error) {
         console.debug('Failed to detect visitor country:', error);
+      } finally {
+        setVisitorCountryResolved(true);
       }
     }
 
@@ -151,6 +160,7 @@ export function HomeClient() {
         people={people}
         newsArticles={newsArticles}
         visitorCountry={visitorCountry}
+        visitorCountryResolved={visitorCountryResolved}
         isLoading={isLoading}
         isTransitioning={isTransitioning}
         onLocationSelect={handleLocationSelect}
