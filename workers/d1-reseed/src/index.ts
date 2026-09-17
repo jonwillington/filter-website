@@ -782,8 +782,10 @@ export default {
     );
   },
 
-  // HTTP endpoint for manual triggering (fires and returns immediately)
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  // HTTP endpoint for manual triggering. Runs to completion inside the request and
+  // returns the log: `waitUntil` work is cancelled 30 s after the response, which is
+  // shorter than a reseed. Keep the connection open (e.g. `curl --max-time 600`).
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/reseed') {
@@ -792,21 +794,20 @@ export default {
         return new Response('Unauthorized', { status: 401, headers: { 'Content-Type': 'text/plain' } });
       }
 
-      // Run in background — HTTP handler returns immediately
-      ctx.waitUntil(
-        handleScheduled(env).then(log => {
-          console.log(log);
-        }).catch(err => {
-          console.error('D1 reseed failed:', err);
-        })
-      );
-      return new Response('Reseed triggered. Check Worker logs for progress.', {
-        status: 202,
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      try {
+        const log = await handleScheduled(env);
+        console.log(log);
+        return new Response(log, { status: 200, headers: { 'Content-Type': 'text/plain' } });
+      } catch (err) {
+        console.error('D1 reseed failed:', err);
+        return new Response(`D1 reseed failed: ${err instanceof Error ? err.message : String(err)}`, {
+          status: 500,
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
     }
 
-    return new Response('D1 Reseed Worker\n\nGET /reseed - trigger manual reseed (requires x-reseed-secret header)\n\nCron: 0 3 * * * (daily at 3am UTC)', {
+    return new Response('D1 Reseed Worker\n\nGET /reseed - run a reseed and return its log (requires x-reseed-secret header; takes about a minute)\n\nCron: 0 3 * * * (daily at 3am UTC)', {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
     });
