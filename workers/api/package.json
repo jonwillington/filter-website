@@ -1,0 +1,17 @@
+{
+  "name": "filter-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --persist-to ../.wrangler-local",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "check": "node scripts/check-api-v3.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.0.0"
+  }
+}

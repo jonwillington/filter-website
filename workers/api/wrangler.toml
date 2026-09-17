@@ -1,0 +1,25 @@
+name = "filter-api"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom domain: https://api.filter.coffee (filter.coffee is a Cloudflare zone).
+# The Cache API only works on custom domains, not on workers.dev.
+routes = [{ pattern = "api.filter.coffee", custom_domain = true }]
+workers_dev = true
+
+[observability]
+enabled = true
+
+# Same database the website and d1-reseed use.
+[[d1_databases]]
+binding = "DB"
+database_name = "filter-db"
+database_id = "bd805713-96be-45b4-b26d-d45937360d36"
+
+[vars]
+STRAPI_URL = "https://helpful-oasis-8bb949e05d.strapiapp.com/api"
+
+# Secrets (wrangler secret put <NAME>):
+#   STRAPI_TOKEN   - read-only Strapi API token, used by the webhook to re-fetch entries
+#   WEBHOOK_SECRET - must match the x-webhook-secret header on the Strapi webhook
