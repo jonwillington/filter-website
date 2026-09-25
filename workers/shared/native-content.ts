@@ -5,7 +5,7 @@
  * - workers/d1-reseed — nightly full load
  * - workers/api       — Strapi webhook (real-time updates)
  *
- * The same DDL lives in db/schema.sql and db/migrations/0001_native_content.sql.
+ * The same DDL lives in db/schema.sql and db/migrations/0001_native_content.sql (+ 0002_attractions.sql).
  * Keep all three in step.
  */
 
@@ -21,6 +21,7 @@ export const NATIVE_TABLES = [
   'news_article_shops',
   'news_article_brands',
   'coffee_partners',
+  'attractions',
 ] as const;
 
 export type NativeTable = (typeof NATIVE_TABLES)[number];
@@ -130,6 +131,28 @@ export const NATIVE_TABLE_DDL: Record<NativeTable, string> = {
     updated_at TEXT,
     published_at TEXT
   )`,
+  attractions: `CREATE TABLE IF NOT EXISTS {t} (
+    document_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    local_name TEXT,
+    slug TEXT,
+    category TEXT,
+    prominence INTEGER,
+    lat REAL,
+    lng REAL,
+    outline TEXT,
+    location_document_id TEXT,
+    city_area_document_id TEXT,
+    summary TEXT,
+    website TEXT,
+    wikidata_id TEXT,
+    image_url TEXT,
+    image_width INTEGER,
+    image_height INTEGER,
+    image_formats TEXT,
+    updated_at TEXT,
+    published_at TEXT
+  )`,
 };
 
 /** Index statements, keyed by table. `{t}` is replaced with the physical table name. */
@@ -149,6 +172,7 @@ export const NATIVE_TABLE_INDEXES: Record<NativeTable, string[]> = {
   news_article_shops: ['CREATE INDEX IF NOT EXISTS idx_news_article_shops_shop ON {t}(shop_document_id)'],
   news_article_brands: ['CREATE INDEX IF NOT EXISTS idx_news_article_brands_brand ON {t}(brand_document_id)'],
   coffee_partners: [],
+  attractions: ['CREATE INDEX IF NOT EXISTS idx_attractions_location ON {t}(location_document_id)'],
 };
 
 export function ddlFor(table: NativeTable, physicalName: string = table): string {
@@ -202,6 +226,16 @@ export const NATIVE_MODELS = {
       'populate[logo]': 'true',
       'populate[country][fields][0]': 'code',
     },
+  },
+  attraction: {
+    endpoint: 'attractions',
+    params: {
+      'populate[location][fields][0]': 'documentId',
+      'populate[city_area][fields][0]': 'documentId',
+      'populate[image]': 'true',
+    },
+    /** Added 2026-09-24. The reseed skips it (empty table) if Strapi refuses the endpoint, rather than failing the whole run. */
+    optional: true,
   },
 } as const;
 
@@ -394,6 +428,34 @@ export function upsertStatements(
           published_at: str(entry.publishedAt),
         }),
       ];
+
+    case 'attraction': {
+      const point = entry.coordinates && typeof entry.coordinates === 'object' ? entry.coordinates : null;
+      return [
+        upsert(db, name('attractions', names), {
+          document_id: id,
+          name: str(entry.name) ?? '',
+          local_name: str(entry.localName),
+          slug: str(entry.slug),
+          category: str(entry.category),
+          prominence: num(entry.prominence),
+          lat: num(point?.lat),
+          lng: num(point?.lng),
+          outline: json(entry.outline),
+          location_document_id: str(entry.location?.documentId),
+          city_area_document_id: str(entry.city_area?.documentId),
+          summary: str(entry.summary),
+          website: str(entry.website),
+          wikidata_id: str(entry.wikidataId),
+          image_url: str(entry.image?.url),
+          image_width: num(entry.image?.width),
+          image_height: num(entry.image?.height),
+          image_formats: json(entry.image?.formats),
+          updated_at: str(entry.updatedAt),
+          published_at: str(entry.publishedAt),
+        }),
+      ];
+    }
   }
 }
 
@@ -418,6 +480,8 @@ export function deleteStatements(db: D1Database, model: NativeModel, documentId:
       ];
     case 'coffee-partner':
       return [del('coffee_partners', 'document_id')];
+    case 'attraction':
+      return [del('attractions', 'document_id')];
   }
 }
 

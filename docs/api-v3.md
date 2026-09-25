@@ -55,11 +55,16 @@ Suggested app pattern: persist the catalog JSON and its ETag on disk, render fro
 
   A `close` at or before `open` means the shop closes after midnight.
 - **`heroImage.formats`**: use `small` (500 px) for list rows and `medium` (750 px) for detail headers. Original `width`/`height` are often `null`, so read dimensions from the format.
+- **Shop display names** (`prefName`, added 2026-09-17): `name` is the full CMS name ("Kronotrop Moda - Istanbul"). Build what users see from the brand, as the Expo app does (`ShopCardList.tsx`):
+  - brand `type` is `independent` → the brand's name
+  - any other brand type → `"<brand name> · <prefName>"`, or the brand name alone when `prefName` is `null`
+  - no brand → `name`
+- **Attractions** (added 2026-09-24): `catalog.attractions` lists the city's landmarks, museums, parks and ferry piers (not for the map). `shop.nearbyAttractions` has up to 3 within walking distance, most prominent first, then nearest. Radius by `prominence`: 1 (famous) 1,200 m, 2 (notable) 800 m, 3 (local anchor) 500 m. An attraction in a different city-area group ("European Side" vs "Asian Side") never counts, so nothing is "nearby" across the Bosphorus. `distanceMetres` is straight-line (to the `outline` for long streets), rounded to 10 m; `walkMinutes` is distance × 1.25 at 80 m a minute. Unknown `category` values should get a generic icon.
 - **`preferenceProfile`**: taste-matching weights from the CMS, e.g. `{ "look": { "minimal": 1 }, "special": { "roastery": 2 } }`.
 
 ## Webhook (internal)
 
-`POST /webhooks/strapi` with header `x-webhook-secret`. It keeps the tables only this Worker owns in sync: `events`, `people`, `person_picks`, `news_articles` (+ links), `coffee_partners`, `shop_events`. Shops, brands, beans, locations, countries and city areas stay with the website's `/api/v2/webhook`. In Strapi admin → Settings → Webhooks, add this URL as a **second** webhook with the same events (entry create, update, delete, publish, unpublish).
+`POST /webhooks/strapi` with header `x-webhook-secret`. It keeps the tables only this Worker owns in sync: `events`, `people`, `person_picks`, `news_articles` (+ links), `coffee_partners`, `attractions`, `shop_events`. Shops, brands, beans, locations, countries and city areas stay with the website's `/api/v2/webhook`. In Strapi admin → Settings → Webhooks, add this URL as a **second** webhook with the same events (entry create, update, delete, publish, unpublish).
 
 ## Local development
 
@@ -216,6 +221,7 @@ Trimmed from real Istanbul and London data: long strings cut, arrays shortened.
         "id": "w6bbhwb7xcyf4g66baljiayq",
         "slug": null,
         "name": "Old Java",
+        "prefName": null,
         "brandId": "ras5a36w7hoq7m9ugh4mw4ip",
         "cityId": "a3ueoba5n0xy0sru1hpw1xr3",
         "cityAreaId": "i0905t42mwo3hhvdgdf4j457",
@@ -367,6 +373,7 @@ Trimmed from real Istanbul and London data: long strings cut, arrays shortened.
     "id": "w6bbhwb7xcyf4g66baljiayq",
     "slug": null,
     "name": "Old Java",
+    "prefName": null,
     "brandId": "ras5a36w7hoq7m9ugh4mw4ip",
     "cityId": "a3ueoba5n0xy0sru1hpw1xr3",
     "cityAreaId": "i0905t42mwo3hhvdgdf4j457",
@@ -655,6 +662,7 @@ Trimmed from real Istanbul and London data: long strings cut, arrays shortened.
           {
             "id": "s7y1ywru1qlkb9jpvimybyac",
             "name": "Kahverengi Roastery Sultanahmet",
+            "prefName": null,
             "cityAreaName": "Fatih",
             "coordinates": {
               "lat": 41.0093621,

@@ -110,3 +110,37 @@ function safeJson(text: string): unknown {
     return null;
   }
 }
+
+const EARTH_RADIUS_M = 6_371_000;
+
+/** Great-circle distance in metres. */
+export function distanceMetres(a: Coordinates, b: Coordinates): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Distance in metres from a point to the nearest point on a line.
+ * Uses a local flat projection, which is accurate to well under 1% at walking distances.
+ */
+export function distanceToLine(p: Coordinates, line: Coordinates[]): number {
+  if (line.length === 1) return distanceMetres(p, line[0]);
+  const mPerLat = (Math.PI / 180) * EARTH_RADIUS_M;
+  const mPerLng = mPerLat * Math.cos((p.lat * Math.PI) / 180);
+  const xy = (c: Coordinates) => ({ x: (c.lng - p.lng) * mPerLng, y: (c.lat - p.lat) * mPerLat });
+
+  let best = Infinity;
+  for (let i = 0; i < line.length - 1; i++) {
+    const a = xy(line[i]);
+    const b = xy(line[i + 1]);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, -(a.x * dx + a.y * dy) / len2));
+    best = Math.min(best, Math.hypot(a.x + t * dx, a.y + t * dy));
+  }
+  return best;
+}

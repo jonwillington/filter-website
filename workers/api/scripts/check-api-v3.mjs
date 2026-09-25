@@ -95,7 +95,7 @@ const City = {
 
 const bools = keys => Object.fromEntries(keys.map(k => [k, n('boolean')]));
 const ShopSummary = {
-  id: 'string', slug: n('string'), name: 'string', brandId: n('string'), cityId: n('string'), cityAreaId: n('string'),
+  id: 'string', slug: n('string'), name: 'string', prefName: n('string'), brandId: n('string'), cityId: n('string'), cityAreaId: n('string'),
   coordinates: n(Coordinates), address: n('string'), heroImage: n(Image), openingHours: n(OpeningHours),
   amenities: bools(['wifi', 'food', 'outdoorSeating', 'petFriendly', 'oatMilk', 'plantMilk']),
   brewMethods: bools(['espresso', 'filter', 'v60', 'chemex', 'aeropress', 'frenchPress', 'coldBrew', 'batchBrew', 'siphon', 'turkishCoffee', 'slowBar']),
@@ -120,6 +120,15 @@ const ShopDetail = {
   cityArea: n({ id: 'string', name: 'string', group: n('string') }),
   coffeePartner: n({ id: 'string', name: 'string', logo: n(Image), countryCode: n('string'), primaryCategory: n('string'), website: n('string'), instagram: n('string') }),
   events: arr(Event),
+  nearbyAttractions: arr({
+    id: 'string', name: 'string', localName: n('string'), category: n('string'), prominence: 'number',
+    distanceMetres: 'number', walkMinutes: 'number',
+  }),
+};
+const Attraction = {
+  id: 'string', name: 'string', localName: n('string'), slug: n('string'), category: n('string'), prominence: 'number',
+  cityId: n('string'), cityAreaId: n('string'), coordinates: n(Coordinates), outline: n(arr(Coordinates)),
+  summary: n('string'), image: n(Image), website: n('string'),
 };
 const CountryRef = { name: n('string'), code: n('string') };
 const BrandDetail = {
@@ -137,7 +146,7 @@ const BrandDetail = {
   suppliers: arr(BrandSummary),
   shopsByCity: arr({
     cityId: n('string'), cityName: n('string'), citySlug: n('string'),
-    shops: arr({ id: 'string', name: 'string', cityAreaName: n('string'), coordinates: n(Coordinates), heroImage: n(Image) }),
+    shops: arr({ id: 'string', name: 'string', prefName: n('string'), cityAreaName: n('string'), coordinates: n(Coordinates), heroImage: n(Image) }),
   }),
 };
 const Person = {
@@ -184,7 +193,7 @@ const city = await endpoint('city', `/v3/cities/${CITY}`, envelope(City));
 const cityById = await endpoint('cityById', `/v3/cities/${city.body?.data?.id}`, envelope(City));
 if (cityById.body?.data?.slug !== CITY) errors.push('cityById: documentId lookup did not resolve to the same city');
 
-const catalog = await endpoint('catalog', `/v3/cities/${CITY}/catalog`, envelope({ cityId: 'string', shops: arr(ShopSummary), brands: arr(BrandSummary) }));
+const catalog = await endpoint('catalog', `/v3/cities/${CITY}/catalog`, envelope({ cityId: 'string', shops: arr(ShopSummary), brands: arr(BrandSummary), attractions: arr(Attraction) }));
 const shops = catalog.body?.data?.shops ?? [];
 const brandIds = new Set((catalog.body?.data?.brands ?? []).map(b => b.id));
 for (const s of shops) if (s.brandId && !brandIds.has(s.brandId)) errors.push(`catalog: shop ${s.id} brandId ${s.brandId} not in brands[]`);

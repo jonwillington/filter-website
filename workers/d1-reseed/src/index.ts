@@ -657,7 +657,13 @@ async function fetchAll(env: Env, log: string[], updatedSince?: string): Promise
 
   const native = {} as Record<NativeModel, any[]>;
   for (const [model, config] of Object.entries(NATIVE_MODELS) as Array<[NativeModel, (typeof NATIVE_MODELS)[NativeModel]]>) {
-    native[model] = await get(config.endpoint, { ...config.params });
+    try {
+      native[model] = await get(config.endpoint, { ...config.params });
+    } catch (err) {
+      if (!('optional' in config && config.optional)) throw err;
+      log.push(`  ${config.endpoint} skipped (${err instanceof Error ? err.message : String(err)})`);
+      native[model] = [];
+    }
   }
   const shopEvents = await get('shops', { ...SHOP_EVENTS_PARAMS });
 

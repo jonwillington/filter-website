@@ -1,5 +1,6 @@
 import type {
   Amenities,
+  Attraction,
   Bean,
   BrandSummary,
   BrewMethods,
@@ -10,6 +11,7 @@ import type {
   Person,
   ShopSummary,
 } from '../../../types/api-v3';
+import { parseOutline } from './geo';
 import { parseOpeningHours } from './hours';
 import { bool, image, links, mediaObject, merged, num, parseJson, plainText, str, type Row } from './values';
 
@@ -17,7 +19,7 @@ import { bool, image, links, mediaObject, merged, num, parseJson, plainText, str
 
 /** Shop columns the summary needs. Brand defaults come from a separate query (D1 caps result columns at ~100). */
 export const SHOP_SUMMARY_COLUMNS = [
-  'document_id', 'name', 'slug', 'brand_document_id', 'location_document_id', 'city_area_document_id',
+  'document_id', 'name', 'pref_name', 'slug', 'brand_document_id', 'location_document_id', 'city_area_document_id',
   'lat', 'lng', 'address', 'google_formatted_address',
   'featured_image_url', 'featured_image_formats', 'opening_hours',
   'has_wifi', 'has_food', 'has_kitchen', 'has_outdoor_space', 'is_pet_friendly',
@@ -66,6 +68,7 @@ export function shopSummary(shop: Row, brand: Row | null): ShopSummary {
     id: shop.document_id,
     slug: str(shop.slug),
     name: str(shop.name)?.trim() ?? '',
+    prefName: str(shop.pref_name)?.trim() || null,
     brandId: str(shop.brand_document_id),
     cityId: str(shop.location_document_id),
     cityAreaId: str(shop.city_area_document_id),
@@ -130,6 +133,26 @@ export function coffeePartner(row: Row): CoffeePartner {
     primaryCategory: str(row.primary_category),
     website: str(row.website),
     instagram: str(row.instagram),
+  };
+}
+
+export function attraction(row: Row): Attraction {
+  const lat = num(row.lat);
+  const lng = num(row.lng);
+  return {
+    id: row.document_id,
+    name: str(row.name)?.trim() ?? '',
+    localName: str(row.local_name),
+    slug: str(row.slug),
+    category: str(row.category),
+    prominence: num(row.prominence) ?? 2,
+    cityId: str(row.location_document_id),
+    cityAreaId: str(row.city_area_document_id),
+    coordinates: lat !== null && lng !== null ? { lat, lng } : null,
+    outline: parseOutline(row.outline),
+    summary: plainText(row.summary),
+    image: image(row.image_url, row.image_formats, row.image_width, row.image_height),
+    website: str(row.website),
   };
 }
 

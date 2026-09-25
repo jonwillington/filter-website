@@ -6,13 +6,15 @@ import type {
   CityArea,
   CityListItem,
   Discover,
+  NearbyAttraction,
   PersonWithPicks,
   ShopDetail,
 } from '../../../types/api-v3';
-import { boundsOf, medianPoint, parseOutline, parsePoint, simplifyOutline } from './geo';
+import { boundsOf, distanceMetres, distanceToLine, medianPoint, parseOutline, parsePoint, simplifyOutline } from './geo';
 import {
   BRAND_SUMMARY_COLUMNS,
   SHOP_SUMMARY_COLUMNS,
+  attraction,
   bean,
   brandSummary,
   coffeePartner,
@@ -100,6 +102,72 @@ async function brandSummaries(
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return { summaries, rows };
+}
+
+// ─── Attractions ──────────────────────────────────────────────────────────────
+
+/** How far away an attraction can still count as nearby, by prominence (1 = famous landmark). */
+const NEARBY_RADIUS_M: Record<number, number> = { 1: 1200, 2: 800, 3: 500 };
+const NEARBY_LIMIT = 3;
+/** Streets wind: straight-line distance × 1.25, walked at 80 m a minute. */
+const WALK_DETOUR = 1.25;
+const WALK_M_PER_MIN = 80;
+
+async function cityAttractions(db: D1Database, cityId: string): Promise<Row[]> {
+  const tables = await existingTables(db);
+  if (!tables.has('attractions')) return [];
+  return all(
+    db,
+    `SELECT a.*, ca.area_group AS area_group FROM attractions a
+     LEFT JOIN city_areas ca ON ca.document_id = a.city_area_document_id
+     WHERE a.location_document_id = ?1
+     ORDER BY IFNULL(a.prominence, 2), a.name`,
+    cityId,
+  );
+}
+
+/**
+ * Attractions within walking distance of a shop. Skips any on the other side of the
+ * water: when both city-area groups are known they must match ("European Side" vs "Asian Side").
+ */
+function nearbyAttractions(shop: Row, shopGroup: string | null, rows: Row[]): NearbyAttraction[] {
+  const lat = num(shop.lat);
+  const lng = num(shop.lng);
+  if (lat === null || lng === null) return [];
+  const here = { lat, lng };
+
+  const nearby: NearbyAttraction[] = [];
+  for (const row of rows) {
+    const group = str(row.area_group);
+    if (shopGroup && group && group !== shopGroup) continue;
+
+    const outline = parseOutline(row.outline);
+    const aLat = num(row.lat);
+    const aLng = num(row.lng);
+    const metres = outline && outline.length > 1
+      ? distanceToLine(here, outline)
+      : aLat !== null && aLng !== null
+        ? distanceMetres(here, { lat: aLat, lng: aLng })
+        : null;
+    if (metres === null) continue;
+
+    const prominence = num(row.prominence) ?? 2;
+    if (metres > (NEARBY_RADIUS_M[prominence] ?? NEARBY_RADIUS_M[3])) continue;
+
+    nearby.push({
+      id: row.document_id,
+      name: str(row.name)?.trim() ?? '',
+      localName: str(row.local_name),
+      category: str(row.category),
+      prominence,
+      distanceMetres: Math.round(metres / 10) * 10,
+      walkMinutes: Math.max(1, Math.round((metres * WALK_DETOUR) / WALK_M_PER_MIN)),
+    });
+  }
+
+  return nearby
+    .sort((a, b) => a.prominence - b.prominence || a.distanceMetres - b.distanceMetres)
+    .slice(0, NEARBY_LIMIT);
 }
 
 function upcomingCutoff(): string {
@@ -200,12 +268,16 @@ export async function getCatalog(db: D1Database, location: Row): Promise<Catalog
   );
 
   const brandIds = shopRows.map(s => s.brand_document_id).filter((id): id is string => typeof id === 'string');
-  const { summaries, rows: brandRows } = await brandSummaries(db, brandIds, true);
+  const [{ summaries, rows: brandRows }, attractionRows] = await Promise.all([
+    brandSummaries(db, brandIds, true),
+    cityAttractions(db, location.document_id),
+  ]);
 
   return {
     cityId: location.document_id,
     shops: shopRows.map(s => shopSummary(s, brandRows.get(s.brand_document_id) ?? null)),
     brands: summaries,
+    attractions: attractionRows.map(attraction),
   };
 }
 
@@ -219,7 +291,7 @@ export async function getShop(db: D1Database, id: string): Promise<ShopDetail | 
   const brandId = str(shop.brand_document_id);
   const partnerId = str(shop.coffee_partner_document_id);
 
-  const [brandFull, brandSummaryResult, area, partner, eventRows] = await Promise.all([
+  const [brandFull, brandSummaryResult, area, partner, eventRows, attractionRows] = await Promise.all([
     brandId ? first(db, `SELECT website, instagram, facebook, tiktok, twitter, youtube, phone FROM brands WHERE document_id = ?1`, brandId) : null,
     brandId ? brandSummaries(db, [brandId], false) : null,
     shop.city_area_document_id
@@ -236,6 +308,7 @@ export async function getShop(db: D1Database, id: string): Promise<ShopDetail | 
           upcomingCutoff(),
         )
       : [],
+    shop.location_document_id ? cityAttractions(db, shop.location_document_id) : [],
   ]);
 
   const brandRow = brandSummaryResult?.rows.get(brandId ?? '') ?? null;
@@ -273,6 +346,7 @@ export async function getShop(db: D1Database, id: string): Promise<ShopDetail | 
           }
         : null,
     events: eventRows.map(e => event(e, shopsByEvent.get(e.document_id) ?? [])),
+    nearbyAttractions: nearbyAttractions(shop, str(area?.area_group), attractionRows),
   };
 }
 
@@ -288,7 +362,7 @@ export async function getBrand(db: D1Database, id: string): Promise<BrandDetail 
     all(db, 'SELECT supplier_document_id FROM brand_suppliers WHERE brand_document_id = ?1', id),
     all(
       db,
-      `SELECT s.document_id, s.name, s.lat, s.lng, s.city_area_name, s.location_document_id,
+      `SELECT s.document_id, s.name, s.pref_name, s.lat, s.lng, s.city_area_name, s.location_document_id,
               COALESCE(l.name, s.location_name) AS location_name, COALESCE(l.slug, s.location_slug) AS location_slug,
               s.featured_image_url, s.featured_image_formats
        FROM shops s LEFT JOIN locations l ON l.document_id = s.location_document_id
@@ -328,6 +402,7 @@ export async function getBrand(db: D1Database, id: string): Promise<BrandDetail 
     group.shops.push({
       id: s.document_id,
       name: str(s.name)?.trim() ?? '',
+      prefName: str(s.pref_name)?.trim() || null,
       cityAreaName: str(s.city_area_name),
       coordinates: lat !== null && lng !== null ? { lat, lng } : null,
       heroImage: image(s.featured_image_url, s.featured_image_formats),

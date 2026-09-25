@@ -211,7 +211,17 @@ const VERSIONED_TABLES: Array<{ table: string; updatedAt: boolean }> = [
   { table: 'news_article_shops', updatedAt: false },
   { table: 'news_article_brands', updatedAt: false },
   { table: 'coffee_partners', updatedAt: true },
+  { table: 'attractions', updatedAt: true },
 ];
+
+/**
+ * Bump whenever response shapes change (e.g. a field is added). It's part of the
+ * content version, so edge-cached responses and client ETags from the previous
+ * shape stop matching even though D1 hasn't changed.
+ *   2: ShopSummary.prefName, BrandShopRef.prefName (2026-09-17)
+ *   3: Catalog.attractions, ShopDetail.nearbyAttractions (2026-09-24)
+ */
+const RESPONSE_SHAPE = 3;
 
 /**
  * A short hash of every table's row count and latest `updated_at`.
@@ -230,7 +240,7 @@ async function contentVersion(db: D1Database): Promise<string> {
   );
   const row = await db.prepare(`SELECT ${parts.join(" || '|' || ")} AS signature`).first<{ signature: string }>();
 
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`v3|${row?.signature ?? ''}`));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`v3|${RESPONSE_SHAPE}|${row?.signature ?? ''}`));
   const version = [...new Uint8Array(digest).slice(0, 8)].map(b => b.toString(16).padStart(2, '0')).join('');
 
   versionCache = { at: Date.now(), version };

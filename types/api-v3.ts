@@ -186,12 +186,22 @@ export interface Catalog {
   shops: ShopSummary[];
   /** Brands of this city's shops, plus their suppliers. */
   brands: BrandSummary[];
+  /** Landmarks, museums, parks and ferry piers in this city. Most prominent first. Added 2026-09-24 (additive). */
+  attractions: Attraction[];
 }
 
 export interface ShopSummary {
   id: string;
   slug: string | null;
+  /** Full CMS name, e.g. "Kronotrop Moda - Istanbul". */
   name: string;
+  /**
+   * Branch name for chain shops, e.g. "Moda". Clients build the display name
+   * from the brand: independent brand → brand name; other brand types →
+   * "Brand · prefName" (or the brand name alone when this is null); no brand → `name`.
+   * Added 2026-09-17 (additive).
+   */
+  prefName: string | null;
   brandId: string | null;
   cityId: string | null;
   cityAreaId: string | null;
@@ -273,6 +283,12 @@ export interface ShopDetail extends ShopSummary {
   coffeePartner: CoffeePartner | null;
   /** Upcoming and ongoing events at this shop, soonest first. */
   events: Event[];
+  /**
+   * Up to 3 attractions within walking distance, most prominent first, then nearest.
+   * Never across the water (the attraction's city-area group must match the shop's).
+   * Added 2026-09-24 (additive).
+   */
+  nearbyAttractions: NearbyAttraction[];
 }
 
 export interface CityAreaRef {
@@ -288,6 +304,50 @@ export interface Menu {
   validFrom: string | null;
   validTo: string | null;
   lastVerified: string | null;
+}
+
+export type AttractionCategory =
+  | 'landmark'
+  | 'religious'
+  | 'palace'
+  | 'museum'
+  | 'market'
+  | 'park'
+  | 'street'
+  | 'venue'
+  | 'ferry';
+
+export interface Attraction {
+  id: string;
+  /** English name, e.g. "Galata Tower". */
+  name: string;
+  /** Local-language name, e.g. "Galata Kulesi". */
+  localName: string | null;
+  slug: string | null;
+  /** One of AttractionCategory. Clients should show a generic icon for values they don't know. */
+  category: string | null;
+  /** 1 = famous landmark, 2 = notable, 3 = local anchor. */
+  prominence: number;
+  cityId: string | null;
+  cityAreaId: string | null;
+  coordinates: Coordinates | null;
+  /** Line along a long street or park edge. Distances use it when present. */
+  outline: Coordinates[] | null;
+  summary: string | null;
+  image: Image | null;
+  website: string | null;
+}
+
+export interface NearbyAttraction {
+  id: string;
+  name: string;
+  localName: string | null;
+  category: string | null;
+  prominence: number;
+  /** Straight-line distance, rounded to 10 m. */
+  distanceMetres: number;
+  /** Walking estimate: distance × 1.25 for street detours at 80 m a minute. At least 1. */
+  walkMinutes: number;
 }
 
 export interface CoffeePartner {
@@ -340,6 +400,8 @@ export interface BrandCityShops {
 export interface BrandShopRef {
   id: string;
   name: string;
+  /** Branch name, see ShopSummary.prefName. Added 2026-09-17 (additive). */
+  prefName: string | null;
   cityAreaName: string | null;
   coordinates: Coordinates | null;
   heroImage: Image | null;
