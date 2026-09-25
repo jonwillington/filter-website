@@ -5,7 +5,7 @@
  * - workers/d1-reseed — nightly full load
  * - workers/api       — Strapi webhook (real-time updates)
  *
- * The same DDL lives in db/schema.sql and db/migrations/0001_native_content.sql (+ 0002_attractions.sql).
+ * The same DDL lives in db/schema.sql and db/migrations/0001_native_content.sql (+ 0002, 0003 for attractions).
  * Keep all three in step.
  */
 
@@ -150,6 +150,7 @@ export const NATIVE_TABLE_DDL: Record<NativeTable, string> = {
     image_width INTEGER,
     image_height INTEGER,
     image_formats TEXT,
+    image_credit TEXT,
     updated_at TEXT,
     published_at TEXT
   )`,
@@ -234,8 +235,13 @@ export const NATIVE_MODELS = {
       'populate[city_area][fields][0]': 'documentId',
       'populate[image]': 'true',
     },
-    /** Added 2026-09-24. The reseed skips it (empty table) if Strapi refuses the endpoint, rather than failing the whole run. */
+    /**
+     * Added 2026-09-24. If Strapi refuses the endpoint (e.g. a token without this
+     * type's permission), the reseed keeps the live rows of `tables` instead of
+     * failing the whole run or swapping in an empty table.
+     */
     optional: true,
+    tables: ['attractions'],
   },
 } as const;
 
@@ -451,6 +457,7 @@ export function upsertStatements(
           image_width: num(entry.image?.width),
           image_height: num(entry.image?.height),
           image_formats: json(entry.image?.formats),
+          image_credit: str(entry.imageCredit),
           updated_at: str(entry.updatedAt),
           published_at: str(entry.publishedAt),
         }),

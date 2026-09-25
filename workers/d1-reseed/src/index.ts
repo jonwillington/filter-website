@@ -605,6 +605,8 @@ interface StrapiData {
   shops: any[];
   native: Record<NativeModel, any[]>;
   shopEvents: any[];
+  /** Optional models Strapi refused this run; their live rows are carried over. */
+  skipped: NativeModel[];
 }
 
 const SHOP_PARAMS: Record<string, string> = {
@@ -656,18 +658,20 @@ async function fetchAll(env: Env, log: string[], updatedSince?: string): Promise
   const shops = await get('shops', SHOP_PARAMS);
 
   const native = {} as Record<NativeModel, any[]>;
+  const skipped: NativeModel[] = [];
   for (const [model, config] of Object.entries(NATIVE_MODELS) as Array<[NativeModel, (typeof NATIVE_MODELS)[NativeModel]]>) {
     try {
       native[model] = await get(config.endpoint, { ...config.params });
     } catch (err) {
       if (!('optional' in config && config.optional)) throw err;
-      log.push(`  ${config.endpoint} skipped (${err instanceof Error ? err.message : String(err)})`);
+      log.push(`  ${config.endpoint} skipped, keeping live rows (${err instanceof Error ? err.message : String(err)})`);
       native[model] = [];
+      skipped.push(model);
     }
   }
   const shopEvents = await get('shops', { ...SHOP_EVENTS_PARAMS });
 
-  return { countries, locations, cityAreas, brands, shops, native, shopEvents };
+  return { countries, locations, cityAreas, brands, shops, native, shopEvents, skipped };
 }
 
 /**
@@ -727,6 +731,23 @@ function buildStatements(db: D1Database, data: StrapiData, suffix: string, repla
 
 // ─── Main handler ──────────────────────────────────────────────────────────────
 
+/** Copy live rows into `__next` for optional models Strapi refused, so a permission gap never empties a table. */
+async function carryOverSkipped(db: D1Database, skipped: NativeModel[], log: string[]): Promise<void> {
+  for (const model of skipped) {
+    const config = NATIVE_MODELS[model];
+    const tables: readonly string[] = 'tables' in config ? config.tables : [];
+    for (const table of tables) {
+      const live = await db.prepare(`SELECT name FROM pragma_table_info('${table}')`).all<{ name: string }>();
+      if (live.results.length === 0) continue;
+      const next = await db.prepare(`SELECT name FROM pragma_table_info('${table}${NEXT_SUFFIX}')`).all<{ name: string }>();
+      const liveCols = new Set(live.results.map(r => r.name));
+      const cols = next.results.map(r => r.name).filter(c => liveCols.has(c)).join(', ');
+      await db.prepare(`INSERT INTO ${table}${NEXT_SUFFIX} (${cols}) SELECT ${cols} FROM ${table}`).run();
+      log.push(`  ${table}: kept live rows`);
+    }
+  }
+}
+
 async function handleScheduled(env: Env): Promise<string> {
   const log: string[] = [];
   const start = Date.now();
@@ -750,6 +771,7 @@ async function handleScheduled(env: Env): Promise<string> {
   const statements = buildStatements(env.DB, data, NEXT_SUFFIX, false);
   await executeBatch(env.DB, statements);
   log.push(`  ${statements.length} statements`);
+  await carryOverSkipped(env.DB, data.skipped, log);
 
   // 3. Swap in one transaction.
   log.push('Swapping tables...');

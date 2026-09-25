@@ -152,6 +152,7 @@ export function attraction(row: Row): Attraction {
     outline: parseOutline(row.outline),
     summary: plainText(row.summary),
     image: image(row.image_url, row.image_formats, row.image_width, row.image_height),
+    imageCredit: str(row.image_credit),
     website: str(row.website),
   };
 }

@@ -220,8 +220,9 @@ const VERSIONED_TABLES: Array<{ table: string; updatedAt: boolean }> = [
  * shape stop matching even though D1 hasn't changed.
  *   2: ShopSummary.prefName, BrandShopRef.prefName (2026-09-17)
  *   3: Catalog.attractions, ShopDetail.nearbyAttractions (2026-09-24)
+ *   4: Attraction.imageCredit (2026-09-25)
  */
-const RESPONSE_SHAPE = 3;
+const RESPONSE_SHAPE = 4;
 
 /**
  * A short hash of every table's row count and latest `updated_at`.

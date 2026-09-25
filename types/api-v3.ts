@@ -335,6 +335,8 @@ export interface Attraction {
   outline: Coordinates[] | null;
   summary: string | null;
   image: Image | null;
+  /** Photographer and licence, e.g. "A.Savin, FAL, via Wikimedia Commons". Show it wherever `image` is shown. Added 2026-09-25. */
+  imageCredit: string | null;
   website: string | null;
 }
 

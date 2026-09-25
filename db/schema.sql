@@ -553,6 +553,7 @@ CREATE TABLE IF NOT EXISTS attractions (
   image_width INTEGER,
   image_height INTEGER,
   image_formats TEXT,
+  image_credit TEXT,
   updated_at TEXT,
   published_at TEXT
 );

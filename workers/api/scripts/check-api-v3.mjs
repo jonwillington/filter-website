@@ -128,7 +128,7 @@ const ShopDetail = {
 const Attraction = {
   id: 'string', name: 'string', localName: n('string'), slug: n('string'), category: n('string'), prominence: 'number',
   cityId: n('string'), cityAreaId: n('string'), coordinates: n(Coordinates), outline: n(arr(Coordinates)),
-  summary: n('string'), image: n(Image), website: n('string'),
+  summary: n('string'), image: n(Image), imageCredit: n('string'), website: n('string'),
 };
 const CountryRef = { name: n('string'), code: n('string') };
 const BrandDetail = {
