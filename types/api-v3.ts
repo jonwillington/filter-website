@@ -209,6 +209,11 @@ export interface ShopSummary {
   address: string | null;
   heroImage: Image | null;
   openingHours: OpeningHours | null;
+  /**
+   * The shop's Google Maps rating, from the Places API (refreshed by the CMS, not live).
+   * Null when the shop has no verified place or no reviews yet. Added 2026-09-26 (additive).
+   */
+  googleRating: GoogleRating | null;
   /** Shop value, falling back to the brand's default. */
   amenities: Amenities;
   /** Shop value, falling back to the brand's default. */
@@ -219,6 +224,13 @@ export interface ShopSummary {
   /** Taste-matching tags, e.g. { look: { minimal: 1 }, special: { roastery: 2 } }. */
   preferenceProfile: Record<string, Record<string, number>> | null;
   updatedAt: string | null;
+}
+
+export interface GoogleRating {
+  /** 1–5, one decimal place, as Google shows it. */
+  stars: number;
+  /** How many Google reviews the rating is from. Always at least 1. */
+  reviewCount: number;
 }
 
 export interface Amenities {

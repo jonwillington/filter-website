@@ -6,6 +6,7 @@ import type {
   BrewMethods,
   CoffeePartner,
   Event,
+  GoogleRating,
   Menu,
   NewsArticle,
   Person,
@@ -20,7 +21,7 @@ import { bool, image, links, mediaObject, merged, num, parseJson, plainText, str
 /** Shop columns the summary needs. Brand defaults come from a separate query (D1 caps result columns at ~100). */
 export const SHOP_SUMMARY_COLUMNS = [
   'document_id', 'name', 'pref_name', 'slug', 'brand_document_id', 'location_document_id', 'city_area_document_id',
-  'lat', 'lng', 'address', 'google_formatted_address',
+  'lat', 'lng', 'address', 'google_formatted_address', 'google_rating', 'google_review_count',
   'featured_image_url', 'featured_image_formats', 'opening_hours',
   'has_wifi', 'has_food', 'has_kitchen', 'has_outdoor_space', 'is_pet_friendly',
   'has_espresso', 'has_filter_coffee', 'has_v60', 'has_chemex', 'has_aeropress', 'has_french_press',
@@ -76,6 +77,7 @@ export function shopSummary(shop: Row, brand: Row | null): ShopSummary {
     address: str(shop.google_formatted_address) ?? str(shop.address),
     heroImage: image(shop.featured_image_url, shop.featured_image_formats),
     openingHours: parseOpeningHours(shop.opening_hours),
+    googleRating: googleRating(shop),
     amenities,
     brewMethods,
     recommendations: {
@@ -89,6 +91,14 @@ export function shopSummary(shop: Row, brand: Row | null): ShopSummary {
     preferenceProfile: parseJson(shop.preference_profile),
     updatedAt: str(shop.updated_at),
   };
+}
+
+/** Both numbers or neither: a rating with no count (or a count with no rating) is dropped. */
+function googleRating(shop: Row): GoogleRating | null {
+  const stars = num(shop.google_rating);
+  const reviewCount = num(shop.google_review_count);
+  if (stars === null || reviewCount === null || stars <= 0 || reviewCount <= 0) return null;
+  return { stars, reviewCount: Math.round(reviewCount) };
 }
 
 export function brandSummary(brand: Row, supplierIds: string[]): BrandSummary {

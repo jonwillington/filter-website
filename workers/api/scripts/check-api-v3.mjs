@@ -97,6 +97,7 @@ const bools = keys => Object.fromEntries(keys.map(k => [k, n('boolean')]));
 const ShopSummary = {
   id: 'string', slug: n('string'), name: 'string', prefName: n('string'), brandId: n('string'), cityId: n('string'), cityAreaId: n('string'),
   coordinates: n(Coordinates), address: n('string'), heroImage: n(Image), openingHours: n(OpeningHours),
+  googleRating: n({ stars: 'number', reviewCount: 'number' }),
   amenities: bools(['wifi', 'food', 'outdoorSeating', 'petFriendly', 'oatMilk', 'plantMilk']),
   brewMethods: bools(['espresso', 'filter', 'v60', 'chemex', 'aeropress', 'frenchPress', 'coldBrew', 'batchBrew', 'siphon', 'turkishCoffee', 'slowBar']),
   recommendations: { cityArea: n('boolean'), cityAreaReason: n('string'), working: n('boolean'), interior: n('boolean'), brewing: n('boolean') },

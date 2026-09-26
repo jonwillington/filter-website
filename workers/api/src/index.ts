@@ -221,8 +221,9 @@ const VERSIONED_TABLES: Array<{ table: string; updatedAt: boolean }> = [
  *   2: ShopSummary.prefName, BrandShopRef.prefName (2026-09-17)
  *   3: Catalog.attractions, ShopDetail.nearbyAttractions (2026-09-24)
  *   4: Attraction.imageCredit (2026-09-25)
+ *   5: ShopSummary.googleRating (2026-09-26)
  */
-const RESPONSE_SHAPE = 4;
+const RESPONSE_SHAPE = 5;
 
 /**
  * A short hash of every table's row count and latest `updated_at`.
