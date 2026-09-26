@@ -1,0 +1,56 @@
+name: Workers check
+
+# Type-checks and tests the Cloudflare Workers (native API + D1 reseed).
+# Does not deploy anything: workers deploy with `wrangler deploy`.
+
+on:
+  pull_request:
+    paths:
+      - 'workers/**'
+      - 'types/api-v3.ts'
+      - 'db/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'workers/**'
+      - 'types/api-v3.ts'
+      - 'db/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: API worker — install
+        working-directory: workers/api
+        run: npm ci
+
+      - name: API worker — typecheck
+        working-directory: workers/api
+        run: npx tsc --noEmit -p .
+
+      - name: API worker — opening hours tests
+        working-directory: workers/api
+        run: node scripts/test-hours.mjs
+
+      - name: Migration matches shared DDL
+        working-directory: workers/api
+        run: |
+          node scripts/print-native-ddl.mjs > /tmp/0001_native_content.sql
+          diff -u ../../db/migrations/0001_native_content.sql /tmp/0001_native_content.sql
+
+      - name: Reseed worker — install
+        working-directory: workers/d1-reseed
+        run: npm ci
+
+      - name: Reseed worker — typecheck
+        working-directory: workers/d1-reseed
+        run: npx tsc --noEmit -p .

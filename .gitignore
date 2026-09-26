@@ -57,3 +57,8 @@ Thumbs.db
 
 # Wrangler local state
 .wrangler/
+workers/.wrangler-local/
+.dev.vars
+
+# Worker dependencies
+workers/*/node_modules/

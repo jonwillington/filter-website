@@ -1,0 +1,18 @@
+name = "d1-reseed"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "filter-db"
+database_id = "bd805713-96be-45b4-b26d-d45937360d36"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[vars]
+STRAPI_URL = "https://helpful-oasis-8bb949e05d.strapiapp.com/api"
+
+# STRAPI_TOKEN set via: npx wrangler secret put STRAPI_TOKEN
+# RESEED_SECRET set via: npx wrangler secret put RESEED_SECRET (required by GET /reseed as x-reseed-secret)

@@ -13,8 +13,8 @@ export async function getDB(): Promise<D1Database | null> {
   }
 }
 
-/** Production API base URL for dev proxy fallback */
-const PROD_API = 'https://filter-website.pages.dev';
+/** Production API base URL for dev proxy fallback. Override with D1_DEV_PROXY_URL. */
+const PROD_API = process.env.D1_DEV_PROXY_URL || 'https://filter-website.pages.dev';
 
 /**
  * Proxy a request to the production API.
